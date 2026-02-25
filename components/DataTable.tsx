@@ -32,10 +32,11 @@ export function DataTable({ records }: DataTableProps) {
     let aVal = a[sortField];
     let bVal = b[sortField];
 
-    if (sortField === 'date') {
-      aVal = new Date(aVal as Date).getTime();
-      bVal = new Date(bVal as Date).getTime();
-    }
+  if (sortField === 'date') {
+    const aTime = new Date(aVal as Date).getTime();
+    const bTime = new Date(bVal as Date).getTime();
+    return sortDirection === 'asc' ? aTime - bTime : bTime - aTime;
+  }
 
     if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
     if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
