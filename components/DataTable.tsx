@@ -29,14 +29,14 @@ export function DataTable({ records }: DataTableProps) {
 
   // Sort
   const sortedRecords = [...filteredRecords].sort((a, b) => {
-    let aVal = a[sortField];
-    let bVal = b[sortField];
+    let aVal: string | Date | number = a[sortField];
+    let bVal: string | Date | number = b[sortField];
 
-  if (sortField === 'date') {
-    const aTime = new Date(aVal as Date).getTime();
-    const bTime = new Date(bVal as Date).getTime();
-    return sortDirection === 'asc' ? aTime - bTime : bTime - aTime;
-  }
+    if (sortField === 'date') {
+      const aTime = new Date(aVal as Date).getTime();
+      const bTime = new Date(bVal as Date).getTime();
+      return sortDirection === 'asc' ? aTime - bTime : bTime - aTime;
+    }
 
     if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
     if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
