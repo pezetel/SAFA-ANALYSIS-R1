@@ -33,33 +33,33 @@ export default function Home() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-5 mb-8">
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="bg-blue-100 w-11 h-11 rounded-lg flex items-center justify-center mb-3">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="bg-blue-100 w-9 h-9 rounded-lg flex items-center justify-center mb-2.5">
+              <TrendingUp className="h-4 w-4 text-blue-600" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Trend Analizi</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1.5">Trend Analizi</h3>
+            <p className="text-xs text-gray-600">
               6 aylık periyotlarda detaylı trend analizi, zaman serisi grafikleri ve tahminler
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="bg-green-100 w-11 h-11 rounded-lg flex items-center justify-center mb-3">
-              <BarChart3 className="h-5 w-5 text-green-600" />
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="bg-green-100 w-9 h-9 rounded-lg flex items-center justify-center mb-2.5">
+              <BarChart3 className="h-4 w-4 text-green-600" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Çok Boyutlu Analiz</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1.5">Çok Boyutlu Analiz</h3>
+            <p className="text-xs text-gray-600">
               Uçak, ATA kodu, bulgu tipi bazlı gruplandırılmış detaylı raporlar
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="bg-orange-100 w-11 h-11 rounded-lg flex items-center justify-center mb-3">
-              <AlertCircle className="h-5 w-5 text-orange-600" />
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="bg-orange-100 w-9 h-9 rounded-lg flex items-center justify-center mb-2.5">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Akıllı Uyarılar</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1.5">Akıllı Uyarılar</h3>
+            <p className="text-xs text-gray-600">
               Kronik problemlerin tespiti, risk skorlama ve proaktif bakım önerileri
             </p>
           </div>

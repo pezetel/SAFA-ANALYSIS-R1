@@ -45,13 +45,13 @@ export function TopProblems({ records }: TopProblemsProps) {
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">En Sık Görülen Problemler</h2>
-          <p className="text-sm text-gray-600 mt-1">Komponent bazında top 10 problem (Tıklayarak detayları görün)</p>
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="mb-4">
+          <h2 className="text-base font-bold text-gray-900">En Sık Görülen Problemler</h2>
+          <p className="text-xs text-gray-600 mt-1">Komponent bazında top 10 problem (Tıklayarak detayları görün)</p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {topComponents.map(([component, count], index) => {
             const percentage = (count / records.length) * 100;
             const aircraftCount = componentAircraft[component]?.size || 0;
@@ -61,26 +61,26 @@ export function TopProblems({ records }: TopProblemsProps) {
               <button
                 key={component}
                 onClick={() => handleComponentClick(component)}
-                className="w-full space-y-2 text-left hover:bg-gray-50 p-3 rounded-lg transition-colors group"
+                className="w-full space-y-1.5 text-left hover:bg-gray-50 p-2.5 rounded-lg transition-colors group"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-lg font-bold text-sm">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center w-7 h-7 bg-blue-100 text-blue-600 rounded-lg font-bold text-xs">
                       {index + 1}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-sm text-gray-900">
                           {component}
                         </span>
                         {isChronic && (
-                          <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
-                            <AlertTriangle className="h-3 w-3" />
+                          <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                            <AlertTriangle className="h-2.5 w-2.5" />
                             Kronik
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                      <div className="flex items-center gap-2.5 text-xs text-gray-500 mt-0.5">
                         <span className="flex items-center gap-1">
                           <Package className="h-3 w-3" />
                           {count} bulgu
@@ -92,15 +92,15 @@ export function TopProblems({ records }: TopProblemsProps) {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <div className="text-right">
-                      <div className="font-bold text-gray-900">{count}</div>
+                      <div className="font-bold text-sm text-gray-900">{count}</div>
                       <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                   </div>
                 </div>
-                <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="relative h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className={`absolute left-0 top-0 h-full rounded-full transition-all ${
                       isChronic ? 'bg-red-500' : 'bg-blue-500'
@@ -113,9 +113,9 @@ export function TopProblems({ records }: TopProblemsProps) {
           })}
         </div>
 
-        <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between text-sm">
+        <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 text-gray-600">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
             <span>Kronik Problem: 5+ farklı uçakta görülen sorunlar</span>
           </div>
         </div>
