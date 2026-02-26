@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { DashboardStats } from '@/components/DashboardStats';
 import { TrendChart } from '@/components/TrendChart';
 import { AircraftHeatmap } from '@/components/AircraftHeatmap';
+import { ATAHeatmap } from '@/components/ATAHeatmap';
 import { ATADistribution } from '@/components/ATADistribution';
 import { ProblemTypeChart } from '@/components/ProblemTypeChart';
 import { TopProblems } from '@/components/TopProblems';
@@ -303,6 +304,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             <TrendChart records={filteredData} />
             <AircraftHeatmap records={filteredData} />
+            <ATAHeatmap records={filteredData} />
           </div>
         )}
 

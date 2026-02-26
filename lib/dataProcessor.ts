@@ -6,12 +6,12 @@ const COLUMN_ALIASES = {
   ata: ['ata', 'ata code', 'ata chapter'],
   aircraft: ['a/c', 'ac', 'aircraft', 'registration', 'tail number'],
   paragraph: ['paragraph no', 'paragraph', 'parag', 'parag no'],
-  description: ['description', '\u00e7\u0131klama', 'finding', 'desc'],
+  description: ['description', 'aciklama', 'finding', 'desc'],
 };
 
 export function processExcelData(rawData: any[]): SAFARecord[] {
   if (!rawData || rawData.length === 0) {
-    throw new Error('Excel dosyas\u0131 bo\u015f veya ge\u00e7ersiz');
+    throw new Error('Excel dosyasi bos veya gecersiz');
   }
 
   const normalizedData = rawData.map(row => {
@@ -36,10 +36,10 @@ export function processExcelData(rawData: any[]): SAFARecord[] {
   });
 
   if (!columnMap.date) {
-    throw new Error('Tarih kolonu bulunamad\u0131 (W/O Date)');
+    throw new Error('Tarih kolonu bulunamadi (W/O Date)');
   }
   if (!columnMap.description) {
-    throw new Error('A\u00e7\u0131klama kolonu bulunamad\u0131 (Description)');
+    throw new Error('Aciklama kolonu bulunamadi (Description)');
   }
 
   const records: SAFARecord[] = [];
@@ -85,7 +85,7 @@ export function processExcelData(rawData: any[]): SAFARecord[] {
   });
 
   if (records.length === 0) {
-    throw new Error('\u0130\u015flenebilir veri bulunamad\u0131');
+    throw new Error('Islenebilir veri bulunamadi');
   }
 
   return records;
@@ -208,13 +208,25 @@ function extractComponent(description: string): string {
     { keywords: ['OXYGEN', 'OXY BOTTLE'], component: 'OXYGEN' },
     { keywords: ['MIRROR'], component: 'MIRROR' },
     { keywords: ['CARPET', 'FLOOR MAT'], component: 'CARPET' },
-    { keywords: ['ENGINE', '#1 ENG', '#2 ENG', 'FAN BLADE'], component: 'ENGINE' },
+    // Kruger Flap ve diger yapisal parcalar ENGINE'den once
+    { keywords: ['KRUGER FLAP', 'KRUGER'], component: 'KRUGER_FLAP' },
+    { keywords: ['SLAT'], component: 'SLAT' },
+    { keywords: ['FLAP'], component: 'FLAP' },
+    // Engine kontrolu - sadece gercek engine parcalari
+    { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON'], component: 'ENGINE' },
     { keywords: ['LANDING LIGHT', 'LANDING GEAR'], component: 'LANDING_GEAR' },
     { keywords: ['WATER SERVICE', 'POTABLE WATER', 'PORTABLE WATER'], component: 'WATER_SYSTEM' },
     { keywords: ['BONDING WIRE', 'BONDING'], component: 'BONDING' },
     { keywords: ['HINGE'], component: 'HINGE' },
     { keywords: ['LATCH'], component: 'LATCH' },
-    { keywords: ['TRIM', 'PANEL'], component: 'TRIM_PANEL' },
+    // Spesifik panel turleri
+    { keywords: ['FLOOR PANEL'], component: 'FLOOR_PANEL' },
+    { keywords: ['CEILING PANEL'], component: 'CEILING_PANEL' },
+    { keywords: ['DOOR PANEL'], component: 'DOOR_PANEL' },
+    { keywords: ['SIDE PANEL', 'WALL PANEL'], component: 'SIDE_PANEL' },
+    { keywords: ['TRIM PANEL'], component: 'TRIM_PANEL' },
+    // Genel panel (eger spesifik eslesme yoksa)
+    { keywords: ['PANEL', 'TRIM'], component: 'PANEL' },
     { keywords: ['SEAT'], component: 'SEAT' },
     { keywords: ['DOOR'], component: 'DOOR' },
     { keywords: ['LIGHT'], component: 'LIGHT' },

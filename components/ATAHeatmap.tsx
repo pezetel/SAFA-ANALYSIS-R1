@@ -6,32 +6,32 @@ import { tr } from 'date-fns/locale';
 import { useState } from 'react';
 import { DetailModal } from './DetailModal';
 
-interface AircraftHeatmapProps {
+interface ATAHeatmapProps {
   records: SAFARecord[];
 }
 
-export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
-  const [selectedCell, setSelectedCell] = useState<{ aircraft: string; month: string } | null>(null);
+export function ATAHeatmap({ records }: ATAHeatmapProps) {
+  const [selectedCell, setSelectedCell] = useState<{ ata: string; month: string } | null>(null);
   const [modalRecords, setModalRecords] = useState<SAFARecord[]>([]);
 
-  const aircraft = Array.from(new Set(records.map(r => r.aircraft))).sort();
+  const ataList = Array.from(new Set(records.map(r => r.ata))).sort();
   const months = Array.from(
     new Set(records.map(r => format(startOfMonth(new Date(r.date)), 'yyyy-MM')))
   ).sort();
 
   const heatmapData: Record<string, Record<string, number>> = {};
   
-  aircraft.forEach(ac => {
-    heatmapData[ac] = {};
+  ataList.forEach(ata => {
+    heatmapData[ata] = {};
     months.forEach(month => {
-      heatmapData[ac][month] = 0;
+      heatmapData[ata][month] = 0;
     });
   });
 
   records.forEach(record => {
     const month = format(startOfMonth(new Date(record.date)), 'yyyy-MM');
-    if (heatmapData[record.aircraft] && heatmapData[record.aircraft][month] !== undefined) {
-      heatmapData[record.aircraft][month]++;
+    if (heatmapData[record.ata] && heatmapData[record.ata][month] !== undefined) {
+      heatmapData[record.ata][month]++;
     }
   });
 
@@ -48,21 +48,21 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
     return 'bg-green-200';
   };
 
-  const topAircraft = Object.entries(heatmapData)
-    .map(([ac, data]) => [ac, Object.values(data).reduce((a, b) => a + b, 0)] as [string, number])
+  const topATA = Object.entries(heatmapData)
+    .map(([ata, data]) => [ata, Object.values(data).reduce((a, b) => a + b, 0)] as [string, number])
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
-    .map(([ac]) => ac);
+    .map(([ata]) => ata);
 
-  const handleCellClick = (aircraft: string, month: string) => {
+  const handleCellClick = (ata: string, month: string) => {
     const filtered = records.filter(r => {
       const recordMonth = format(startOfMonth(new Date(r.date)), 'yyyy-MM');
-      return r.aircraft === aircraft && recordMonth === month;
+      return r.ata === ata && recordMonth === month;
     });
     
     if (filtered.length > 0) {
       setModalRecords(filtered);
-      setSelectedCell({ aircraft, month });
+      setSelectedCell({ ata, month });
     }
   };
 
@@ -70,8 +70,8 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
     <>
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <div className="mb-4">
-          <h2 className="text-base font-bold text-gray-900">Uçak-Zaman Heat Map</h2>
-          <p className="text-xs text-gray-600 mt-0.5">Aylık bulgu yoğunluğu (Top 10 uçak) - Hücrelere tıklayarak detayları görün</p>
+          <h2 className="text-base font-bold text-gray-900">ATA Chapter-Zaman Heat Map</h2>
+          <p className="text-xs text-gray-600 mt-0.5">Sistem bazlı aylık bulgu yoğunluğu (Top 10 ATA) - Hücrelere tıklayarak detayları görün</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -79,7 +79,7 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
             <thead>
               <tr>
                 <th className="text-left p-1.5 font-semibold text-gray-700 border-b-2 border-gray-200">
-                  Uçak
+                  ATA Chapter
                 </th>
                 {months.map(month => (
                   <th key={month} className="p-1.5 text-center font-medium text-gray-700 border-b-2 border-gray-200">
@@ -92,24 +92,24 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
               </tr>
             </thead>
             <tbody>
-              {topAircraft.map(ac => {
-                const total = Object.values(heatmapData[ac]).reduce((a, b) => a + b, 0);
+              {topATA.map(ata => {
+                const total = Object.values(heatmapData[ata]).reduce((a, b) => a + b, 0);
                 return (
-                  <tr key={ac} className="hover:bg-gray-50">
+                  <tr key={ata} className="hover:bg-gray-50">
                     <td className="p-1.5 font-medium text-gray-900 border-b border-gray-100">
-                      {ac}
+                      {ata}
                     </td>
                     {months.map(month => {
-                      const value = heatmapData[ac][month];
+                      const value = heatmapData[ata][month];
                       return (
                         <td key={month} className="p-0.5 border-b border-gray-100">
                           <button
-                            onClick={() => handleCellClick(ac, month)}
+                            onClick={() => handleCellClick(ata, month)}
                             disabled={value === 0}
                             className={`w-full h-8 flex items-center justify-center rounded font-semibold text-xs transition-all ${
                               getColor(value)
                             } ${
-                              value > 0 ? 'hover:ring-2 hover:ring-blue-400 cursor-pointer' : 'cursor-default'
+                              value > 0 ? 'hover:ring-2 hover:ring-purple-400 cursor-pointer' : 'cursor-default'
                             }`}
                           >
                             {value > 0 ? value : ''}
@@ -127,10 +127,10 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
           </table>
         </div>
 
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div className="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-3">
           <div className="flex items-start gap-2 mb-2">
-            <span className="text-xs font-semibold text-blue-900">📊 Renk Skalası:</span>
-            <span className="text-xs text-blue-700">Her hücredeki sayı o ay için bulgu sayısını gösterir</span>
+            <span className="text-xs font-semibold text-purple-900">📊 Renk Skalası:</span>
+            <span className="text-xs text-purple-700">Hangi sistemde hangi ayda kaç bulgu olduğunu gösterir</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-700">
             <div className="flex items-center gap-1.5">
@@ -157,7 +157,7 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
         <DetailModal
           isOpen={!!selectedCell}
           onClose={() => setSelectedCell(null)}
-          title={`${selectedCell.aircraft} - ${format(new Date(selectedCell.month + '-01'), 'MMMM yyyy', { locale: tr })}`}
+          title={`ATA ${selectedCell.ata} - ${format(new Date(selectedCell.month + '-01'), 'MMMM yyyy', { locale: tr })}`}
           records={modalRecords}
         />
       )}
