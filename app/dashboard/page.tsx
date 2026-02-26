@@ -10,29 +10,112 @@ import { TopProblems } from '@/components/TopProblems';
 import { FilterPanel } from '@/components/FilterPanel';
 import { DataTable } from '@/components/DataTable';
 import { SAFARecord, AnalysisResult } from '@/lib/types';
-import { ArrowLeft, Download, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Dashboard() {
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [filteredData, setFilteredData] = useState<SAFARecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      const response = await fetch('/api/analyze');
-      if (response.ok) {
-        const result = await response.json();
-        setData(result);
-        setFilteredData(result.records);
+      // Load data from localStorage
+      const savedData = localStorage.getItem('safaData');
+      
+      if (!savedData) {
+        setError('Henüz veri yüklenmedi');
+        setLoading(false);
+        return;
       }
+
+      const records: SAFARecord[] = JSON.parse(savedData);
+      
+      // Convert date strings back to Date objects
+      const processedRecords = records.map(r => ({
+        ...r,
+        date: new Date(r.date)
+      }));
+
+      // Calculate statistics
+      const aircraftCounts = processedRecords.reduce((acc, record) => {
+        acc[record.aircraft] = (acc[record.aircraft] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const ataCounts = processedRecords.reduce((acc, record) => {
+        acc[record.ata] = (acc[record.ata] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const problemTypeCounts = processedRecords.reduce((acc, record) => {
+        acc[record.problemType] = (acc[record.problemType] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const componentCounts = processedRecords.reduce((acc, record) => {
+        if (record.component) {
+          acc[record.component] = (acc[record.component] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Time series data
+      const timeSeriesData = processedRecords.reduce((acc, record) => {
+        const monthKey = new Date(record.date).toISOString().slice(0, 7);
+        if (!acc[monthKey]) {
+          acc[monthKey] = [];
+        }
+        acc[monthKey].push(record);
+        return acc;
+      }, {} as Record<string, SAFARecord[]>);
+
+      // Top problems
+      const topProblems = Object.entries(componentCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10)
+        .map(([component, count]) => ({ component, count }));
+
+      // Top aircraft
+      const topAircraft = Object.entries(aircraftCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10)
+        .map(([aircraft, count]) => ({ aircraft, count }));
+
+      const result: AnalysisResult = {
+        records: processedRecords,
+        statistics: {
+          totalRecords: processedRecords.length,
+          uniqueAircraft: Object.keys(aircraftCounts).length,
+          uniqueATA: Object.keys(ataCounts).length,
+          dateRange: {
+            start: new Date(Math.min(...processedRecords.map(r => new Date(r.date).getTime()))),
+            end: new Date(Math.max(...processedRecords.map(r => new Date(r.date).getTime()))),
+          },
+        },
+        aircraftCounts,
+        ataCounts,
+        problemTypeCounts,
+        componentCounts,
+        timeSeriesData,
+        topProblems,
+        topAircraft,
+      };
+
+      setData(result);
+      setFilteredData(processedRecords);
     } catch (error) {
       console.error('Error loading data:', error);
+      setError('Veri yüklenirken hata oluştu');
     } finally {
       setLoading(false);
     }
@@ -82,8 +165,8 @@ export default function Dashboard() {
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
+      ...rows.map(row => row.map(cell => `\"${cell}\"`).join(','))
+    ].join('\\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -97,18 +180,30 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Veriler analiz ediliyor...</p>
+          <p className="text-gray-600">Veriler yüklenyor...</p>
         </div>
       </div>
     );
   }
 
-  if (!data) {
+  if (error || !data) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Henüz veri yüklenmedi</p>
-          <Link href="/" className="text-blue-600 hover:underline">Ana sayfaya dön</Link>
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Henüz veri yüklenmedi</h2>
+            <p className="text-gray-600 mb-6">
+              {error || 'Dashboard\'u görüntülemek için önce bir Excel dosyası yüklemeniz gerekmektedir.'}
+            </p>
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              Ana sayfaya dön ve dosya yükle
+            </Link>
+          </div>
         </div>
       </div>
     );

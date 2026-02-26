@@ -2,6 +2,8 @@
 
 import { useState, useRef } from 'react';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { processExcelData } from '@/lib/dataProcessor';
 
 interface FileUploadProps {
   onUploadSuccess: () => void;
@@ -23,46 +25,82 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
     setStatus('idle');
     setMessage('');
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      // Read Excel file on client-side
+      const bytes = await file.arrayBuffer();
+      const workbook = XLSX.read(bytes, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const rawData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
 
-      const result = await response.json();
+      // Process data on client-side
+      const processedData = processExcelData(rawData);
 
-      if (response.ok) {
-        setStatus('success');
-        setMessage(result.message || 'Dosya başarıyla yüklendi');
-        setTimeout(() => {
-          onUploadSuccess();
-        }, 1500);
-      } else {
-        setStatus('error');
-        setMessage(result.error || 'Dosya yüklenirken hata oluştu');
-      }
-    } catch (error) {
+      // Save to localStorage
+      localStorage.setItem('safaData', JSON.stringify(processedData));
+      localStorage.setItem('safaDataTimestamp', new Date().toISOString());
+
+      setStatus('success');
+      setMessage(`${processedData.length} kayıt başarıyla yüklendi ve işlendi`);
+      
+      // Wait a bit before redirecting to show success message
+      setTimeout(() => {
+        onUploadSuccess();
+      }, 1500);
+    } catch (error: any) {
+      console.error('Upload error:', error);
       setStatus('error');
-      setMessage('Bağlantı hatası oluştu');
+      setMessage(error.message || 'Dosya işlenirken hata oluştu. Lütfen Excel formatını kontrol edin.');
     } finally {
       setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleClick = () => {
-    fileInputRef.current?.click();
+    if (!uploading) {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (uploading) return;
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+      // Simulate file input change
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      if (fileInputRef.current) {
+        fileInputRef.current.files = dataTransfer.files;
+        handleFileChange({ target: fileInputRef.current } as any);
+      }
+    } else {
+      setStatus('error');
+      setMessage('Lütfen geçerli bir Excel dosyası (.xlsx veya .xls) yükleyin');
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   return (
     <div className="space-y-4">
       <div
         onClick={handleClick}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
         className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all ${
           uploading
-            ? 'border-blue-300 bg-blue-50'
+            ? 'border-blue-300 bg-blue-50 cursor-not-allowed'
             : 'border-gray-300 hover:border-blue-500 hover:bg-gray-50'
         }`}
       >
@@ -86,7 +124,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
 
           <div>
             <p className="text-lg font-semibold text-gray-900 mb-1">
-              {uploading ? 'Dosya yükleniyor...' : 'Excel dosyasını sürükleyin veya tıklayın'}
+              {uploading ? 'Dosya işleniyor...' : 'Excel dosyasını sürükleyin veya tıklayın'}
             </p>
             <p className="text-sm text-gray-500">
               {fileName || 'XLSX veya XLS formatında olmalıdır'}
