@@ -13,6 +13,7 @@ import { DataTable } from '@/components/DataTable';
 import { SAFARecord, AnalysisResult } from '@/lib/types';
 import { ArrowLeft, Download, RefreshCw, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 
 export default function Dashboard() {
   const [data, setData] = useState<AnalysisResult | null>(null);
@@ -30,24 +31,21 @@ export default function Dashboard() {
     setError(null);
     
     try {
-      // Load data from localStorage
       const savedData = localStorage.getItem('safaData');
       
       if (!savedData) {
-        setError('Henüz veri yüklenmedi');
+        setError('Henuz veri yuklenmedi');
         setLoading(false);
         return;
       }
 
       const records: SAFARecord[] = JSON.parse(savedData);
       
-      // Convert date strings back to Date objects
       const processedRecords = records.map(r => ({
         ...r,
         date: new Date(r.date)
       }));
 
-      // Calculate statistics
       const aircraftCounts = processedRecords.reduce((acc, record) => {
         acc[record.aircraft] = (acc[record.aircraft] || 0) + 1;
         return acc;
@@ -70,7 +68,6 @@ export default function Dashboard() {
         return acc;
       }, {} as Record<string, number>);
 
-      // Time series data
       const timeSeriesData = processedRecords.reduce((acc, record) => {
         const monthKey = new Date(record.date).toISOString().slice(0, 7);
         if (!acc[monthKey]) {
@@ -80,13 +77,11 @@ export default function Dashboard() {
         return acc;
       }, {} as Record<string, SAFARecord[]>);
 
-      // Top problems
       const topProblems = Object.entries(componentCounts)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 10)
         .map(([component, count]) => ({ component, count }));
 
-      // Top aircraft
       const topAircraft = Object.entries(aircraftCounts)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 10)
@@ -116,7 +111,7 @@ export default function Dashboard() {
       setFilteredData(processedRecords);
     } catch (error) {
       console.error('Error loading data:', error);
-      setError('Veri yüklenirken hata oluştu');
+      setError('Veri yuklenirken hata olustu');
     } finally {
       setLoading(false);
     }
@@ -150,30 +145,40 @@ export default function Dashboard() {
     setFilteredData(filtered);
   };
 
-  const exportToCSV = () => {
+  const exportToExcel = () => {
     if (!filteredData.length) return;
 
-    const headers = ['W/O Number', 'Date', 'ATA', 'Aircraft', 'Problem Type', 'Component', 'Clean Description'];
-    const rows = filteredData.map(r => [
-      r.woNumber,
-      new Date(r.date).toLocaleDateString('tr-TR'),
-      r.ata,
-      r.aircraft,
-      r.problemType,
-      r.component,
-      r.cleanDescription
-    ]);
+    const worksheetData = [
+      ['W/O Number', 'Date', 'ATA', 'Aircraft', 'Problem Type', 'Component', 'Severity', 'Clean Description'],
+      ...filteredData.map(r => [
+        r.woNumber,
+        new Date(r.date).toLocaleDateString('tr-TR'),
+        r.ata,
+        r.aircraft,
+        r.problemType,
+        r.component,
+        r.severity,
+        r.cleanDescription
+      ])
+    ];
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `\"${cell}\"`).join(','))
-    ].join('\\n');
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'SAFA Analysis');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `safa-analysis-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    const colWidths = [
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 10 },
+      { wch: 60 }
+    ];
+    worksheet['!cols'] = colWidths;
+
+    XLSX.writeFile(workbook, `safa-analysis-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   if (loading) {
@@ -181,7 +186,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Veriler yüklenyor...</p>
+          <p className="text-gray-600">Veriler yukleniyor...</p>
         </div>
       </div>
     );
@@ -193,16 +198,16 @@ export default function Dashboard() {
         <div className="text-center max-w-md mx-auto p-8">
           <div className="bg-white rounded-lg shadow-lg p-8">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Henüz veri yüklenmedi</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Henuz veri yuklenmedi</h2>
             <p className="text-gray-600 mb-6">
-              {error || 'Dashboard\'u görüntülemek için önce bir Excel dosyası yüklemeniz gerekmektedir.'}
+              {error || "Dashboard'u goruntulmek icin once bir Excel dosyasi yuklemeniz gerekmektedir."}
             </p>
             <Link 
               href="/" 
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
-              Ana sayfaya dön ve dosya yükle
+              Ana sayfaya don ve dosya yukle
             </Link>
           </div>
         </div>
@@ -212,7 +217,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b shadow-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
@@ -222,16 +226,16 @@ export default function Dashboard() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Analiz Dashboard</h1>
-                <p className="text-sm text-gray-600">Toplam {data.records.length} kayıt analiz edildi</p>
+                <p className="text-sm text-gray-600">Toplam {data.records.length} kayit analiz edildi</p>
               </div>
             </div>
             <div className="flex gap-2">
               <button
-                onClick={exportToCSV}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={exportToExcel}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Download className="h-4 w-4" />
-                Export CSV
+                Export Excel
               </button>
               <button
                 onClick={loadData}
@@ -243,7 +247,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-4 mt-4 border-b">
             <button
               onClick={() => setActiveTab('overview')}
@@ -253,7 +256,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Genel Bakış
+              Genel Bakis
             </button>
             <button
               onClick={() => setActiveTab('trends')}
@@ -273,20 +276,17 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Detaylı Veriler
+              Detayli Veriler
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Filters */}
         <div className="mb-6">
           <FilterPanel data={data} onFilter={handleFilter} />
         </div>
 
-        {/* Content based on active tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <DashboardStats records={filteredData} />
