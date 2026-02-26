@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AnalysisResult } from '@/lib/types';
-import { Filter, X } from 'lucide-react';
+import { Filter, X, Search } from 'lucide-react';
 
 interface FilterPanelProps {
   data: AnalysisResult;
@@ -14,12 +14,29 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
   const [selectedAircraft, setSelectedAircraft] = useState<string[]>([]);
   const [selectedATA, setSelectedATA] = useState<string[]>([]);
   const [selectedProblemTypes, setSelectedProblemTypes] = useState<string[]>([]);
+  const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [aircraftSearch, setAircraftSearch] = useState('');
+  const [ataSearch, setATASearch] = useState('');
+  const [componentSearch, setComponentSearch] = useState('');
 
   const aircraft = Object.keys(data.aircraftCounts).sort();
   const ataCodes = Object.keys(data.ataCounts).sort();
   const problemTypes = Object.keys(data.problemTypeCounts).sort();
+  const components = Object.keys(data.componentCounts).sort();
+
+  const filteredAircraft = aircraft.filter(ac => 
+    ac.toLowerCase().includes(aircraftSearch.toLowerCase())
+  );
+
+  const filteredATA = ataCodes.filter(ata => 
+    ata.toLowerCase().includes(ataSearch.toLowerCase())
+  );
+
+  const filteredComponents = components.filter(comp => 
+    comp.toLowerCase().includes(componentSearch.toLowerCase())
+  );
 
   const applyFilters = () => {
     const filters: any = {};
@@ -43,6 +60,10 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
       filters.problemType = selectedProblemTypes;
     }
 
+    if (selectedComponents.length > 0) {
+      filters.component = selectedComponents;
+    }
+
     onFilter(filters);
   };
 
@@ -50,8 +71,12 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
     setSelectedAircraft([]);
     setSelectedATA([]);
     setSelectedProblemTypes([]);
+    setSelectedComponents([]);
     setStartDate('');
     setEndDate('');
+    setAircraftSearch('');
+    setATASearch('');
+    setComponentSearch('');
     onFilter({});
   };
 
@@ -59,25 +84,26 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
     selectedAircraft.length + 
     selectedATA.length + 
     selectedProblemTypes.length + 
+    selectedComponents.length +
     (startDate ? 1 : 0) + 
     (endDate ? 1 : 0);
 
   useEffect(() => {
     applyFilters();
-  }, [selectedAircraft, selectedATA, selectedProblemTypes, startDate, endDate]);
+  }, [selectedAircraft, selectedATA, selectedProblemTypes, selectedComponents, startDate, endDate]);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200">
+    <div className="bg-white rounded-lg border border-gray-200">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
       >
-        <div className="flex items-center gap-3">
-          <Filter className="h-5 w-5 text-gray-600" />
-          <span className="font-semibold text-gray-900">Filtreler</span>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-gray-600" />
+          <span className="text-sm font-semibold text-gray-900">Filtreler</span>
           {activeFiltersCount > 0 && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-              {activeFiltersCount} aktif
+            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+              {activeFiltersCount}
             </span>
           )}
         </div>
@@ -88,91 +114,202 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
                 e.stopPropagation();
                 resetFilters();
               }}
-              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
             >
               Temizle
             </button>
           )}
-          <X className={`h-5 w-5 text-gray-400 transition-transform ${isOpen ? 'rotate-45' : ''}`} />
+          <X className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-45' : ''}`} />
         </div>
       </button>
 
       {isOpen && (
-        <div className="p-4 border-t border-gray-200 space-y-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Date Range */}
+        <div className="p-3 border-t border-gray-200 space-y-3">
+          {/* Main Filters */}
+          <div className="grid grid-cols-4 gap-3">
+            {/* Aircraft with Search */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Başlangıç Tarihi</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                Ucak ({selectedAircraft.length}/{aircraft.length})
+              </label>
+              <div className="border border-gray-300 rounded-lg">
+                <div className="p-1.5 border-b border-gray-200">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1.5 h-3 w-3 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Ara..."
+                      value={aircraftSearch}
+                      onChange={(e) => setAircraftSearch(e.target.value)}
+                      className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="p-1.5 max-h-32 overflow-y-auto">
+                  {filteredAircraft.length > 0 ? (
+                    filteredAircraft.map(ac => (
+                      <label key={ac} className="flex items-center gap-1.5 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedAircraft.includes(ac)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedAircraft([...selectedAircraft, ac]);
+                            } else {
+                              setSelectedAircraft(selectedAircraft.filter(a => a !== ac));
+                            }
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3"
+                        />
+                        <span className="text-xs text-gray-700">{ac}</span>
+                        <span className="text-gray-400 text-xs ml-auto">({data.aircraftCounts[ac]})</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-400 text-center py-1">Sonuc yok</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ATA with Search */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                ATA Chapter ({selectedATA.length}/{ataCodes.length})
+              </label>
+              <div className="border border-gray-300 rounded-lg">
+                <div className="p-1.5 border-b border-gray-200">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1.5 h-3 w-3 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Ara..."
+                      value={ataSearch}
+                      onChange={(e) => setATASearch(e.target.value)}
+                      className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="p-1.5 max-h-32 overflow-y-auto">
+                  {filteredATA.length > 0 ? (
+                    filteredATA.map(ata => (
+                      <label key={ata} className="flex items-center gap-1.5 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedATA.includes(ata)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedATA([...selectedATA, ata]);
+                            } else {
+                              setSelectedATA(selectedATA.filter(a => a !== ata));
+                            }
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3"
+                        />
+                        <span className="text-xs text-gray-700">{ata}</span>
+                        <span className="text-gray-400 text-xs ml-auto">({data.ataCounts[ata]})</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-400 text-center py-1">Sonuc yok</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Problem Type */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                Problem Tipi ({selectedProblemTypes.length}/{problemTypes.length})
+              </label>
+              <div className="border border-gray-300 rounded-lg p-1.5 max-h-32 overflow-y-auto">
+                {problemTypes.map(type => (
+                  <label key={type} className="flex items-center gap-1.5 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedProblemTypes.includes(type)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedProblemTypes([...selectedProblemTypes, type]);
+                        } else {
+                          setSelectedProblemTypes(selectedProblemTypes.filter(t => t !== type));
+                        }
+                      }}
+                      className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3"
+                    />
+                    <span className="text-xs text-gray-700">{type}</span>
+                    <span className="text-gray-400 text-xs ml-auto">({data.problemTypeCounts[type]})</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Component with Search */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                Komponent ({selectedComponents.length}/{components.length})
+              </label>
+              <div className="border border-gray-300 rounded-lg">
+                <div className="p-1.5 border-b border-gray-200">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1.5 h-3 w-3 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Ara..."
+                      value={componentSearch}
+                      onChange={(e) => setComponentSearch(e.target.value)}
+                      className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="p-1.5 max-h-32 overflow-y-auto">
+                  {filteredComponents.length > 0 ? (
+                    filteredComponents.map(comp => (
+                      <label key={comp} className="flex items-center gap-1.5 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedComponents.includes(comp)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedComponents([...selectedComponents, comp]);
+                            } else {
+                              setSelectedComponents(selectedComponents.filter(c => c !== comp));
+                            }
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3"
+                        />
+                        <span className="text-xs text-gray-700">{comp}</span>
+                        <span className="text-gray-400 text-xs ml-auto">({data.componentCounts[comp]})</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-400 text-center py-1">Sonuc yok</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Date Range at bottom */}
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Baslangic Tarihi</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent text-xs"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Bitiş Tarihi</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Bitis Tarihi</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent text-xs"
               />
-            </div>
-
-            {/* Aircraft */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Uçak ({selectedAircraft.length}/{aircraft.length})
-              </label>
-              <div className="border border-gray-300 rounded-lg p-2 max-h-32 overflow-y-auto text-sm">
-                {aircraft.slice(0, 10).map(ac => (
-                  <label key={ac} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedAircraft.includes(ac)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedAircraft([...selectedAircraft, ac]);
-                        } else {
-                          setSelectedAircraft(selectedAircraft.filter(a => a !== ac));
-                        }
-                      }}
-                      className="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-gray-700">{ac}</span>
-                    <span className="text-gray-400 text-xs ml-auto">({data.aircraftCounts[ac]})</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* ATA */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                ATA Chapter ({selectedATA.length}/{ataCodes.length})
-              </label>
-              <div className="border border-gray-300 rounded-lg p-2 max-h-32 overflow-y-auto text-sm">
-                {ataCodes.slice(0, 10).map(ata => (
-                  <label key={ata} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedATA.includes(ata)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedATA([...selectedATA, ata]);
-                        } else {
-                          setSelectedATA(selectedATA.filter(a => a !== ata));
-                        }
-                      }}
-                      className="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-gray-700">{ata}</span>
-                    <span className="text-gray-400 text-xs ml-auto">({data.ataCounts[ata]})</span>
-                  </label>
-                ))}
-              </div>
             </div>
           </div>
         </div>

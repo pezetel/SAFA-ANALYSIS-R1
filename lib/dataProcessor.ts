@@ -171,6 +171,8 @@ function extractProblemType(description: string): string {
   const text = description.toUpperCase();
 
   const problemTypes = [
+    // Paint damage once kontrol et
+    { keywords: ['PAINT DAMAGE', 'PAINT DAMAGED', 'PAINTING DAMAGE'], type: 'PAINT_DAMAGE' },
     { keywords: ['MISSING', 'MISS'], type: 'MISSING' },
     { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN'], type: 'DAMAGED' },
     { keywords: ['LOOSE', 'NOT FIXED'], type: 'LOOSE' },

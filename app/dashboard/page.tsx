@@ -34,7 +34,7 @@ export default function Dashboard() {
       const savedData = localStorage.getItem('safaData');
       
       if (!savedData) {
-        setError('Henuz veri yuklenmedi');
+        setError('Henüz veri yüklenmedi');
         setLoading(false);
         return;
       }
@@ -111,7 +111,7 @@ export default function Dashboard() {
       setFilteredData(processedRecords);
     } catch (error) {
       console.error('Error loading data:', error);
-      setError('Veri yuklenirken hata olustu');
+      setError('Veri yüklenirken hata oluştu');
     } finally {
       setLoading(false);
     }
@@ -142,6 +142,10 @@ export default function Dashboard() {
       filtered = filtered.filter(r => filters.problemType.includes(r.problemType));
     }
 
+    if (filters.component && filters.component.length > 0) {
+      filtered = filtered.filter(r => filters.component.includes(r.component));
+    }
+
     setFilteredData(filtered);
   };
 
@@ -157,7 +161,6 @@ export default function Dashboard() {
         r.aircraft,
         r.problemType,
         r.component,
-        
         r.cleanDescription
       ])
     ];
@@ -173,7 +176,6 @@ export default function Dashboard() {
       { wch: 12 },
       { wch: 15 },
       { wch: 20 },
-      
       { wch: 60 }
     ];
     worksheet['!cols'] = colWidths;
@@ -186,7 +188,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Veriler yukleniyor...</p>
+          <p className="text-gray-600">Veriler yüklenyor...</p>
         </div>
       </div>
     );
@@ -198,16 +200,16 @@ export default function Dashboard() {
         <div className="text-center max-w-md mx-auto p-8">
           <div className="bg-white rounded-lg shadow-lg p-8">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Henuz veri yuklenmedi</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Henüz veri yüklenmedi</h2>
             <p className="text-gray-600 mb-6">
-              {error || "Dashboard'u goruntulmek icin once bir Excel dosyasi yuklemeniz gerekmektedir."}
+              {error || 'Dashboard\'u görüntülemek için önce bir Excel dosyası yüklemeniz gerekmektedir.'}
             </p>
             <Link 
               href="/" 
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
-              Ana sayfaya don ve dosya yukle
+              Ana sayfaya dön ve dosya yükle
             </Link>
           </div>
         </div>
@@ -226,7 +228,7 @@ export default function Dashboard() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Analiz Dashboard</h1>
-                <p className="text-sm text-gray-600">Toplam {data.records.length} kayit analiz edildi</p>
+                <p className="text-sm text-gray-600">Toplam {data.records.length} kayıt analiz edildi</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -256,7 +258,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Genel Bakis
+              Genel Bakış
             </button>
             <button
               onClick={() => setActiveTab('trends')}
@@ -276,7 +278,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Detayli Veriler
+              Detaylı Veriler
             </button>
           </div>
         </div>
