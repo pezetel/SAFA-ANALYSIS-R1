@@ -149,7 +149,7 @@ export default function Dashboard() {
     if (!filteredData.length) return;
 
     const worksheetData = [
-      ['W/O Number', 'Date', 'ATA', 'Aircraft', 'Problem Type', 'Component', 'Severity', 'Clean Description'],
+      ['W/O Number', 'Date', 'ATA', 'Aircraft', 'Problem Type', 'Component', 'Clean Description'],
       ...filteredData.map(r => [
         r.woNumber,
         new Date(r.date).toLocaleDateString('tr-TR'),
@@ -157,7 +157,7 @@ export default function Dashboard() {
         r.aircraft,
         r.problemType,
         r.component,
-        r.severity,
+        
         r.cleanDescription
       ])
     ];
@@ -173,7 +173,7 @@ export default function Dashboard() {
       { wch: 12 },
       { wch: 15 },
       { wch: 20 },
-      { wch: 10 },
+      
       { wch: 60 }
     ];
     worksheet['!cols'] = colWidths;
