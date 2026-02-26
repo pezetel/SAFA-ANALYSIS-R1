@@ -208,12 +208,15 @@ function extractComponent(description: string): string {
     { keywords: ['OXYGEN', 'OXY BOTTLE'], component: 'OXYGEN' },
     { keywords: ['MIRROR'], component: 'MIRROR' },
     { keywords: ['CARPET', 'FLOOR MAT'], component: 'CARPET' },
+    { keywords: ['CARGO NET', 'CARGO NETS', 'NET', 'NETS'], component: 'CARGO_NETS' },
+    { keywords: ['CARGO TAPE', 'CARGO TAPES'], component: 'CARGO_TAPES' },
+    { keywords: ['ANTENNA'], component: 'ANTENNA' },
     // Kruger Flap ve diger yapisal parcalar ENGINE'den once
     { keywords: ['KRUGER FLAP', 'KRUGER'], component: 'KRUGER_FLAP' },
     { keywords: ['SLAT'], component: 'SLAT' },
     { keywords: ['FLAP'], component: 'FLAP' },
     // Engine kontrolu - sadece gercek engine parcalari
-    { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON'], component: 'ENGINE' },
+    { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON', 'ENG'], component: 'ENGINE' },
     { keywords: ['LANDING LIGHT', 'LANDING GEAR'], component: 'LANDING_GEAR' },
     { keywords: ['WATER SERVICE', 'POTABLE WATER', 'PORTABLE WATER'], component: 'WATER_SYSTEM' },
     { keywords: ['BONDING WIRE', 'BONDING'], component: 'BONDING' },
