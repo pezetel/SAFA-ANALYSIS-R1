@@ -1,11 +1,30 @@
 import { NextResponse } from 'next/server';
 import { SAFARecord, AnalysisResult } from '@/lib/types';
+import { readFileSync, existsSync } from 'fs';
 
 export async function GET() {
   try {
-    const data: SAFARecord[] = global.safaData || [];
+    let data: SAFARecord[] = [];
 
-    if (!data.length) {
+    // Try to load from /tmp first (for Vercel persistence)
+    const dataPath = '/tmp/safa-data.json';
+    if (existsSync(dataPath)) {
+      try {
+        const fileContent = readFileSync(dataPath, 'utf-8');
+        data = JSON.parse(fileContent);
+        console.log('Data loaded from file system:', data.length, 'records');
+      } catch (err) {
+        console.warn('Could not load from file system:', err);
+      }
+    }
+
+    // Fallback to global variable
+    if (!data.length && global.safaData) {
+      data = global.safaData;
+      console.log('Data loaded from global:', data.length, 'records');
+    }
+
+    if (!data || data.length === 0) {
       return NextResponse.json(
         { error: 'Henüz veri yüklenmedi' },
         { status: 404 }
@@ -85,4 +104,8 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+declare global {
+  var safaData: SAFARecord[] | undefined;
 }

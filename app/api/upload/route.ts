@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { processExcelData } from '@/lib/dataProcessor';
+import { SAFARecord } from '@/lib/types';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,8 +29,19 @@ export async function POST(request: NextRequest) {
     // Process data
     const processedData = processExcelData(rawData);
 
-    // Store in memory (in production, use a database)
-    global.safaData = processedData;
+    // Store in both memory and file system for Vercel
+    if (typeof global !== 'undefined') {
+      global.safaData = processedData;
+    }
+
+    // Save to /tmp for persistence across function invocations
+    try {
+      const dataPath = '/tmp/safa-data.json';
+      writeFileSync(dataPath, JSON.stringify(processedData));
+      console.log('Data saved to:', dataPath);
+    } catch (fsError) {
+      console.warn('Could not save to file system:', fsError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -45,5 +59,5 @@ export async function POST(request: NextRequest) {
 
 // Extend global type
 declare global {
-  var safaData: any[];
+  var safaData: SAFARecord[] | undefined;
 }
