@@ -56,11 +56,11 @@ export function DashboardStats({ records }: DashboardStatsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
       {stats.map((stat, index) => (
         <div
           key={index}
-          className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+          className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition-shadow"
         >
           <div className="flex items-center justify-between">
             <div>

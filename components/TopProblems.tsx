@@ -45,9 +45,9 @@ export function TopProblems({ records }: TopProblemsProps) {
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">En Sık Görülen Problemler</h2>
+          <h2 className="text-lg font-bold text-gray-900">En Sık Görülen Problemler</h2>
           <p className="text-sm text-gray-600 mt-1">Komponent bazında top 10 problem (Tıklayarak detayları görün)</p>
         </div>
 

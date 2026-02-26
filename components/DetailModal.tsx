@@ -79,9 +79,9 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
         {/* Modal */}
         <div className="inline-block w-full max-w-6xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between p-5 border-b border-gray-200">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900">{title}</h3>
+              <h3 className="text-lg font-bold text-gray-900">{title}</h3>
               <p className="text-sm text-gray-600 mt-1">{filteredRecords.length} kayıt</p>
             </div>
             <div className="flex items-center gap-2">

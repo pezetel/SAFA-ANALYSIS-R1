@@ -179,7 +179,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Veriler yüklenyor...</p>
         </div>
       </div>
@@ -213,14 +213,14 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/" className="text-gray-600 hover:text-gray-900">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Analiz Dashboard</h1>
+                <h1 className="text-xl font-bold text-gray-900">Analiz Dashboard</h1>
                 <p className="text-sm text-gray-600">Toplam {data.records.length} kayıt analiz edildi</p>
               </div>
             </div>
@@ -279,7 +279,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Filters */}
         <div className="mb-6">
           <FilterPanel data={data} onFilter={handleFilter} />

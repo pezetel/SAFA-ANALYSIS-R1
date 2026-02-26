@@ -56,9 +56,9 @@ export function ATADistribution({ records }: ATADistributionProps) {
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">ATA Chapter Dağılımı</h2>
+          <h2 className="text-lg font-bold text-gray-900">ATA Chapter Dağılımı</h2>
           <p className="text-sm text-gray-600 mt-1">Top 8 sistem kategorisi (Tıklayarak detayları görün)</p>
         </div>
 

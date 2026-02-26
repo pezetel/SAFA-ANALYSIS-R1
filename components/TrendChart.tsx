@@ -28,9 +28,9 @@ export function TrendChart({ records }: TrendChartProps) {
     }));
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Zaman Serisi Analizi</h2>
+        <h2 className="text-lg font-bold text-gray-900">Zaman Serisi Analizi</h2>
         <p className="text-sm text-gray-600 mt-1">Aylık bulgu sayıları trendi</p>
       </div>
 
@@ -72,19 +72,19 @@ export function TrendChart({ records }: TrendChartProps) {
       <div className="mt-6 grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
         <div className="text-center">
           <p className="text-sm text-gray-600">Ortalama/Ay</p>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-lg font-bold text-gray-900">
             {(records.length / Math.max(chartData.length, 1)).toFixed(0)}
           </p>
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-600">En Yüksek</p>
-          <p className="text-2xl font-bold text-red-600">
+          <p className="text-lg font-bold text-red-600">
             {Math.max(...Object.values(monthlyData))}
           </p>
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-600">En Düşük</p>
-          <p className="text-2xl font-bold text-green-600">
+          <p className="text-lg font-bold text-green-600">
             {Math.min(...Object.values(monthlyData))}
           </p>
         </div>

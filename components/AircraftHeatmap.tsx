@@ -72,9 +72,9 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Uçak-Zaman Heat Map</h2>
+          <h2 className="text-lg font-bold text-gray-900">Uçak-Zaman Heat Map</h2>
           <p className="text-sm text-gray-600 mt-1">Aylık bulgu yoğunluğu (Top 10 uçak) - Hücrelere tıklayarak detayları görün</p>
         </div>
 

@@ -69,7 +69,7 @@ export function DataTable({ records }: DataTableProps) {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Detaylı Veri Tablosu</h2>
+            <h2 className="text-lg font-bold text-gray-900">Detaylı Veri Tablosu</h2>
             <p className="text-sm text-gray-600 mt-1">
               Toplam {sortedRecords.length} kayıt gösteriliyor
             </p>
