@@ -3,6 +3,8 @@
 import { SAFARecord } from '@/lib/types';
 import { useMemo, useState } from 'react';
 import { DetailModal } from './DetailModal';
+import { format, parseISO } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 interface ComponentHeatmapProps {
   records: SAFARecord[];
@@ -14,28 +16,28 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
   const [modalTitle, setModalTitle] = useState('');
 
   const heatmapData = useMemo(() => {
-    const componentByAircraft: Record<string, Record<string, number>> = {};
+    const componentByMonth: Record<string, Record<string, number>> = {};
     const detailData: Record<string, Record<string, SAFARecord[]>> = {};
 
     records.forEach(record => {
-      const aircraft = record.aircraft || 'UNKNOWN';
+      const month = format(new Date(record.date), 'yyyy-MM');
       const component = record.component || 'OTHER';
 
-      if (!componentByAircraft[component]) {
-        componentByAircraft[component] = {};
+      if (!componentByMonth[component]) {
+        componentByMonth[component] = {};
         detailData[component] = {};
       }
       
-      componentByAircraft[component][aircraft] = (componentByAircraft[component][aircraft] || 0) + 1;
+      componentByMonth[component][month] = (componentByMonth[component][month] || 0) + 1;
       
-      if (!detailData[component][aircraft]) {
-        detailData[component][aircraft] = [];
+      if (!detailData[component][month]) {
+        detailData[component][month] = [];
       }
-      detailData[component][aircraft].push(record);
+      detailData[component][month].push(record);
     });
 
-    const allAircraft = Array.from(
-      new Set(records.map(r => r.aircraft || 'UNKNOWN'))
+    const allMonths = Array.from(
+      new Set(records.map(r => format(new Date(r.date), 'yyyy-MM')))
     ).sort();
 
     const topComponents = Object.entries(
@@ -51,14 +53,14 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
 
     const maxCount = Math.max(
       ...topComponents.flatMap(component => 
-        Object.values(componentByAircraft[component] || {})
+        Object.values(componentByMonth[component] || {})
       )
     );
 
     return {
       components: topComponents,
-      aircraft: allAircraft,
-      data: componentByAircraft,
+      months: allMonths,
+      data: componentByMonth,
       detailData,
       maxCount,
     };
@@ -78,12 +80,13 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
     return component.replace(/_/g, ' ');
   };
 
-  const handleCellClick = (component: string, aircraft: string, count: number) => {
+  const handleCellClick = (component: string, month: string, count: number) => {
     if (count === 0) return;
     
-    const records = heatmapData.detailData[component]?.[aircraft] || [];
+    const records = heatmapData.detailData[component]?.[month] || [];
+    const monthName = format(parseISO(month + '-01'), 'MMMM yyyy', { locale: tr });
     setSelectedRecords(records);
-    setModalTitle(`${formatComponentName(component)} - ${aircraft}`);
+    setModalTitle(`${formatComponentName(component)} - ${monthName}`);
     setIsModalOpen(true);
   };
 
@@ -91,8 +94,8 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Komponent - Uçak Heatmap</h2>
-          <p className="text-sm text-gray-600 mt-1">Uçak bazında komponent problem yoğunluğu (Tıklayarak detay görüntüleyin)</p>
+          <h2 className="text-lg font-bold text-gray-900">Komponent - Zaman Heatmap</h2>
+          <p className="text-sm text-gray-600 mt-1">Aylara gore komponent bazinda problem yogunlugu (Tiklayarak detay goruntuleyin)</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -112,21 +115,21 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
 
               <div className="flex-1 overflow-x-auto">
                 <div className="flex gap-1">
-                  {heatmapData.aircraft.map((aircraft) => (
-                    <div key={aircraft} className="flex flex-col gap-1">
+                  {heatmapData.months.map((month) => (
+                    <div key={month} className="flex flex-col gap-1">
                       <div className="h-8 flex items-center justify-center text-xs font-medium text-gray-600 w-16">
                         <div className="transform -rotate-45 origin-center whitespace-nowrap">
-                          {aircraft}
+                          {format(parseISO(month + '-01'), 'MMM yy', { locale: tr })}
                         </div>
                       </div>
                       {heatmapData.components.map((component) => {
-                        const count = heatmapData.data[component]?.[aircraft] || 0;
+                        const count = heatmapData.data[component]?.[month] || 0;
                         return (
                           <button
-                            key={`${component}-${aircraft}`}
-                            onClick={() => handleCellClick(component, aircraft, count)}
+                            key={`${component}-${month}`}
+                            onClick={() => handleCellClick(component, month, count)}
                             className={`w-16 h-10 ${getColor(count)} rounded flex items-center justify-center text-xs font-semibold cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all ${count === 0 ? 'cursor-default' : ''}`}
-                            title={`${formatComponentName(component)} - ${aircraft}: ${count} kayıt`}
+                            title={`${formatComponentName(component)} - ${format(parseISO(month + '-01'), 'MMMM yyyy', { locale: tr })}: ${count} kayit`}
                           >
                             {count > 0 ? count : ''}
                           </button>
@@ -141,14 +144,14 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
         </div>
 
         <div className="mt-6 flex items-center gap-6 text-xs flex-wrap">
-          <span className="text-gray-600 font-medium">Yoğunluk:</span>
+          <span className="text-gray-600 font-medium">Yogunluk:</span>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
             <span className="text-gray-600">Yok</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-blue-200 rounded"></div>
-            <span className="text-gray-600">Düşük</span>
+            <span className="text-gray-600">Dusuk</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-green-300 rounded"></div>
@@ -156,11 +159,11 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-yellow-400 rounded"></div>
-            <span className="text-gray-600">Yüksek</span>
+            <span className="text-gray-600">Yuksek</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-orange-500 rounded"></div>
-            <span className="text-gray-600">Çok Yüksek</span>
+            <span className="text-gray-600">Cok Yuksek</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-600 rounded"></div>
