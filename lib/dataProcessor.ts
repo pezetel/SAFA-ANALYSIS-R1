@@ -141,30 +141,14 @@ function cleanDesc(text: string): string {
   // DOCUMENT EOD...R00/R01/R02 vb. - sadece 2 haneli revizyon (R00, R01, R99)
   cleaned = cleaned.replace(/DOCUMENT\s+EOD[-\sA-Z0-9]+R\d{2}\s*/gi, '');
 
-  // R00 sonrasi gelebilecek PARAGRAPH varyasyonlarini temizle
-  // Formatlar: B06, B 06, B.06, B:06
-  // PARA ile NO arasinda nokta olabilir veya olmayabilir: PARA NO, PARA. NO
-  // Sonunda nokta olabilir: B06.
-  
-  // PARAGRAPH NUMBER [kod] - tum formatlar
+  // PARAGRAPH varyasyonlarini temizle
   cleaned = cleaned.replace(/PARAG(?:RAPH)?\.?\s*NUMBER\s+[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
-  
-  // PARAGRAPH NO: veya NO. veya NO [kod] - tum formatlar
   cleaned = cleaned.replace(/PARAG(?:RAPH|RPH|PH|H)?\.?\s*NO\s*\.?\s*:?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
   cleaned = cleaned.replace(/PARAGNO\s*:?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
-  
-  // PARG [kod] - tum formatlar
   cleaned = cleaned.replace(/PARG\.?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
-  
-  // PARA NO [kod] ve PARA. NO [kod] - her iki format icin
   cleaned = cleaned.replace(/PARA\.?\s+NO\s+[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
-  // PARA [kod] (NO olmadan)
   cleaned = cleaned.replace(/PARA\.?\s+[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
-  
-  // PARAGPH [kod] - tum formatlar
   cleaned = cleaned.replace(/PARAGPH\.?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
-  
-  // Genel PARAG/PARAGRAPH [kod] temizligi - tum formatlar
   cleaned = cleaned.replace(/PARAG(?:RAPH|RPH|PH|H)?\.?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
 
   // NRC kodlarini temizle
@@ -179,8 +163,6 @@ function cleanDesc(text: string): string {
   // DURING ifadelerini tamamen temizle
   cleaned = cleaned.replace(/\bDURING\s+(?:THE\s+)?EXTERIOR\s+SAFA\b.*?(CHECK|INSPECTION|GVI)\b\s*/g, '');
   cleaned = cleaned.replace(/\bDURING\s+(?:THE\s+)?SAFA\b.*?(CHECK|INSPECTION|GVI)\b\s*/g, '');
-  
-  // DURING PERFROM, PERFORM, PERFOM - her turlu yazim hatasi
   cleaned = cleaned.replace(/\bDURING\s+PE?RF?[OR]*M[ED]*\s*,?\s*/gi, '');
   cleaned = cleaned.replace(/\bDURING\s+PERFORM(?:ED)?\b\s*/g, '');
 
@@ -198,7 +180,6 @@ function cleanDesc(text: string): string {
   cleaned = cleaned.replace(/NOR WORKING/g, 'NOT WORKING');
   cleaned = cleaned.replace(/MISISING/g, 'MISSING');
 
-  // Birden fazla boslugu tek bosluga indir
   cleaned = cleaned.replace(/\s+/g, ' ');
   cleaned = cleaned.trim();
 
@@ -231,12 +212,13 @@ function extractProblemType(description: string): string {
 function extractComponent(description: string): string {
   const text = description.toUpperCase();
 
-  // JUMPER ve LANYARD RING oncelikli - diger komponentlerden once kontrol et
+  // JUMPER ve LANYARD oncelikli - diger komponentlerden once kontrol et
   if (text.includes('JUMPER')) {
     return 'BONDING';
   }
   
-  if (text.includes('LANYARD RING')) {
+  // LANYARD tum varyasyonlari: LANYARD RING, LANYARDS RINGS, LANYARD'S RING
+  if (/LANYARDS?['\'']?S?\s+RINGS?/i.test(text)) {
     return 'LANYARD_RING';
   }
 
