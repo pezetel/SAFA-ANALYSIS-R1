@@ -69,7 +69,8 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
     let aircraftToFilter = [...selectedAircraft];
     if (selectedAircraftTypes.length > 0) {
       const typeAircraft = selectedAircraftTypes.flatMap(type => AIRCRAFT_TYPES[type as keyof typeof AIRCRAFT_TYPES] || []);
-      aircraftToFilter = [...new Set([...aircraftToFilter, ...typeAircraft])];
+      const combined = aircraftToFilter.concat(typeAircraft);
+      aircraftToFilter = Array.from(new Set(combined));
     }
 
     if (aircraftToFilter.length > 0) {
