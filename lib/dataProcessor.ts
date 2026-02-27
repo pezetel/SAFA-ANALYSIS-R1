@@ -192,12 +192,11 @@ function extractProblemType(description: string): string {
 function extractComponent(description: string): string {
   const text = description.toUpperCase();
 
-  // JUMPER ve LANYARD oncelikli - diger komponentlerden once kontrol et
+  // Oncelikli kontroller - diger komponentlerden once
   if (text.includes('JUMPER')) {
     return 'BONDING';
   }
   
-  // LANYARD tum varyasyonlari: LANYARD RING, LANYARDS RINGS, LANYARD'S RING
   if (/LANYARDS?['\'']?S?\s+RINGS?/i.test(text)) {
     return 'LANYARD_RING';
   }
@@ -209,9 +208,9 @@ function extractComponent(description: string): string {
     { keywords: ['SEAT BELT', 'SAFETY HARNESS', 'SAFETY BELT'], component: 'SEAT_BELT' },
     { keywords: ['READING LIGHT', 'FLOOD LIGHT', 'LIGHT LENS'], component: 'LIGHT' },
     { keywords: ['LIFE VEST'], component: 'LIFE_VEST' },
+    { keywords: ['PLACARD'], component: 'PLACARD' },
     { keywords: ['LAVATORY', 'LAV A', 'LAV B', 'LAV C', 'LAV D', 'LAV E'], component: 'LAVATORY' },
     { keywords: ['GALLEY'], component: 'GALLEY' },
-    { keywords: ['PLACARD'], component: 'PLACARD' },
     { keywords: ['SUNSHADE', 'WINDOW SHADE', 'PAX WINDOW SHADE', 'WINDOW SHADES'], component: 'SUNSHADE' },
     { keywords: ['CURTAIN'], component: 'CURTAIN' },
     { keywords: ['OXYGEN', 'OXY BOTTLE'], component: 'OXYGEN' },
