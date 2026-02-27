@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardStats } from '@/components/DashboardStats';
 import { TrendChart } from '@/components/TrendChart';
+import { ComponentHeatmap } from '@/components/ComponentHeatmap';
 import { AircraftHeatmap } from '@/components/AircraftHeatmap';
 import { ATAHeatmap } from '@/components/ATAHeatmap';
 import { ATADistribution } from '@/components/ATADistribution';
@@ -188,7 +189,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Veriler yüklenyor...</p>
+          <p className="text-gray-600">Veriler yükleniyor...</p>
         </div>
       </div>
     );
@@ -202,7 +203,7 @@ export default function Dashboard() {
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-900 mb-2">Henüz veri yüklenmedi</h2>
             <p className="text-gray-600 mb-6">
-              {error || 'Dashboard\'u görüntülemek için önce bir Excel dosyası yüklemeniz gerekmektedir.'}
+              {error || 'Dashboard\u2019u görüntülemek için önce bir Excel dosyası yüklemeniz gerekmektedir.'}
             </p>
             <Link 
               href="/" 
@@ -305,6 +306,7 @@ export default function Dashboard() {
         {activeTab === 'trends' && (
           <div className="space-y-6">
             <TrendChart records={filteredData} />
+            <ComponentHeatmap records={filteredData} />
             <AircraftHeatmap records={filteredData} />
             <ATAHeatmap records={filteredData} />
           </div>
