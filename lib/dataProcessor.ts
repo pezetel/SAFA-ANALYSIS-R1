@@ -135,32 +135,70 @@ function cleanDesc(text: string): string {
   let cleaned = String(text).toUpperCase();
   cleaned = cleaned.replace(/\s+/g, ' ');
 
-  cleaned = cleaned.replace(/FINDING\s*\(NRC[^)]*\)\s*DOCUMENT\s+EOD[-\sA-Z0-9]*R00/g, ' ');
-  cleaned = cleaned.replace(/FINDING\s*\(NRC[^)]*\)/g, ' ');
-  cleaned = cleaned.replace(/DOCUMENT\s+EOD[-\sA-Z0-9]*R00/g, ' ');
+  // FINDING (NRC) temizle - NRC1, NRC2, NRC11 gibi tum varyasyonlar dahil
+  cleaned = cleaned.replace(/FINDING\s*\(NRC\d*[^)]*\)\s*/gi, '');
+  
+  // DOCUMENT EOD...R00/R01/R02 vb. - sadece 2 haneli revizyon (R00, R01, R99)
+  cleaned = cleaned.replace(/DOCUMENT\s+EOD[-\sA-Z0-9]+R\d{2}\s*/gi, '');
 
-  cleaned = cleaned.replace(/\bPARAG(?:RAPH|RPH|PH)?\s+NO\.?\s*[A-Z0-9]+\b/g, ' ');
-  cleaned = cleaned.replace(/\bPARAG(?:RAPH|RPH|PH)?\s*[A-Z0-9]+\b/g, ' ');
+  // R00 sonrasi gelebilecek PARAGRAPH varyasyonlarini temizle
+  // Formatlar: B06, B 06, B.06, B:06
+  // PARA ile NO arasinda nokta olabilir veya olmayabilir: PARA NO, PARA. NO
+  // Sonunda nokta olabilir: B06.
+  
+  // PARAGRAPH NUMBER [kod] - tum formatlar
+  cleaned = cleaned.replace(/PARAG(?:RAPH)?\.?\s*NUMBER\s+[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
+  
+  // PARAGRAPH NO: veya NO. veya NO [kod] - tum formatlar
+  cleaned = cleaned.replace(/PARAG(?:RAPH|RPH|PH|H)?\.?\s*NO\s*\.?\s*:?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
+  cleaned = cleaned.replace(/PARAGNO\s*:?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
+  
+  // PARG [kod] - tum formatlar
+  cleaned = cleaned.replace(/PARG\.?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
+  
+  // PARA NO [kod] ve PARA. NO [kod] - her iki format icin
+  cleaned = cleaned.replace(/PARA\.?\s+NO\s+[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
+  // PARA [kod] (NO olmadan)
+  cleaned = cleaned.replace(/PARA\.?\s+[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
+  
+  // PARAGPH [kod] - tum formatlar
+  cleaned = cleaned.replace(/PARAGPH\.?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
+  
+  // Genel PARAG/PARAGRAPH [kod] temizligi - tum formatlar
+  cleaned = cleaned.replace(/PARAG(?:RAPH|RPH|PH|H)?\.?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
 
-  cleaned = cleaned.replace(/\bNRC[-\dA-Z]+\b/g, ' ');
+  // NRC kodlarini temizle
+  cleaned = cleaned.replace(/\bNRC\d*[-\dA-Z]*\b\s*/g, '');
 
-  cleaned = cleaned.replace(/\b(W\/O|WO|WP|TC)\s*[:\-]?\s*\d+\b/g, ' ');
+  // W/O, WO, WP, TC referanslarini temizle
+  cleaned = cleaned.replace(/\b(W\/O|WO|WP|TC)\s*[:\-]?\s*\d+\b\s*/g, '');
 
-  cleaned = cleaned.replace(/\bMAINT\s+ENTRY\b/g, ' ');
+  // MAINT ENTRY
+  cleaned = cleaned.replace(/\bMAINT\s+ENTRY\b\s*/g, '');
 
-  cleaned = cleaned.replace(/\bDURING\s+(?:THE\s+)?EXTERIOR\s+SAFA\b.*?(CHECK|INSPECTION|GVI)\b/g, ' ');
-  cleaned = cleaned.replace(/\bDURING\s+(?:THE\s+)?SAFA\b.*?(CHECK|INSPECTION|GVI)\b/g, ' ');
+  // DURING ifadelerini tamamen temizle
+  cleaned = cleaned.replace(/\bDURING\s+(?:THE\s+)?EXTERIOR\s+SAFA\b.*?(CHECK|INSPECTION|GVI)\b\s*/g, '');
+  cleaned = cleaned.replace(/\bDURING\s+(?:THE\s+)?SAFA\b.*?(CHECK|INSPECTION|GVI)\b\s*/g, '');
+  
+  // DURING PERFROM, PERFORM, PERFOM - her turlu yazim hatasi
+  cleaned = cleaned.replace(/\bDURING\s+PE?RF?[OR]*M[ED]*\s*,?\s*/gi, '');
+  cleaned = cleaned.replace(/\bDURING\s+PERFORM(?:ED)?\b\s*/g, '');
 
-  cleaned = cleaned.replace(/\bEXTERIOR\s+SAFA\s+CHECK\b/g, ' ');
-  cleaned = cleaned.replace(/\bEXTERIOR\s+SAFA\s+INSPECTION\b/g, ' ');
+  // EXTERIOR SAFA temizligi
+  cleaned = cleaned.replace(/\bEXTERIOR\s+SAFA\s+CHECK\b\s*/g, '');
+  cleaned = cleaned.replace(/\bEXTERIOR\s+SAFA\s+INSPECTION\b\s*/g, '');
 
-  cleaned = cleaned.replace(/\bDURING\s+PERFORM(?:ED)?\b/g, ' ');
-  cleaned = cleaned.replace(/\bDURING\s+W\/O\s*\d+\b/g, ' ');
-  cleaned = cleaned.replace(/\bDURING\s+THE\s+/g, ' ');
-  cleaned = cleaned.replace(/^DURING\s+/g, ' ');
+  // DURING genel temizligi
+  cleaned = cleaned.replace(/\bDURING\s+W\/O\s*\d+\b\s*/g, '');
+  cleaned = cleaned.replace(/\bDURING\s+THE\s+/g, '');
+  cleaned = cleaned.replace(/^DURING\s+/g, '');
 
+  // Yazim hatalari
   cleaned = cleaned.replace(/FOND /g, 'FOUND ');
+  cleaned = cleaned.replace(/NOR WORKING/g, 'NOT WORKING');
+  cleaned = cleaned.replace(/MISISING/g, 'MISSING');
 
+  // Birden fazla boslugu tek bosluga indir
   cleaned = cleaned.replace(/\s+/g, ' ');
   cleaned = cleaned.trim();
 
@@ -171,7 +209,6 @@ function extractProblemType(description: string): string {
   const text = description.toUpperCase();
 
   const problemTypes = [
-    // Paint damage once kontrol et
     { keywords: ['PAINT DAMAGE', 'PAINT DAMAGED', 'PAINTING DAMAGE'], type: 'PAINT_DAMAGE' },
     { keywords: ['MISSING', 'MISS'], type: 'MISSING' },
     { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN'], type: 'DAMAGED' },
@@ -213,24 +250,20 @@ function extractComponent(description: string): string {
     { keywords: ['CARGO NET', 'CARGO NETS', 'NET', 'NETS'], component: 'CARGO_NETS' },
     { keywords: ['CARGO TAPE', 'CARGO TAPES'], component: 'CARGO_TAPES' },
     { keywords: ['ANTENNA'], component: 'ANTENNA' },
-    // Kruger Flap ve diger yapisal parcalar ENGINE'den once
     { keywords: ['KRUGER FLAP', 'KRUGER'], component: 'KRUGER_FLAP' },
     { keywords: ['SLAT'], component: 'SLAT' },
     { keywords: ['FLAP'], component: 'FLAP' },
-    // Engine kontrolu - sadece gercek engine parcalari
     { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON', 'ENG'], component: 'ENGINE' },
     { keywords: ['LANDING LIGHT', 'LANDING GEAR'], component: 'LANDING_GEAR' },
     { keywords: ['WATER SERVICE', 'POTABLE WATER', 'PORTABLE WATER'], component: 'WATER_SYSTEM' },
     { keywords: ['BONDING WIRE', 'BONDING'], component: 'BONDING' },
     { keywords: ['HINGE'], component: 'HINGE' },
     { keywords: ['LATCH'], component: 'LATCH' },
-    // Spesifik panel turleri
     { keywords: ['FLOOR PANEL'], component: 'FLOOR_PANEL' },
     { keywords: ['CEILING PANEL'], component: 'CEILING_PANEL' },
     { keywords: ['DOOR PANEL'], component: 'DOOR_PANEL' },
     { keywords: ['SIDE PANEL', 'WALL PANEL'], component: 'SIDE_PANEL' },
     { keywords: ['TRIM PANEL'], component: 'TRIM_PANEL' },
-    // Genel panel (eger spesifik eslesme yoksa)
     { keywords: ['PANEL', 'TRIM'], component: 'PANEL' },
     { keywords: ['SEAT'], component: 'SEAT' },
     { keywords: ['DOOR'], component: 'DOOR' },
