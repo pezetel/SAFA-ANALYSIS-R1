@@ -181,7 +181,6 @@ function extractProblemType(description: string): string {
     { keywords: ['LOOSE', 'NOT FIXED'], type: 'LOOSE' },
     { keywords: ['INOP', 'NOT WORKING', 'NOT ILLUMINATE', 'NOT FUNCTIONING', 'FAULTY'], type: 'INOPERATIVE' },
     { keywords: ['DIRTY'], type: 'CLEANLINESS' },
-    { keywords: ['LOW'], type: 'LOW_LEVEL' },
     { keywords: ['ADJUSTMENT', 'OUT OF ADJUSTMENT'], type: 'ADJUSTMENT' },
   ];
 
