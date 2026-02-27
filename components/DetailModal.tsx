@@ -3,6 +3,7 @@
 import { SAFARecord } from '@/lib/types';
 import { X, Download, Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 
 interface DetailModalProps {
   isOpen: boolean;
@@ -43,28 +44,36 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedRecords = filteredRecords.slice(startIndex, startIndex + itemsPerPage);
 
-  const exportToCSV = () => {
-    const headers = ['W/O Number', 'Date', 'ATA', 'Aircraft', 'Problem Type', 'Component', 'Clean Description'];
-    const rows = filteredRecords.map(r => [
-      r.woNumber,
-      new Date(r.date).toLocaleDateString('tr-TR'),
-      r.ata,
-      r.aircraft,
-      r.problemType,
-      r.component,
-      r.cleanDescription
-    ]);
+  const exportToExcel = () => {
+    const worksheetData = [
+      ['W/O Number', 'Date', 'ATA', 'Aircraft', 'Problem Type', 'Component', 'Clean Description'],
+      ...filteredRecords.map(r => [
+        r.woNumber,
+        new Date(r.date).toLocaleDateString('tr-TR'),
+        r.ata,
+        r.aircraft,
+        r.problemType,
+        r.component,
+        r.cleanDescription
+      ])
+    ];
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `\"${cell}\"`).join(','))
-    ].join('\\n');
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Detail');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `safa-detail-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    const colWidths = [
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 60 }
+    ];
+    worksheet['!cols'] = colWidths;
+
+    XLSX.writeFile(workbook, `safa-detail-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   return (
@@ -82,15 +91,15 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
           <div className="flex items-center justify-between p-5 border-b border-gray-200">
             <div>
               <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-              <p className="text-sm text-gray-600 mt-1">{filteredRecords.length} kayıt</p>
+              <p className="text-sm text-gray-600 mt-1">{filteredRecords.length} kayit</p>
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={exportToCSV}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                onClick={exportToExcel}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
               >
                 <Download className="h-4 w-4" />
-                Export CSV
+                Export Excel
               </button>
               <button
                 onClick={onClose}
@@ -125,11 +134,11 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
                 <tr>
                   <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">W/O</th>
                   <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Tarih</th>
-                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Uçak</th>
+                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Ucak</th>
                   <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">ATA</th>
                   <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Problem Tipi</th>
                   <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Komponent</th>
-                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Açıklama</th>
+                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Aciklama</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,7 +176,7 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
           {/* Pagination */}
           <div className="p-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
             <div className="text-sm text-gray-600">
-              Sayfa {currentPage} / {totalPages} ({filteredRecords.length} kayıt)
+              Sayfa {currentPage} / {totalPages} ({filteredRecords.length} kayit)
             </div>
             <div className="flex gap-2">
               <button
@@ -175,7 +184,7 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
                 disabled={currentPage === 1}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
               >
-                Önceki
+                Onceki
               </button>
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}

@@ -135,13 +135,8 @@ function cleanDesc(text: string): string {
   let cleaned = String(text).toUpperCase();
   cleaned = cleaned.replace(/\s+/g, ' ');
 
-  // FINDING (NRC) temizle - NRC1, NRC2, NRC11 gibi tum varyasyonlar dahil
   cleaned = cleaned.replace(/FINDING\s*\(NRC\d*[^)]*\)\s*/gi, '');
-  
-  // DOCUMENT EOD...R00/R01/R02 vb. - sadece 2 haneli revizyon (R00, R01, R99)
   cleaned = cleaned.replace(/DOCUMENT\s+EOD[-\sA-Z0-9]+R\d{2}\s*/gi, '');
-
-  // PARAGRAPH varyasyonlarini temizle
   cleaned = cleaned.replace(/PARAG(?:RAPH)?\.?\s*NUMBER\s+[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
   cleaned = cleaned.replace(/PARAG(?:RAPH|RPH|PH|H)?\.?\s*NO\s*\.?\s*:?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
   cleaned = cleaned.replace(/PARAGNO\s*:?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
@@ -150,36 +145,21 @@ function cleanDesc(text: string): string {
   cleaned = cleaned.replace(/PARA\.?\s+[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
   cleaned = cleaned.replace(/PARAGPH\.?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
   cleaned = cleaned.replace(/PARAG(?:RAPH|RPH|PH|H)?\.?\s*[A-Z][.:\s]*\d{2}\.?\s*/gi, '');
-
-  // NRC kodlarini temizle
   cleaned = cleaned.replace(/\bNRC\d*[-\dA-Z]*\b\s*/g, '');
-
-  // W/O, WO, WP, TC referanslarini temizle
   cleaned = cleaned.replace(/\b(W\/O|WO|WP|TC)\s*[:\-]?\s*\d+\b\s*/g, '');
-
-  // MAINT ENTRY
   cleaned = cleaned.replace(/\bMAINT\s+ENTRY\b\s*/g, '');
-
-  // DURING ifadelerini tamamen temizle
   cleaned = cleaned.replace(/\bDURING\s+(?:THE\s+)?EXTERIOR\s+SAFA\b.*?(CHECK|INSPECTION|GVI)\b\s*/g, '');
   cleaned = cleaned.replace(/\bDURING\s+(?:THE\s+)?SAFA\b.*?(CHECK|INSPECTION|GVI)\b\s*/g, '');
   cleaned = cleaned.replace(/\bDURING\s+PE?RF?[OR]*M[ED]*\s*,?\s*/gi, '');
   cleaned = cleaned.replace(/\bDURING\s+PERFORM(?:ED)?\b\s*/g, '');
-
-  // EXTERIOR SAFA temizligi
   cleaned = cleaned.replace(/\bEXTERIOR\s+SAFA\s+CHECK\b\s*/g, '');
   cleaned = cleaned.replace(/\bEXTERIOR\s+SAFA\s+INSPECTION\b\s*/g, '');
-
-  // DURING genel temizligi
   cleaned = cleaned.replace(/\bDURING\s+W\/O\s*\d+\b\s*/g, '');
   cleaned = cleaned.replace(/\bDURING\s+THE\s+/g, '');
   cleaned = cleaned.replace(/^DURING\s+/g, '');
-
-  // Yazim hatalari
   cleaned = cleaned.replace(/FOND /g, 'FOUND ');
   cleaned = cleaned.replace(/NOR WORKING/g, 'NOT WORKING');
   cleaned = cleaned.replace(/MISISING/g, 'MISSING');
-
   cleaned = cleaned.replace(/\s+/g, ' ');
   cleaned = cleaned.trim();
 
@@ -238,7 +218,7 @@ function extractComponent(description: string): string {
     { keywords: ['MIRROR'], component: 'MIRROR' },
     { keywords: ['CARPET', 'FLOOR MAT'], component: 'CARPET' },
     { keywords: ['CARGO NET', 'CARGO NETS', 'NET', 'NETS'], component: 'CARGO_NETS' },
-    { keywords: ['AFT CARGO COMPARTMENT TAPE', 'CARGO PANEL TAPE', 'SIDE WALL PANEL TAPE', 'CARGO LINING TAPE', 'SIDE WALL TAPE', 'SIDEWALL TAPE', 'CARGO SIDEWALL TAPE', 'CARGO TAPE', 'CARGO TAPES', 'CARGOTAPES'], component: 'CARGO_TAPES' },
+    { keywords: ['AFT CARGO COMPARTMENT TAPE', 'CARGO PANEL TAPE', 'SIDE WALL PANEL TAPE', 'CARGO LINING TAPE', 'CARGO SOME TAPE', 'CARGO SOME TAPES', 'SIDE WALL TAPE', 'SIDEWALL TAPE', 'CARGO SIDEWALL TAPE', 'CARGO TAPE', 'CARGO TAPES', 'CARGOTAPES'], component: 'CARGO_TAPES' },
     { keywords: ['ANTENNA'], component: 'ANTENNA' },
     { keywords: ['KRUGER FLAP', 'KRUGER'], component: 'KRUGER_FLAP' },
     { keywords: ['SLAT'], component: 'SLAT' },
