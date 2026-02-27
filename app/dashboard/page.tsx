@@ -11,6 +11,7 @@ import { ProblemTypeChart } from '@/components/ProblemTypeChart';
 import { TopProblems } from '@/components/TopProblems';
 import { FilterPanel } from '@/components/FilterPanel';
 import { DataTable } from '@/components/DataTable';
+import { PeriodComparison } from '@/components/PeriodComparison';
 import { SAFARecord, AnalysisResult } from '@/lib/types';
 import { ArrowLeft, Download, RefreshCw, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -35,7 +36,7 @@ export default function Dashboard() {
       const savedData = localStorage.getItem('safaData');
       
       if (!savedData) {
-        setError('Henüz veri yüklenmedi');
+        setError('Henuz veri yuklenmedi');
         setLoading(false);
         return;
       }
@@ -112,7 +113,7 @@ export default function Dashboard() {
       setFilteredData(processedRecords);
     } catch (error) {
       console.error('Error loading data:', error);
-      setError('Veri yüklenirken hata oluştu');
+      setError('Veri yuklenirken hata olustu');
     } finally {
       setLoading(false);
     }
@@ -189,7 +190,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Veriler yükleniyor...</p>
+          <p className="text-gray-600">Veriler yukleniyor...</p>
         </div>
       </div>
     );
@@ -201,16 +202,16 @@ export default function Dashboard() {
         <div className="text-center max-w-md mx-auto p-8">
           <div className="bg-white rounded-lg shadow-lg p-8">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Henüz veri yüklenmedi</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Henuz veri yuklenmedi</h2>
             <p className="text-gray-600 mb-6">
-              {error || 'Dashboard\u2019u görüntülemek için önce bir Excel dosyası yüklemeniz gerekmektedir.'}
+              {error || 'Dashboardu goruntlemek icin once bir Excel dosyasi yuklemeniz gerekmektedir.'}
             </p>
             <Link 
               href="/" 
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
-              Ana sayfaya dön ve dosya yükle
+              Ana sayfaya don ve dosya yukle
             </Link>
           </div>
         </div>
@@ -229,7 +230,7 @@ export default function Dashboard() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Analiz Dashboard</h1>
-                <p className="text-sm text-gray-600">Toplam {data.records.length} kayıt analiz edildi</p>
+                <p className="text-sm text-gray-600">Toplam {data.records.length} kayit analiz edildi</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -259,7 +260,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Genel Bakış
+              Genel Bakis
             </button>
             <button
               onClick={() => setActiveTab('trends')}
@@ -272,6 +273,16 @@ export default function Dashboard() {
               Trend Analizi
             </button>
             <button
+              onClick={() => setActiveTab('period')}
+              className={`pb-2 px-1 border-b-2 transition-colors ${
+                activeTab === 'period'
+                  ? 'border-blue-600 text-blue-600 font-semibold'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Donem Analizi
+            </button>
+            <button
               onClick={() => setActiveTab('details')}
               className={`pb-2 px-1 border-b-2 transition-colors ${
                 activeTab === 'details'
@@ -279,16 +290,18 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Detaylı Veriler
+              Detayli Veriler
             </button>
           </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="mb-6">
-          <FilterPanel data={data} onFilter={handleFilter} />
-        </div>
+        {activeTab !== 'period' && (
+          <div className="mb-6">
+            <FilterPanel data={data} onFilter={handleFilter} />
+          </div>
+        )}
 
         {activeTab === 'overview' && (
           <div className="space-y-6">
@@ -310,6 +323,10 @@ export default function Dashboard() {
             <AircraftHeatmap records={filteredData} />
             <ATAHeatmap records={filteredData} />
           </div>
+        )}
+
+        {activeTab === 'period' && (
+          <PeriodComparison records={data.records} />
         )}
 
         {activeTab === 'details' && (
