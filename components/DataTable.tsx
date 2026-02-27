@@ -19,6 +19,7 @@ export function DataTable({ records }: DataTableProps) {
   const filteredRecords = records.filter(record => {
     const searchLower = search.toLowerCase();
     return (
+      record.woNumber.toLowerCase().includes(searchLower) ||
       record.aircraft.toLowerCase().includes(searchLower) ||
       record.ata.toLowerCase().includes(searchLower) ||
       record.cleanDescription.toLowerCase().includes(searchLower) ||
