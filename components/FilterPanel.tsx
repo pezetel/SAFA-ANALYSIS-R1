@@ -9,8 +9,25 @@ interface FilterPanelProps {
   onFilter: (filters: any) => void;
 }
 
+const AIRCRAFT_TYPES = {
+  'B737-NG': [
+    'TC-SEI', 'TC-SEJ', 'TC-SEK', 'TC-SEM', 'TC-SEN', 'TC-SEO', 'TC-SEP', 'TC-SEU', 'TC-SEY', 'TC-SEZ',
+    'TC-SNN', 'TC-SNR', 'TC-SNT', 'TC-SNU', 'TC-SNV', 'TC-SOA', 'TC-SOB', 'TC-SUU', 'TC-SOC', 'TC-SOD',
+    'TC-SOE', 'TC-SOF', 'TC-SOG', 'TC-SOH', 'TC-SON', 'TC-SOO', 'TC-SOP', 'TC-SOR', 'TC-SOV', 'TC-SOY',
+    'TC-SOZ', 'TC-SPA', 'TC-SPB', 'TC-SPC', 'TC-SPD', 'TC-SPH', 'TC-SPE', 'TC-SPF', 'TC-SPI', 'TC-SPJ',
+    'TC-SPK', 'TC-SPT', 'TC-SPM', 'TC-SPP', 'TC-SPN', 'TC-SPU', 'TC-SPR', 'TC-SPO', 'TC-SPS', 'TC-SPV',
+    'TC-SRB', 'TC-SRC', 'TC-SPY', 'TC-SPZ', 'TC-SRG', 'TC-SRE', 'TC-SRF'
+  ],
+  'B737-MAX': [
+    'TC-SOI', 'TC-SOJ', 'TC-SOL', 'TC-SMA', 'TC-SMD', 'TC-SMB', 'TC-SME', 'TC-SOK', 'TC-SOM', 'TC-SLA',
+    'TC-SLB', 'TC-SLC', 'TC-SLD', 'TC-SMR', 'TC-SMS', 'TC-SMT', 'TC-SLE', 'TC-SLF', 'TC-SMJ', 'TC-SMK',
+    'TC-SML', 'TC-SMN', 'TC-SMP', 'TC-SMF', 'TC-SMI', 'TC-SMU', 'TC-SMV', 'TC-SMZ'
+  ]
+};
+
 export function FilterPanel({ data, onFilter }: FilterPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedAircraftTypes, setSelectedAircraftTypes] = useState<string[]>([]);
   const [selectedAircraft, setSelectedAircraft] = useState<string[]>([]);
   const [selectedATA, setSelectedATA] = useState<string[]>([]);
   const [selectedProblemTypes, setSelectedProblemTypes] = useState<string[]>([]);
@@ -48,8 +65,15 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
       ];
     }
 
-    if (selectedAircraft.length > 0) {
-      filters.aircraft = selectedAircraft;
+    // Ucak tipi filtresini uygula
+    let aircraftToFilter = [...selectedAircraft];
+    if (selectedAircraftTypes.length > 0) {
+      const typeAircraft = selectedAircraftTypes.flatMap(type => AIRCRAFT_TYPES[type as keyof typeof AIRCRAFT_TYPES] || []);
+      aircraftToFilter = [...new Set([...aircraftToFilter, ...typeAircraft])];
+    }
+
+    if (aircraftToFilter.length > 0) {
+      filters.aircraft = aircraftToFilter;
     }
 
     if (selectedATA.length > 0) {
@@ -68,6 +92,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
   };
 
   const resetFilters = () => {
+    setSelectedAircraftTypes([]);
     setSelectedAircraft([]);
     setSelectedATA([]);
     setSelectedProblemTypes([]);
@@ -81,6 +106,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
   };
 
   const activeFiltersCount = 
+    selectedAircraftTypes.length +
     selectedAircraft.length + 
     selectedATA.length + 
     selectedProblemTypes.length + 
@@ -90,7 +116,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
 
   useEffect(() => {
     applyFilters();
-  }, [selectedAircraft, selectedATA, selectedProblemTypes, selectedComponents, startDate, endDate]);
+  }, [selectedAircraftTypes, selectedAircraft, selectedATA, selectedProblemTypes, selectedComponents, startDate, endDate]);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -125,6 +151,45 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
 
       {isOpen && (
         <div className="p-3 border-t border-gray-200 space-y-3">
+          {/* Aircraft Type Filter */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Ucak Tipi ({selectedAircraftTypes.length}/2)
+            </label>
+            <div className="flex gap-2">
+              <label className="flex items-center gap-1.5 p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer flex-1">
+                <input
+                  type="checkbox"
+                  checked={selectedAircraftTypes.includes('B737-NG')}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedAircraftTypes([...selectedAircraftTypes, 'B737-NG']);
+                    } else {
+                      setSelectedAircraftTypes(selectedAircraftTypes.filter(t => t !== 'B737-NG'));
+                    }
+                  }}
+                  className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3"
+                />
+                <span className="text-xs font-medium text-gray-700">B737-NG</span>
+              </label>
+              <label className="flex items-center gap-1.5 p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer flex-1">
+                <input
+                  type="checkbox"
+                  checked={selectedAircraftTypes.includes('B737-MAX')}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedAircraftTypes([...selectedAircraftTypes, 'B737-MAX']);
+                    } else {
+                      setSelectedAircraftTypes(selectedAircraftTypes.filter(t => t !== 'B737-MAX'));
+                    }
+                  }}
+                  className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3"
+                />
+                <span className="text-xs font-medium text-gray-700">B737-MAX</span>
+              </label>
+            </div>
+          </div>
+
           {/* Main Filters */}
           <div className="grid grid-cols-4 gap-3">
             {/* Aircraft with Search */}
