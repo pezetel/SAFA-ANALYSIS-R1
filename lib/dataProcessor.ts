@@ -231,9 +231,13 @@ function extractProblemType(description: string): string {
 function extractComponent(description: string): string {
   const text = description.toUpperCase();
 
-  // JUMPER oncelikli - diger komponentlerden once kontrol et
+  // JUMPER ve LANYARD RING oncelikli - diger komponentlerden once kontrol et
   if (text.includes('JUMPER')) {
     return 'BONDING';
+  }
+  
+  if (text.includes('LANYARD RING')) {
+    return 'LANYARD_RING';
   }
 
   const components = [
