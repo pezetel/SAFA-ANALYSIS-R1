@@ -100,46 +100,45 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
 
         <div className="overflow-x-auto">
           <div className="inline-block min-w-full">
-            <div className="flex">
-              <div className="w-40 flex-shrink-0">
-                <div className="h-8"></div>
-                {heatmapData.components.map((component) => (
-                  <div
-                    key={component}
-                    className="h-10 flex items-center text-xs font-medium text-gray-700 pr-2"
-                  >
-                    {formatComponentName(component)}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex-1 overflow-x-auto">
-                <div className="flex gap-1">
+            <table className="border-collapse">
+              <thead>
+                <tr>
+                  <th className="w-40 text-left align-top h-16"></th>
                   {heatmapData.months.map((month) => (
-                    <div key={month} className="flex flex-col gap-1">
-                      <div className="h-8 flex items-center justify-center text-xs font-medium text-gray-600 w-16">
-                        <div className="transform -rotate-45 origin-center whitespace-nowrap">
+                    <th key={month} className="w-16 h-16 align-bottom p-0">
+                      <div className="flex items-end justify-center h-full pb-1">
+                        <div className="transform -rotate-45 origin-bottom-left text-xs font-medium text-gray-600 whitespace-nowrap">
                           {format(parseISO(month + '-01'), 'MMM yy', { locale: tr })}
                         </div>
                       </div>
-                      {heatmapData.components.map((component) => {
-                        const count = heatmapData.data[component]?.[month] || 0;
-                        return (
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {heatmapData.components.map((component) => (
+                  <tr key={component}>
+                    <td className="w-40 pr-2 py-1 text-xs font-medium text-gray-700 align-middle">
+                      {formatComponentName(component)}
+                    </td>
+                    {heatmapData.months.map((month) => {
+                      const count = heatmapData.data[component]?.[month] || 0;
+                      return (
+                        <td key={`${component}-${month}`} className="p-0.5">
                           <button
-                            key={`${component}-${month}`}
                             onClick={() => handleCellClick(component, month, count)}
-                            className={`w-16 h-10 ${getColor(count)} rounded flex items-center justify-center text-xs font-semibold cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all ${count === 0 ? 'cursor-default' : ''}`}
+                            className={`w-full h-10 ${getColor(count)} rounded flex items-center justify-center text-xs font-semibold cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all ${count === 0 ? 'cursor-default' : ''}`}
                             title={`${formatComponentName(component)} - ${format(parseISO(month + '-01'), 'MMMM yyyy', { locale: tr })}: ${count} kayit`}
                           >
                             {count > 0 ? count : ''}
                           </button>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
