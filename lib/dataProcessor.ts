@@ -169,6 +169,11 @@ function cleanDesc(text: string): string {
 function extractProblemType(description: string): string {
   const text = description.toUpperCase();
 
+  // Önce DENT kontrolü yap
+  if (text.includes('DENT')) {
+    return 'DENT';
+  }
+
   const problemTypes = [
     { keywords: ['PAINT DAMAGE', 'PAINT DAMAGED', 'PAINTING DAMAGE'], type: 'PAINT_DAMAGE' },
     { keywords: ['MISSING', 'MISS'], type: 'MISSING' },
@@ -197,8 +202,13 @@ function extractComponent(description: string): string {
     return 'BONDING';
   }
   
-  if (/LANYARDS?['\'']?S?\s+RINGS?/i.test(text)) {
+  if (/LANYARDS?['\'\'']?S?\s+RINGS?/i.test(text)) {
     return 'LANYARD_RING';
+  }
+
+  // HORIZONTAL STABILIZER kontrolü
+  if (text.includes('HORIZONTAL STAB')) {
+    return 'HORIZONTAL_STABILIZER';
   }
 
   const components = [
