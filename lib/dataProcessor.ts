@@ -231,6 +231,11 @@ function extractProblemType(description: string): string {
 function extractComponent(description: string): string {
   const text = description.toUpperCase();
 
+  // JUMPER oncelikli - diger komponentlerden once kontrol et
+  if (text.includes('JUMPER')) {
+    return 'BONDING';
+  }
+
   const components = [
     { keywords: ['OVERHEAD BIN', 'STOWAGE BIN', 'OVERHEAD STOWAGE'], component: 'OVERHEAD_BIN' },
     { keywords: ['BIN STOPPER', 'DOOR STOPPER'], component: 'BIN_STOPPER' },
