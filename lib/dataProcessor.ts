@@ -248,7 +248,7 @@ function extractComponent(description: string): string {
     { keywords: ['MIRROR'], component: 'MIRROR' },
     { keywords: ['CARPET', 'FLOOR MAT'], component: 'CARPET' },
     { keywords: ['CARGO NET', 'CARGO NETS', 'NET', 'NETS'], component: 'CARGO_NETS' },
-    { keywords: ['CARGO TAPE', 'CARGO TAPES'], component: 'CARGO_TAPES' },
+    { keywords: ['CARGO SIDEWALL TAPE', 'CARGO TAPE', 'CARGO TAPES', 'SIDEWALL TAPE'], component: 'CARGO_TAPES' },
     { keywords: ['ANTENNA'], component: 'ANTENNA' },
     { keywords: ['KRUGER FLAP', 'KRUGER'], component: 'KRUGER_FLAP' },
     { keywords: ['SLAT'], component: 'SLAT' },
