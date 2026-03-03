@@ -201,7 +201,7 @@ function extractComponent(description: string): string {
     return 'BONDING';
   }
   
-  if (/LANYARDS?['\'\'']?S?\s+RINGS?/i.test(text)) {
+  if (/LANYARDS?['\'\'\']?S?\s+RINGS?/i.test(text)) {
     return 'LANYARD_RING';
   }
 
@@ -246,11 +246,17 @@ function extractComponent(description: string): string {
     { keywords: ['PAX SEAT', 'PASSENGER SEAT', 'ATTENDANT SEAT'], component: 'SEAT' },
     { keywords: ['SEAT'], component: 'SEAT' },
     { keywords: ['DOOR'], component: 'DOOR' },
-    { keywords: ['LIGHT'], component: 'LIGHT' },
+    { keywords: ['\\bLIGHT\\b'], component: 'LIGHT' },
   ];
 
   for (const { keywords, component } of components) {
-    if (keywords.some(keyword => text.includes(keyword))) {
+    if (keywords.some(keyword => {
+      // Kelime sınırı kontrolü için regex kullan
+      if (keyword === '\\bLIGHT\\b') {
+        return /\bLIGHT\b/.test(text);
+      }
+      return text.includes(keyword);
+    })) {
       return component;
     }
   }
