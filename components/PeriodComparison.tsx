@@ -2,7 +2,7 @@
 
 import { SAFARecord } from '@/lib/types';
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Minus, Plane, Search, X, ChevronDown, Calendar, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Plane, Search, X, ChevronDown, Calendar, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface PeriodComparisonProps {
@@ -50,10 +50,6 @@ function parseInputDate(dateStr: string): Date | null {
 }
 
 // ── Horizontal paired bar chart for problem type comparison ──
-// label1 = sol taraf (ilk grup), label2 = sağ taraf (ikinci grup)
-// Her problem tipi için:
-//   - Yüzde = o problem tipinin kendi grubu içindeki oranı (count / grubun toplam finding sayısı)
-//   - Artış/azalış = label2'nin count'u label1'e göre fark
 function ProblemTypeComparisonChart({
   data,
   label1,
@@ -96,7 +92,6 @@ function ProblemTypeComparisonChart({
         const diff = item.count2 - item.count1;
         return (
           <div key={idx} className="rounded-lg hover:bg-gray-50 transition-colors px-1 py-2 border-b border-gray-50 last:border-0">
-            {/* Type Label & diff badge */}
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-gray-800">{item.type}</span>
               {diff > 0 ? (
@@ -162,7 +157,7 @@ function ProblemTypeComparisonChart({
         <span className="text-gray-400 text-sm">ℹ️</span>
         <div className="text-[11px] text-gray-500 leading-relaxed">
           <p><strong>Count:</strong> Her problem tipindeki finding sayısı.</p>
-          <p><strong>% of Group:</strong> O problem tipinin kendi grubu içindeki oranı. Örn: {label1} grubunda 100 finding varsa ve 20'si &quot;Defect&quot; ise → {label1} için Defect = %20.</p>
+          <p><strong>% of Group:</strong> O problem tipinin kendi grubu içindeki oranı. Örn: {label1} grubunda 100 finding varsa ve 20&apos;si &quot;Defect&quot; ise → {label1} için Defect = %20.</p>
           <p><strong>Badge:</strong> İki grubun adet farkını gösterir. Hangi grupta daha fazla varsa o grubun adıyla birlikte fark yazılır.</p>
         </div>
       </div>
@@ -334,8 +329,6 @@ function AircraftSelector({
 }
 
 // ── Helper: build problem type comparison data ──
-// pct1 = count1 / total1 * 100 → "Bu problem tipinin Group 1 içindeki oranı"
-// pct2 = count2 / total2 * 100 → "Bu problem tipinin Group 2 içindeki oranı"
 function buildProblemTypeData(records1: SAFARecord[], records2: SAFARecord[]) {
   const p1 = records1.reduce((acc, r) => { acc[r.problemType] = (acc[r.problemType] || 0) + 1; return acc; }, {} as Record<string, number>);
   const p2 = records2.reduce((acc, r) => { acc[r.problemType] = (acc[r.problemType] || 0) + 1; return acc; }, {} as Record<string, number>);
@@ -365,6 +358,9 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
   const [selectedPeriodEnd, setSelectedPeriodEnd] = useState('');
   const [aircraft1List, setAircraft1List] = useState<string[]>([]);
   const [aircraft2List, setAircraft2List] = useState<string[]>([]);
+
+  // Fleet: per-aircraft normalization toggle
+  const [fleetNormalize, setFleetNormalize] = useState(false);
 
   const allAircraft = useMemo(() => Array.from(new Set(records.map(r => r.aircraft))).sort(), [records]);
 
@@ -537,30 +533,86 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
     const ngRecords = periodRecords.filter(r => AIRCRAFT_TYPES['B737-NG'].includes(r.aircraft));
     const maxRecords = periodRecords.filter(r => AIRCRAFT_TYPES['B737-MAX'].includes(r.aircraft));
 
-    const ngComp = ngRecords.reduce((a, r) => { a[r.component] = (a[r.component] || 0) + 1; return a; }, {} as Record<string, number>);
-    const maxComp = maxRecords.reduce((a, r) => { a[r.component] = (a[r.component] || 0) + 1; return a; }, {} as Record<string, number>);
-    const allComp = Array.from(new Set([...Object.keys(ngComp), ...Object.keys(maxComp)]));
+    // Unique aircraft counts per fleet in this period
+    const ngUniqueAC = new Set(ngRecords.map(r => r.aircraft)).size;
+    const maxUniqueAC = new Set(maxRecords.map(r => r.aircraft)).size;
 
-    const componentComparison = allComp.map(comp => {
-      const n = ngComp[comp] || 0, m = maxComp[comp] || 0;
-      return { component: comp.replace(/_/g, ' '), ng: n, max: m, difference: m - n };
-    }).sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
+    // ── Component comparison ──
+    // Per component: count how many total findings AND how many unique aircraft had that component finding
+    const ngCompMap: Record<string, { count: number; aircraft: Set<string> }> = {};
+    ngRecords.forEach(r => {
+      const c = r.component;
+      if (!ngCompMap[c]) ngCompMap[c] = { count: 0, aircraft: new Set() };
+      ngCompMap[c].count++;
+      ngCompMap[c].aircraft.add(r.aircraft);
+    });
+
+    const maxCompMap: Record<string, { count: number; aircraft: Set<string> }> = {};
+    maxRecords.forEach(r => {
+      const c = r.component;
+      if (!maxCompMap[c]) maxCompMap[c] = { count: 0, aircraft: new Set() };
+      maxCompMap[c].count++;
+      maxCompMap[c].aircraft.add(r.aircraft);
+    });
+
+    const allComp = Array.from(new Set([...Object.keys(ngCompMap), ...Object.keys(maxCompMap)]));
+
+    const componentComparisonRaw = allComp.map(comp => {
+      const ngCount = ngCompMap[comp]?.count || 0;
+      const maxCount = maxCompMap[comp]?.count || 0;
+      const ngAcCount = ngCompMap[comp]?.aircraft.size || 0;
+      const maxAcCount = maxCompMap[comp]?.aircraft.size || 0;
+      return {
+        component: comp.replace(/_/g, ' '),
+        ngRaw: ngCount,
+        maxRaw: maxCount,
+        ngAcCount,
+        maxAcCount,
+        ngAvg: ngAcCount > 0 ? ngCount / ngAcCount : 0,
+        maxAvg: maxAcCount > 0 ? maxCount / maxAcCount : 0,
+      };
+    });
+
+    // Build two versions: raw and normalized
+    const componentComparisonForChart = componentComparisonRaw.map(c => ({
+      component: c.component,
+      ng: fleetNormalize ? parseFloat(c.ngAvg.toFixed(2)) : c.ngRaw,
+      max: fleetNormalize ? parseFloat(c.maxAvg.toFixed(2)) : c.maxRaw,
+      difference: fleetNormalize ? parseFloat((c.maxAvg - c.ngAvg).toFixed(2)) : (c.maxRaw - c.ngRaw),
+      ngRaw: c.ngRaw,
+      maxRaw: c.maxRaw,
+      ngAcCount: c.ngAcCount,
+      maxAcCount: c.maxAcCount,
+      ngAvg: c.ngAvg,
+      maxAvg: c.maxAvg,
+    })).sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
 
     const problemTypeData = buildProblemTypeData(ngRecords, maxRecords);
 
-    const ngAC = new Set(ngRecords.map(r => r.aircraft)).size;
-    const maxAC = new Set(maxRecords.map(r => r.aircraft)).size;
+    // For summary cards - normalized
+    const ngTotalNorm = ngUniqueAC > 0 ? ngRecords.length / ngUniqueAC : 0;
+    const maxTotalNorm = maxUniqueAC > 0 ? maxRecords.length / maxUniqueAC : 0;
 
     return {
-      ng: { total: ngRecords.length, aircraftCount: ngAC, avgPerAircraft: ngAC > 0 ? (ngRecords.length / ngAC).toFixed(1) : '0' },
-      max: { total: maxRecords.length, aircraftCount: maxAC, avgPerAircraft: maxAC > 0 ? (maxRecords.length / maxAC).toFixed(1) : '0' },
+      ng: {
+        total: ngRecords.length,
+        aircraftCount: ngUniqueAC,
+        avgPerAircraft: ngUniqueAC > 0 ? (ngRecords.length / ngUniqueAC).toFixed(1) : '0'
+      },
+      max: {
+        total: maxRecords.length,
+        aircraftCount: maxUniqueAC,
+        avgPerAircraft: maxUniqueAC > 0 ? (maxRecords.length / maxUniqueAC).toFixed(1) : '0'
+      },
+      ngTotalNorm,
+      maxTotalNorm,
       dateRange: `${selectedPeriodStart} - ${selectedPeriodEnd}`,
-      componentComparison: componentComparison.slice(0, 10),
+      componentComparison: componentComparisonForChart.slice(0, 10),
       problemTypeData,
-      ngHigher: componentComparison.filter(c => c.difference < 0).slice(0, 5),
-      maxHigher: componentComparison.filter(c => c.difference > 0).slice(0, 5)
+      ngHigher: componentComparisonForChart.filter(c => c.difference < 0).slice(0, 5),
+      maxHigher: componentComparisonForChart.filter(c => c.difference > 0).slice(0, 5)
     };
-  }, [records, selectedPeriodStart, selectedPeriodEnd]);
+  }, [records, selectedPeriodStart, selectedPeriodEnd, fleetNormalize]);
 
   return (
     <div className="space-y-6">
@@ -805,7 +857,6 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                 </div>
               </div>
 
-              {/* Problem Type — readable horizontal bars */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-5">Problem Type Comparison</h3>
                 <ProblemTypeComparisonChart
@@ -817,7 +868,6 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                 />
               </div>
 
-              {/* Component bar chart */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Component Comparison</h3>
                 <div className="h-96">
@@ -896,40 +946,116 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
 
           {fleetComparisonData && (
             <>
+              {/* Normalize Toggle */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-100 rounded-lg">
+                      <Plane className="h-5 w-5 text-amber-700" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">Per-Aircraft Normalization</p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        NG filoda <strong>{fleetComparisonData.ng.aircraftCount}</strong> uçak, MAX filoda <strong>{fleetComparisonData.max.aircraftCount}</strong> uçak var.
+                        {!fleetNormalize
+                          ? ' Normalize ederek uçak başına ortalama finding ile karşılaştır.'
+                          : ' Şu an uçak başına ortalama gösteriliyor. Toplam adetlere dönmek için kapatın.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFleetNormalize(!fleetNormalize)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-sm ${
+                      fleetNormalize
+                        ? 'bg-amber-600 text-white hover:bg-amber-700'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {fleetNormalize ? (
+                      <><ToggleRight className="h-5 w-5" /> Per A/C ON</>
+                    ) : (
+                      <><ToggleLeft className="h-5 w-5" /> Total Count</>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Summary Cards */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center gap-2 mb-2"><Plane className="h-5 w-5 text-blue-600" /><h3 className="text-sm font-medium text-gray-600">B737-NG Fleet</h3></div>
-                  <p className="text-3xl font-bold text-blue-600">{fleetComparisonData.ng.total}</p>
-                  <p className="text-xs text-gray-500 mt-1">findings</p>
+                  {fleetNormalize ? (
+                    <>
+                      <p className="text-3xl font-bold text-blue-600">{fleetComparisonData.ng.avgPerAircraft}</p>
+                      <p className="text-xs text-gray-500 mt-1">avg findings / aircraft</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-3xl font-bold text-blue-600">{fleetComparisonData.ng.total}</p>
+                      <p className="text-xs text-gray-500 mt-1">total findings</p>
+                    </>
+                  )}
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <p className="text-xs text-gray-600">{fleetComparisonData.ng.aircraftCount} aircraft</p>
-                    <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.avgPerAircraft} avg/aircraft</p>
+                    {!fleetNormalize && <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.avgPerAircraft} avg/aircraft</p>}
+                    {fleetNormalize && <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.total} total findings</p>}
                   </div>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center gap-2 mb-2"><Plane className="h-5 w-5 text-purple-600" /><h3 className="text-sm font-medium text-gray-600">B737-MAX Fleet</h3></div>
-                  <p className="text-3xl font-bold text-purple-600">{fleetComparisonData.max.total}</p>
-                  <p className="text-xs text-gray-500 mt-1">findings</p>
+                  {fleetNormalize ? (
+                    <>
+                      <p className="text-3xl font-bold text-purple-600">{fleetComparisonData.max.avgPerAircraft}</p>
+                      <p className="text-xs text-gray-500 mt-1">avg findings / aircraft</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-3xl font-bold text-purple-600">{fleetComparisonData.max.total}</p>
+                      <p className="text-xs text-gray-500 mt-1">total findings</p>
+                    </>
+                  )}
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <p className="text-xs text-gray-600">{fleetComparisonData.max.aircraftCount} aircraft</p>
-                    <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.avgPerAircraft} avg/aircraft</p>
+                    {!fleetNormalize && <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.avgPerAircraft} avg/aircraft</p>}
+                    {fleetNormalize && <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.total} total findings</p>}
                   </div>
                 </div>
-                <div className={`bg-white rounded-xl border border-gray-200 p-6 ${fleetComparisonData.max.total > fleetComparisonData.ng.total ? 'border-red-200 bg-red-50' : fleetComparisonData.max.total < fleetComparisonData.ng.total ? 'border-green-200 bg-green-50' : ''}`}>
+                <div className={`bg-white rounded-xl border border-gray-200 p-6 ${
+                  (fleetNormalize ? fleetComparisonData.maxTotalNorm > fleetComparisonData.ngTotalNorm : fleetComparisonData.max.total > fleetComparisonData.ng.total)
+                    ? 'border-red-200 bg-red-50'
+                    : (fleetNormalize ? fleetComparisonData.maxTotalNorm < fleetComparisonData.ngTotalNorm : fleetComparisonData.max.total < fleetComparisonData.ng.total)
+                      ? 'border-green-200 bg-green-50' : ''
+                }`}>
                   <h3 className="text-sm font-medium text-gray-600 mb-2">Difference</h3>
-                  <div className="flex items-center gap-2">
-                    {fleetComparisonData.max.total > fleetComparisonData.ng.total ? <TrendingUp className="h-6 w-6 text-red-600" /> : fleetComparisonData.max.total < fleetComparisonData.ng.total ? <TrendingDown className="h-6 w-6 text-green-600" /> : <Minus className="h-6 w-6 text-gray-600" />}
-                    <div>
-                      <p className={`text-3xl font-bold ${fleetComparisonData.max.total > fleetComparisonData.ng.total ? 'text-red-600' : fleetComparisonData.max.total < fleetComparisonData.ng.total ? 'text-green-600' : 'text-gray-600'}`}>
-                        {fleetComparisonData.max.total - fleetComparisonData.ng.total > 0 ? '+' : ''}{fleetComparisonData.max.total - fleetComparisonData.ng.total}
-                      </p>
-                      <p className="text-xs text-gray-600">MAX vs NG</p>
+                  {fleetNormalize ? (
+                    <div className="flex items-center gap-2">
+                      {fleetComparisonData.maxTotalNorm > fleetComparisonData.ngTotalNorm ? <TrendingUp className="h-6 w-6 text-red-600" /> : fleetComparisonData.maxTotalNorm < fleetComparisonData.ngTotalNorm ? <TrendingDown className="h-6 w-6 text-green-600" /> : <Minus className="h-6 w-6 text-gray-600" />}
+                      <div>
+                        <p className={`text-3xl font-bold ${
+                          fleetComparisonData.maxTotalNorm > fleetComparisonData.ngTotalNorm ? 'text-red-600' : fleetComparisonData.maxTotalNorm < fleetComparisonData.ngTotalNorm ? 'text-green-600' : 'text-gray-600'
+                        }`}>
+                          {(fleetComparisonData.maxTotalNorm - fleetComparisonData.ngTotalNorm) > 0 ? '+' : ''}{(fleetComparisonData.maxTotalNorm - fleetComparisonData.ngTotalNorm).toFixed(1)}
+                        </p>
+                        <p className="text-xs text-gray-600">MAX vs NG (avg/aircraft)</p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {fleetComparisonData.max.total > fleetComparisonData.ng.total ? <TrendingUp className="h-6 w-6 text-red-600" /> : fleetComparisonData.max.total < fleetComparisonData.ng.total ? <TrendingDown className="h-6 w-6 text-green-600" /> : <Minus className="h-6 w-6 text-gray-600" />}
+                      <div>
+                        <p className={`text-3xl font-bold ${
+                          fleetComparisonData.max.total > fleetComparisonData.ng.total ? 'text-red-600' : fleetComparisonData.max.total < fleetComparisonData.ng.total ? 'text-green-600' : 'text-gray-600'
+                        }`}>
+                          {fleetComparisonData.max.total - fleetComparisonData.ng.total > 0 ? '+' : ''}{fleetComparisonData.max.total - fleetComparisonData.ng.total}
+                        </p>
+                        <p className="text-xs text-gray-600">MAX vs NG (total)</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Problem Type — readable horizontal bars */}
+              {/* Problem Type */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-5">Problem Type Comparison</h3>
                 <ProblemTypeComparisonChart
@@ -941,42 +1067,87 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                 />
               </div>
 
+              {/* Component Comparison Chart */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Component Comparison</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Component Comparison</h3>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    fleetNormalize ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {fleetNormalize ? '📊 Per-Aircraft Average' : '📊 Total Count'}
+                  </span>
+                </div>
                 <div className="h-96">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={fleetComparisonData.componentComparison}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis dataKey="component" angle={-45} textAnchor="end" height={100} stroke="#6b7280" style={{ fontSize: '10px' }} />
                       <YAxis stroke="#6b7280" style={{ fontSize: '11px' }} />
-                      <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }}
+                        formatter={(value: number, name: string, props: any) => {
+                          const item = props.payload;
+                          if (fleetNormalize) {
+                            const raw = name === 'B737-NG' ? item.ngRaw : item.maxRaw;
+                            const acCount = name === 'B737-NG' ? item.ngAcCount : item.maxAcCount;
+                            return [`${value.toFixed(2)} avg (${raw} total ÷ ${acCount} a/c)`, name];
+                          }
+                          return [value, name];
+                        }}
+                      />
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
                       <Bar dataKey="ng" fill="#3b82f6" name="B737-NG" radius={[2, 2, 0, 0]} />
                       <Bar dataKey="max" fill="#8b5cf6" name="B737-MAX" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                {fleetNormalize && (
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-[11px] text-amber-800">
+                      <strong>ℹ️ Per-Aircraft Average:</strong> Her component&apos;in toplam finding sayısı, o component&apos;i yaşayan uçak sayısına bölünmüştür.
+                      Örn: &quot;Cargo Tape&quot; NG&apos;de 100 kere yazılmış ve 25 farklı NG uçağında görülmüşse → 100÷25 = <strong>4.0 avg/aircraft</strong>.
+                      Bu sayede filo büyüklüğü farkından bağımsız gerçek karşılaştırma yapılır.
+                    </p>
+                  </div>
+                )}
               </div>
 
+              {/* Top Differences */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">NG Fleet Has More</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">NG Fleet Has More</h3>
+                  <p className="text-xs text-gray-500 mb-4">{fleetNormalize ? 'Per-aircraft average basis' : 'Total count basis'}</p>
                   <div className="space-y-2">
                     {fleetComparisonData.ngHigher.length > 0 ? fleetComparisonData.ngHigher.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                        <div><p className="text-sm font-semibold text-gray-900">{item.component}</p><p className="text-xs text-gray-600">NG: {item.ng} vs MAX: {item.max}</p></div>
-                        <p className="text-lg font-bold text-blue-600">+{Math.abs(item.difference)}</p>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{item.component}</p>
+                          {fleetNormalize ? (
+                            <p className="text-xs text-gray-500">NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} total, {item.ngAcCount} ac) — MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} total, {item.maxAcCount} ac)</p>
+                          ) : (
+                            <p className="text-xs text-gray-600">NG: {item.ngRaw} vs MAX: {item.maxRaw}</p>
+                          )}
+                        </div>
+                        <p className="text-lg font-bold text-blue-600">+{Math.abs(item.difference).toFixed(fleetNormalize ? 2 : 0)}</p>
                       </div>
                     )) : <p className="text-sm text-gray-500 text-center py-4">No differences</p>}
                   </div>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">MAX Fleet Has More</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">MAX Fleet Has More</h3>
+                  <p className="text-xs text-gray-500 mb-4">{fleetNormalize ? 'Per-aircraft average basis' : 'Total count basis'}</p>
                   <div className="space-y-2">
                     {fleetComparisonData.maxHigher.length > 0 ? fleetComparisonData.maxHigher.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                        <div><p className="text-sm font-semibold text-gray-900">{item.component}</p><p className="text-xs text-gray-600">NG: {item.ng} vs MAX: {item.max}</p></div>
-                        <p className="text-lg font-bold text-purple-600">+{Math.abs(item.difference)}</p>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{item.component}</p>
+                          {fleetNormalize ? (
+                            <p className="text-xs text-gray-500">MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} total, {item.maxAcCount} ac) — NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} total, {item.ngAcCount} ac)</p>
+                          ) : (
+                            <p className="text-xs text-gray-600">NG: {item.ngRaw} vs MAX: {item.maxRaw}</p>
+                          )}
+                        </div>
+                        <p className="text-lg font-bold text-purple-600">+{Math.abs(item.difference).toFixed(fleetNormalize ? 2 : 0)}</p>
                       </div>
                     )) : <p className="text-sm text-gray-500 text-center py-4">No differences</p>}
                   </div>
