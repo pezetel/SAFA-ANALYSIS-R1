@@ -70,16 +70,16 @@ export function DataTable({ records }: DataTableProps) {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Detaylı Veri Tablosu</h2>
+            <h2 className="text-lg font-bold text-gray-900">Detailed Data Table</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Toplam {sortedRecords.length} kayıt gösteriliyor
+              Showing {sortedRecords.length} records in total
             </p>
           </div>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Ara..."
+              placeholder="Search..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -109,7 +109,7 @@ export function DataTable({ records }: DataTableProps) {
                   onClick={() => handleSort('date')}
                   className="flex items-center gap-1 hover:text-blue-600"
                 >
-                  Tarih
+                  Date
                   <SortIcon field="date" />
                 </button>
               </th>
@@ -118,7 +118,7 @@ export function DataTable({ records }: DataTableProps) {
                   onClick={() => handleSort('aircraft')}
                   className="flex items-center gap-1 hover:text-blue-600"
                 >
-                  Uçak
+                  Aircraft
                   <SortIcon field="aircraft" />
                 </button>
               </th>
@@ -136,7 +136,7 @@ export function DataTable({ records }: DataTableProps) {
                   onClick={() => handleSort('problemType')}
                   className="flex items-center gap-1 hover:text-blue-600"
                 >
-                  Problem Tipi
+                  Problem Type
                   <SortIcon field="problemType" />
                 </button>
               </th>
@@ -145,11 +145,11 @@ export function DataTable({ records }: DataTableProps) {
                   onClick={() => handleSort('component')}
                   className="flex items-center gap-1 hover:text-blue-600"
                 >
-                  Komponent
+                  Component
                   <SortIcon field="component" />
                 </button>
               </th>
-              <th className="text-left p-3 font-semibold text-gray-700">Açıklama</th>
+              <th className="text-left p-3 font-semibold text-gray-700">Description</th>
             </tr>
           </thead>
           <tbody>
@@ -157,7 +157,7 @@ export function DataTable({ records }: DataTableProps) {
               <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="p-3 text-gray-600">{record.woNumber}</td>
                 <td className="p-3 text-gray-600">
-                  {new Date(record.date).toLocaleDateString('tr-TR')}
+                  {new Date(record.date).toLocaleDateString('en-US')}
                 </td>
                 <td className="p-3">
                   <span className="font-medium text-gray-900">{record.aircraft}</span>
@@ -185,7 +185,7 @@ export function DataTable({ records }: DataTableProps) {
       {/* Pagination */}
       <div className="p-4 border-t border-gray-200 flex items-center justify-between">
         <div className="text-sm text-gray-600">
-          Sayfa {currentPage} / {totalPages} (Toplam {sortedRecords.length} kayıt)
+          Page {currentPage} / {totalPages} (Total {sortedRecords.length} records)
         </div>
         <div className="flex gap-2">
           <button
@@ -193,14 +193,14 @@ export function DataTable({ records }: DataTableProps) {
             disabled={currentPage === 1}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
-            Önceki
+            Previous
           </button>
           <button
             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
-            Sonraki
+            Next
           </button>
         </div>
       </div>

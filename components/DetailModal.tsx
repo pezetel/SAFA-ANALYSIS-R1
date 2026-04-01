@@ -49,7 +49,7 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
       ['W/O Number', 'Date', 'ATA', 'Aircraft', 'Problem Type', 'Component', 'Clean Description'],
       ...filteredRecords.map(r => [
         r.woNumber,
-        new Date(r.date).toLocaleDateString('tr-TR'),
+        new Date(r.date).toLocaleDateString('en-US'),
         r.ata,
         r.aircraft,
         r.problemType,
@@ -91,7 +91,7 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
           <div className="flex items-center justify-between p-5 border-b border-gray-200">
             <div>
               <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-              <p className="text-sm text-gray-600 mt-1">{filteredRecords.length} kayit</p>
+              <p className="text-sm text-gray-600 mt-1">{filteredRecords.length} records</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -116,7 +116,7 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Ara..."
+                placeholder="Search..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -133,12 +133,12 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
                   <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">W/O</th>
-                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Tarih</th>
-                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Ucak</th>
+                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Date</th>
+                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Aircraft</th>
                   <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">ATA</th>
-                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Problem Tipi</th>
-                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Komponent</th>
-                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Aciklama</th>
+                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Problem Type</th>
+                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Component</th>
+                  <th className="text-left p-3 font-semibold text-gray-700 border-b border-gray-200">Description</th>
                 </tr>
               </thead>
               <tbody>
@@ -146,7 +146,7 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
                   <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="p-3 text-gray-600 whitespace-nowrap">{record.woNumber}</td>
                     <td className="p-3 text-gray-600 whitespace-nowrap">
-                      {new Date(record.date).toLocaleDateString('tr-TR')}
+                      {new Date(record.date).toLocaleDateString('en-US')}
                     </td>
                     <td className="p-3">
                       <span className="font-medium text-gray-900">{record.aircraft}</span>
@@ -176,7 +176,7 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
           {/* Pagination */}
           <div className="p-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
             <div className="text-sm text-gray-600">
-              Sayfa {currentPage} / {totalPages} ({filteredRecords.length} kayit)
+              Page {currentPage} / {totalPages} ({filteredRecords.length} records)
             </div>
             <div className="flex gap-2">
               <button
@@ -184,14 +184,14 @@ export function DetailModal({ isOpen, onClose, title, records }: DetailModalProp
                 disabled={currentPage === 1}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
               >
-                Onceki
+                Previous
               </button>
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
               >
-                Sonraki
+                Next
               </button>
             </div>
           </div>
