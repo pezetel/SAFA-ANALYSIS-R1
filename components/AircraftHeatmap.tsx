@@ -2,7 +2,7 @@
 
 import { SAFARecord } from '@/lib/types';
 import { format, startOfMonth } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 import { useState } from 'react';
 import { DetailModal } from './DetailModal';
 
@@ -70,8 +70,8 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
     <>
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <div className="mb-4">
-          <h2 className="text-base font-bold text-gray-900">Uçak-Zaman Heat Map</h2>
-          <p className="text-xs text-gray-600 mt-0.5">Aylık bulgu yoğunluğu (Top 10 uçak) - Hücrelere tıklayarak detayları görün</p>
+          <h2 className="text-base font-bold text-gray-900">Aircraft - Time Heat Map</h2>
+          <p className="text-xs text-gray-600 mt-0.5">Monthly finding density (Top 10 aircraft) - Click cells to view details</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -79,15 +79,15 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
             <thead>
               <tr>
                 <th className="text-left p-1.5 font-semibold text-gray-700 border-b-2 border-gray-200">
-                  Uçak
+                  Aircraft
                 </th>
                 {months.map(month => (
                   <th key={month} className="p-1.5 text-center font-medium text-gray-700 border-b-2 border-gray-200">
-                    {format(new Date(month + '-01'), 'MMM yy', { locale: tr })}
+                    {format(new Date(month + '-01'), 'MMM yy', { locale: enUS })}
                   </th>
                 ))}
                 <th className="p-1.5 text-center font-semibold text-gray-700 border-b-2 border-gray-200">
-                  Toplam
+                  Total
                 </th>
               </tr>
             </thead>
@@ -129,25 +129,25 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
 
         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-start gap-2 mb-2">
-            <span className="text-xs font-semibold text-blue-900">📊 Renk Skalası:</span>
-            <span className="text-xs text-blue-700">Her hücredeki sayı o ay için bulgu sayısını gösterir</span>
+            <span className="text-xs font-semibold text-blue-900">📊 Color Scale:</span>
+            <span className="text-xs text-blue-700">Each cell number represents the finding count for that month</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-700">
             <div className="flex items-center gap-1.5">
               <div className="w-8 h-4 bg-green-200 rounded border border-green-300"></div>
-              <span><strong>Düşük:</strong> 1-{Math.ceil(maxValue * 0.25)} bulgu</span>
+              <span><strong>Low:</strong> 1-{Math.ceil(maxValue * 0.25)} findings</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-8 h-4 bg-yellow-300 rounded border border-yellow-400"></div>
-              <span><strong>Orta:</strong> {Math.ceil(maxValue * 0.25) + 1}-{Math.ceil(maxValue * 0.5)} bulgu</span>
+              <span><strong>Medium:</strong> {Math.ceil(maxValue * 0.25) + 1}-{Math.ceil(maxValue * 0.5)} findings</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-8 h-4 bg-orange-400 rounded border border-orange-500"></div>
-              <span><strong>Yüksek:</strong> {Math.ceil(maxValue * 0.5) + 1}-{Math.ceil(maxValue * 0.75)} bulgu</span>
+              <span><strong>High:</strong> {Math.ceil(maxValue * 0.5) + 1}-{Math.ceil(maxValue * 0.75)} findings</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-8 h-4 bg-red-500 rounded border border-red-600"></div>
-              <span className="text-gray-700"><strong>Çok Yüksek:</strong> {Math.ceil(maxValue * 0.75) + 1}+ bulgu</span>
+              <span className="text-gray-700"><strong>Very High:</strong> {Math.ceil(maxValue * 0.75) + 1}+ findings</span>
             </div>
           </div>
         </div>
@@ -157,7 +157,7 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
         <DetailModal
           isOpen={!!selectedCell}
           onClose={() => setSelectedCell(null)}
-          title={`${selectedCell.aircraft} - ${format(new Date(selectedCell.month + '-01'), 'MMMM yyyy', { locale: tr })}`}
+          title={`${selectedCell.aircraft} - ${format(new Date(selectedCell.month + '-01'), 'MMMM yyyy', { locale: enUS })}`}
           records={modalRecords}
         />
       )}

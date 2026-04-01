@@ -16,7 +16,7 @@ function formatDateForInput(date: Date): string {
   return `${day}/${month}/${year}`;
 }
 
-function parseTurkishDate(dateStr: string): Date | null {
+function parseInputDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   const parts = dateStr.split('/');
   if (parts.length !== 3) return null;
@@ -76,10 +76,10 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
   };
 
   const comparisonData = useMemo(() => {
-    const p1Start = parseTurkishDate(period1Start);
-    const p1End = parseTurkishDate(period1End);
-    const p2Start = parseTurkishDate(period2Start);
-    const p2End = parseTurkishDate(period2End);
+    const p1Start = parseInputDate(period1Start);
+    const p1End = parseInputDate(period1End);
+    const p2Start = parseInputDate(period2Start);
+    const p2End = parseInputDate(period2End);
 
     if (!p1Start || !p1End || !p2Start || !p2End) {
       return null;
@@ -146,7 +146,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
     <div className="space-y-6">
       {/* Period Selector */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Donem Secimi</h2>
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Period Selection</h2>
         
         {/* Quick Select Buttons */}
         <div className="mb-4 flex gap-2 flex-wrap">
@@ -154,7 +154,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
             onClick={() => quickSelect('first6-last6')}
             className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
           >
-            Ilk 6 Ay vs Son 6 Ay
+            First 6 Months vs Last 6 Months
           </button>
           <button
             onClick={() => quickSelect('2024-2025')}
@@ -179,10 +179,10 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
         {/* Custom Date Selection */}
         <div className="grid grid-cols-2 gap-6">
           <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-            <h3 className="text-sm font-semibold text-blue-900 mb-3">Donem 1</h3>
+            <h3 className="text-sm font-semibold text-blue-900 mb-3">Period 1</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Baslangic (gg/aa/yyyy)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Start (dd/mm/yyyy)</label>
                 <input
                   type="text"
                   placeholder="01/01/2024"
@@ -192,7 +192,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Bitis (gg/aa/yyyy)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">End (dd/mm/yyyy)</label>
                 <input
                   type="text"
                   placeholder="31/12/2024"
@@ -204,10 +204,10 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
             </div>
           </div>
           <div className="border border-purple-200 rounded-lg p-4 bg-purple-50">
-            <h3 className="text-sm font-semibold text-purple-900 mb-3">Donem 2</h3>
+            <h3 className="text-sm font-semibold text-purple-900 mb-3">Period 2</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Baslangic (gg/aa/yyyy)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Start (dd/mm/yyyy)</label>
                 <input
                   type="text"
                   placeholder="01/01/2025"
@@ -217,7 +217,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Bitis (gg/aa/yyyy)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">End (dd/mm/yyyy)</label>
                 <input
                   type="text"
                   placeholder="31/12/2025"
@@ -237,19 +237,19 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
           {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Donem 1 Toplam</h3>
+              <h3 className="text-sm font-medium text-gray-600 mb-2">Period 1 Total</h3>
               <p className="text-3xl font-bold text-blue-600">{comparisonData.period1.total}</p>
-              <p className="text-xs text-gray-500 mt-1">bulgu</p>
+              <p className="text-xs text-gray-500 mt-1">findings</p>
               <p className="text-xs text-blue-600 mt-2">{comparisonData.period1.dateRange}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Donem 2 Toplam</h3>
+              <h3 className="text-sm font-medium text-gray-600 mb-2">Period 2 Total</h3>
               <p className="text-3xl font-bold text-purple-600">{comparisonData.period2.total}</p>
-              <p className="text-xs text-gray-500 mt-1">bulgu</p>
+              <p className="text-xs text-gray-500 mt-1">findings</p>
               <p className="text-xs text-purple-600 mt-2">{comparisonData.period2.dateRange}</p>
             </div>
             <div className={`bg-white rounded-xl border border-gray-200 p-6 ${comparisonData.totalChange > 0 ? 'border-red-200 bg-red-50' : comparisonData.totalChange < 0 ? 'border-green-200 bg-green-50' : ''}`}>
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Degisim</h3>
+              <h3 className="text-sm font-medium text-gray-600 mb-2">Change</h3>
               <div className="flex items-center gap-2">
                 {comparisonData.totalChange > 0 ? (
                   <TrendingUp className="h-6 w-6 text-red-600" />
@@ -276,7 +276,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-red-600" />
-                En Cok Artan Problemler
+                Most Increased Problems
               </h3>
               <div className="space-y-2">
                 {comparisonData.increased.length > 0 ? (
@@ -293,7 +293,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">Artan problem yok</p>
+                  <p className="text-sm text-gray-500 text-center py-4">No increased problems</p>
                 )}
               </div>
             </div>
@@ -302,7 +302,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <TrendingDown className="h-5 w-5 text-green-600" />
-                En Cok Azalan Problemler
+                Most Decreased Problems
               </h3>
               <div className="space-y-2">
                 {comparisonData.decreased.length > 0 ? (
@@ -319,7 +319,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">Azalan problem yok</p>
+                  <p className="text-sm text-gray-500 text-center py-4">No decreased problems</p>
                 )}
               </div>
             </div>
@@ -327,7 +327,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
 
           {/* Comparison Chart */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Komponent Karsilastirmasi</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Component Comparison</h3>
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={comparisonData.componentComparison}>
@@ -350,8 +350,8 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  <Bar dataKey="period1" fill="#3b82f6" name="Donem 1" />
-                  <Bar dataKey="period2" fill="#8b5cf6" name="Donem 2" />
+                  <Bar dataKey="period1" fill="#3b82f6" name="Period 1" />
+                  <Bar dataKey="period2" fill="#8b5cf6" name="Period 2" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -359,8 +359,8 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
         </>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <p className="text-gray-500">Karsilastirma yapmak icin yukardaki hizli secim butonlarini kullanin veya tarih araliklari girin</p>
-          <p className="text-xs text-gray-400 mt-2">Tarih formati: gg/aa/yyyy (ornek: 01/01/2024)</p>
+          <p className="text-gray-500">Use the quick select buttons above or enter custom date ranges to compare periods</p>
+          <p className="text-xs text-gray-400 mt-2">Date format: dd/mm/yyyy (e.g., 01/01/2024)</p>
         </div>
       )}
     </div>

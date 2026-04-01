@@ -48,8 +48,8 @@ export function ProblemTypeChart({ records }: ProblemTypeChartProps) {
     <>
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <div className="mb-4">
-          <h2 className="text-base font-bold text-gray-900">Problem Tipi Dağılımı</h2>
-          <p className="text-xs text-gray-600 mt-0.5">Bulgu türlerine göre analiz (Tıklayarak detayları görün)</p>
+          <h2 className="text-base font-bold text-gray-900">Problem Type Distribution</h2>
+          <p className="text-xs text-gray-600 mt-0.5">Analysis by finding type (Click to view details)</p>
         </div>
 
         <div className="h-64">
@@ -77,8 +77,8 @@ export function ProblemTypeChart({ records }: ProblemTypeChartProps) {
                   fontSize: '12px',
                 }}
                 formatter={(value: number, name: string, props: any) => [
-                  `${value} bulgu (${props.payload.percentage}%)`,
-                  'Sayı'
+                  `${value} findings (${props.payload.percentage}%)`,
+                  'Count'
                 ]}
               />
               <Bar 
@@ -123,7 +123,7 @@ export function ProblemTypeChart({ records }: ProblemTypeChartProps) {
         <DetailModal
           isOpen={!!selectedType}
           onClose={() => setSelectedType(null)}
-          title={`${selectedType} - Detaylı Bulgular`}
+          title={`${selectedType} - Detailed Findings`}
           records={modalRecords}
         />
       )}

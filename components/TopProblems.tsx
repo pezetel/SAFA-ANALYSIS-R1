@@ -47,8 +47,8 @@ export function TopProblems({ records }: TopProblemsProps) {
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="mb-4">
-          <h2 className="text-base font-bold text-gray-900">En Sık Görülen Problemler</h2>
-          <p className="text-xs text-gray-600 mt-1">Komponent bazında top 10 problem (Tıklayarak detayları görün)</p>
+          <h2 className="text-base font-bold text-gray-900">Most Frequent Problems</h2>
+          <p className="text-xs text-gray-600 mt-1">Top 10 problems by component (Click to view details)</p>
         </div>
 
         <div className="space-y-3">
@@ -76,18 +76,18 @@ export function TopProblems({ records }: TopProblemsProps) {
                         {isChronic && (
                           <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
                             <AlertTriangle className="h-2.5 w-2.5" />
-                            Kronik
+                            Chronic
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2.5 text-xs text-gray-500 mt-0.5">
                         <span className="flex items-center gap-1">
                           <Package className="h-3 w-3" />
-                          {count} bulgu
+                          {count} findings
                         </span>
                         <span className="flex items-center gap-1">
                           <TrendingUp className="h-3 w-3" />
-                          {aircraftCount} uçakta
+                          {aircraftCount} aircraft
                         </span>
                       </div>
                     </div>
@@ -116,7 +116,7 @@ export function TopProblems({ records }: TopProblemsProps) {
         <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 text-gray-600">
             <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
-            <span>Kronik Problem: 5+ farklı uçakta görülen sorunlar</span>
+            <span>Chronic Problem: Issues found in 5+ different aircraft</span>
           </div>
         </div>
       </div>
@@ -125,7 +125,7 @@ export function TopProblems({ records }: TopProblemsProps) {
         <DetailModal
           isOpen={!!selectedComponent}
           onClose={() => setSelectedComponent(null)}
-          title={`${selectedComponent} - Detaylı Bulgular`}
+          title={`${selectedComponent} - Detailed Findings`}
           records={modalRecords}
         />
       )}

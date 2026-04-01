@@ -4,7 +4,7 @@ import { SAFARecord } from '@/lib/types';
 import { useMemo, useState } from 'react';
 import { DetailModal } from './DetailModal';
 import { format, parseISO } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
 interface ComponentHeatmapProps {
   records: SAFARecord[];
@@ -84,7 +84,7 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
     if (count === 0) return;
     
     const records = heatmapData.detailData[component]?.[month] || [];
-    const monthName = format(parseISO(month + '-01'), 'MMMM yyyy', { locale: tr });
+    const monthName = format(parseISO(month + '-01'), 'MMMM yyyy', { locale: enUS });
     setSelectedRecords(records);
     setModalTitle(`${formatComponentName(component)} - ${monthName}`);
     setIsModalOpen(true);
@@ -94,8 +94,8 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Komponent - Zaman Heatmap</h2>
-          <p className="text-sm text-gray-600 mt-1">Aylara gore komponent bazinda problem yogunlugu (Tiklayarak detay goruntuleyin)</p>
+          <h2 className="text-lg font-bold text-gray-900">Component - Time Heatmap</h2>
+          <p className="text-sm text-gray-600 mt-1">Monthly problem density by component (Click to view details)</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -108,7 +108,7 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
                     <th key={month} className="w-16 h-16 align-bottom p-0">
                       <div className="flex items-end justify-center h-full pb-1">
                         <div className="transform -rotate-45 origin-bottom-left text-xs font-medium text-gray-600 whitespace-nowrap">
-                          {format(parseISO(month + '-01'), 'MMM yy', { locale: tr })}
+                          {format(parseISO(month + '-01'), 'MMM yy', { locale: enUS })}
                         </div>
                       </div>
                     </th>
@@ -128,7 +128,7 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
                           <button
                             onClick={() => handleCellClick(component, month, count)}
                             className={`w-full h-10 ${getColor(count)} rounded flex items-center justify-center text-xs font-semibold cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all ${count === 0 ? 'cursor-default' : ''}`}
-                            title={`${formatComponentName(component)} - ${format(parseISO(month + '-01'), 'MMMM yyyy', { locale: tr })}: ${count} kayit`}
+                            title={`${formatComponentName(component)} - ${format(parseISO(month + '-01'), 'MMMM yyyy', { locale: enUS })}: ${count} records`}
                           >
                             {count > 0 ? count : ''}
                           </button>
@@ -143,30 +143,30 @@ export function ComponentHeatmap({ records }: ComponentHeatmapProps) {
         </div>
 
         <div className="mt-6 flex items-center gap-6 text-xs flex-wrap">
-          <span className="text-gray-600 font-medium">Yogunluk:</span>
+          <span className="text-gray-600 font-medium">Density:</span>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
-            <span className="text-gray-600">Yok</span>
+            <span className="text-gray-600">None</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-blue-200 rounded"></div>
-            <span className="text-gray-600">Dusuk</span>
+            <span className="text-gray-600">Low</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-green-300 rounded"></div>
-            <span className="text-gray-600">Orta</span>
+            <span className="text-gray-600">Medium</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-yellow-400 rounded"></div>
-            <span className="text-gray-600">Yuksek</span>
+            <span className="text-gray-600">High</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-orange-500 rounded"></div>
-            <span className="text-gray-600">Cok Yuksek</span>
+            <span className="text-gray-600">Very High</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-600 rounded"></div>
-            <span className="text-gray-600">Kritik</span>
+            <span className="text-gray-600">Critical</span>
           </div>
         </div>
       </div>
