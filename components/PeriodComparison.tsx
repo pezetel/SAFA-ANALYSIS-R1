@@ -156,9 +156,9 @@ function ProblemTypeComparisonChart({
       <div className="mt-4 pt-3 border-t border-gray-200 flex items-start gap-2 bg-gray-50 rounded-lg p-3">
         <span className="text-gray-400 text-sm">ℹ️</span>
         <div className="text-[11px] text-gray-500 leading-relaxed">
-          <p><strong>Count:</strong> Her problem tipindeki finding sayısı.</p>
-          <p><strong>% of Group:</strong> O problem tipinin kendi grubu içindeki oranı. Örn: {label1} grubunda 100 finding varsa ve 20&apos;si &quot;Defect&quot; ise → {label1} için Defect = %20.</p>
-          <p><strong>Badge:</strong> İki grubun adet farkını gösterir. Hangi grupta daha fazla varsa o grubun adıyla birlikte fark yazılır.</p>
+          <p><strong>Count:</strong> Number of findings for each problem type.</p>
+          <p><strong>% of Group:</strong> The proportion of that problem type within its own group. E.g., if {label1} has 100 findings and 20 are &quot;Defect&quot; → {label1} Defect = 20%.</p>
+          <p><strong>Badge:</strong> Shows the count difference between the two groups. The group with more findings is displayed with the difference.</p>
         </div>
       </div>
     </div>
@@ -533,7 +533,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
     const ngRecords = periodRecords.filter(r => AIRCRAFT_TYPES['B737-NG'].includes(r.aircraft));
     const maxRecords = periodRecords.filter(r => AIRCRAFT_TYPES['B737-MAX'].includes(r.aircraft));
 
-    // Unique aircraft counts per fleet in this period
+    // Unique aircraft counts per fleet that actually have findings in this period
     const ngUniqueAC = new Set(ngRecords.map(r => r.aircraft)).size;
     const maxUniqueAC = new Set(maxRecords.map(r => r.aircraft)).size;
 
@@ -589,7 +589,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
 
     const problemTypeData = buildProblemTypeData(ngRecords, maxRecords);
 
-    // For summary cards - normalized
+    // For summary cards - normalized using fleet-wide unique aircraft with findings
     const ngTotalNorm = ngUniqueAC > 0 ? ngRecords.length / ngUniqueAC : 0;
     const maxTotalNorm = maxUniqueAC > 0 ? maxRecords.length / maxUniqueAC : 0;
 
@@ -956,10 +956,10 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                     <div>
                       <p className="text-sm font-bold text-gray-900">Per-Aircraft Normalization</p>
                       <p className="text-xs text-gray-600 mt-0.5">
-                        NG filoda <strong>{fleetComparisonData.ng.aircraftCount}</strong> uçak, MAX filoda <strong>{fleetComparisonData.max.aircraftCount}</strong> uçak var.
+                        NG fleet has <strong>{fleetComparisonData.ng.aircraftCount}</strong> aircraft with findings, MAX fleet has <strong>{fleetComparisonData.max.aircraftCount}</strong> aircraft with findings in this period.
                         {!fleetNormalize
-                          ? ' Normalize ederek uçak başına ortalama finding ile karşılaştır.'
-                          : ' Şu an uçak başına ortalama gösteriliyor. Toplam adetlere dönmek için kapatın.'}
+                          ? ' Enable to compare average findings per aircraft, removing fleet size bias.'
+                          : ' Currently showing per-aircraft averages. Disable to return to total counts.'}
                       </p>
                     </div>
                   </div>
@@ -996,7 +996,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                     </>
                   )}
                   <div className="mt-2 pt-2 border-t border-gray-200">
-                    <p className="text-xs text-gray-600">{fleetComparisonData.ng.aircraftCount} aircraft</p>
+                    <p className="text-xs text-gray-600">{fleetComparisonData.ng.aircraftCount} aircraft with findings</p>
                     {!fleetNormalize && <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.avgPerAircraft} avg/aircraft</p>}
                     {fleetNormalize && <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.total} total findings</p>}
                   </div>
@@ -1015,7 +1015,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                     </>
                   )}
                   <div className="mt-2 pt-2 border-t border-gray-200">
-                    <p className="text-xs text-gray-600">{fleetComparisonData.max.aircraftCount} aircraft</p>
+                    <p className="text-xs text-gray-600">{fleetComparisonData.max.aircraftCount} aircraft with findings</p>
                     {!fleetNormalize && <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.avgPerAircraft} avg/aircraft</p>}
                     {fleetNormalize && <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.total} total findings</p>}
                   </div>
@@ -1090,7 +1090,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                           if (fleetNormalize) {
                             const raw = name === 'B737-NG' ? item.ngRaw : item.maxRaw;
                             const acCount = name === 'B737-NG' ? item.ngAcCount : item.maxAcCount;
-                            return [`${value.toFixed(2)} avg (${raw} total ÷ ${acCount} a/c)`, name];
+                            return [`${value.toFixed(2)} avg (${raw} findings ÷ ${acCount} aircraft with this component)`, name];
                           }
                           return [value, name];
                         }}
@@ -1104,9 +1104,10 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                 {fleetNormalize && (
                   <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-[11px] text-amber-800">
-                      <strong>ℹ️ Per-Aircraft Average:</strong> Her component&apos;in toplam finding sayısı, o component&apos;i yaşayan uçak sayısına bölünmüştür.
-                      Örn: &quot;Cargo Tape&quot; NG&apos;de 100 kere yazılmış ve 25 farklı NG uçağında görülmüşse → 100÷25 = <strong>4.0 avg/aircraft</strong>.
-                      Bu sayede filo büyüklüğü farkından bağımsız gerçek karşılaştırma yapılır.
+                      <strong>ℹ️ Per-Aircraft Average:</strong> Each component&apos;s total finding count is divided by the number of aircraft that had findings for <em>that specific component</em>, not the total fleet size.
+                      E.g., if &quot;Cargo Tape&quot; was recorded 100 times across 25 different NG aircraft → 100 ÷ 25 = <strong>4.0 avg/aircraft</strong>.
+                      This ensures a fair comparison independent of fleet size differences.
+                      Aircraft counts shown in the tooltip reflect only aircraft with findings for each specific component.
                     </p>
                   </div>
                 )}
@@ -1123,7 +1124,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{item.component}</p>
                           {fleetNormalize ? (
-                            <p className="text-xs text-gray-500">NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} total, {item.ngAcCount} ac) — MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} total, {item.maxAcCount} ac)</p>
+                            <p className="text-xs text-gray-500">NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} findings, {item.ngAcCount} ac) — MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} findings, {item.maxAcCount} ac)</p>
                           ) : (
                             <p className="text-xs text-gray-600">NG: {item.ngRaw} vs MAX: {item.maxRaw}</p>
                           )}
@@ -1142,7 +1143,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{item.component}</p>
                           {fleetNormalize ? (
-                            <p className="text-xs text-gray-500">MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} total, {item.maxAcCount} ac) — NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} total, {item.ngAcCount} ac)</p>
+                            <p className="text-xs text-gray-500">MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} findings, {item.maxAcCount} ac) — NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} findings, {item.ngAcCount} ac)</p>
                           ) : (
                             <p className="text-xs text-gray-600">NG: {item.ngRaw} vs MAX: {item.maxRaw}</p>
                           )}
