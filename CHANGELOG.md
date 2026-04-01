@@ -11,6 +11,10 @@
 - Section subtitle changed: "Top 10 problems by component..." → "All components classified by finding type (Click to view details)".
 - Footer updated: now shows "Showing all X components · Y total findings".
 - **Full English Translation**: `README.md`, `DEPLOYMENT.md`, and `push-instructions.md` fully translated from Turkish to English.
+- **Period Analysis Enhanced**: Added three comparison modes:
+  - **Period vs Period**: Compare two custom time periods (existing feature)
+  - **Aircraft vs Aircraft**: Compare two specific aircraft within the same period with radar chart for problem type distribution
+  - **NG Fleet vs MAX Fleet**: Compare B737-NG and B737-MAX fleets with per-aircraft averages and radar visualization
 
 ### Added — New Component Groups
 - **`LG_OIL_CHARGING_VALVE`**: Oil charging valve findings with typo variations:
