@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     if (!rawData || !Array.isArray(rawData)) {
       return NextResponse.json(
-        { error: 'Geçersiz veri formatı' },
+        { error: 'Invalid data format' },
         { status: 400 }
       );
     }
@@ -20,12 +20,12 @@ export async function POST(request: NextRequest) {
       success: true,
       recordCount: processedData.length,
       processedData: processedData,
-      message: `${processedData.length} kayıt başarıyla işlendi`,
+      message: `${processedData.length} records successfully processed`,
     });
   } catch (error: any) {
     console.error('Process error:', error);
     return NextResponse.json(
-      { error: error.message || 'Veri işlenirken hata oluştu' },
+      { error: error.message || 'An error occurred while processing data' },
       { status: 500 }
     );
   }

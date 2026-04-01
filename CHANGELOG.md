@@ -1,5 +1,25 @@
 # Changelog
 
+## [4.0.0] - 2025-01-20
+
+### Changed
+- **Complete English Translation (Final Pass)**: Eliminated all remaining Turkish text across the entire codebase.
+- Translated all API route error messages and success messages from Turkish to English:
+  - `app/api/analyze/route.ts`: "Henüz veri yüklenmedi" → "No data has been loaded yet", "Analiz sırasında hata oluştu" → "An error occurred during analysis"
+  - `app/api/process/route.ts`: "Geçersiz veri formatı" → "Invalid data format", "kayıt başarıyla işlendi" → "records successfully processed", "Veri işlenirken hata oluştu" → "An error occurred while processing data"
+  - `app/api/upload/route.ts`: "Dosya bulunamadı" → "No file found", "kayıt başarıyla yüklendi ve işlendi" → "records successfully uploaded and processed", "Dosya işlenirken hata oluştu" → "An error occurred while processing the file"
+- Version number updated to `4.0.0` and displayed on the home page header and footer.
+- Package version bumped to `4.0.0`.
+
+### Note
+- Turkish column aliases in `lib/dataProcessor.ts` (e.g., `tarih`, `aciklama`) are intentionally kept for backward compatibility with Turkish-formatted Excel files.
+
+## [3.0.0] - 2025-01-18
+
+### Changed
+- Major refactoring and performance improvements.
+- Client-side data processing via localStorage for better Vercel compatibility.
+
 ## [2.0.0] - 2025-01-15
 
 ### Changed

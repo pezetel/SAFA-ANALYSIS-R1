@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { error: 'Dosya bulunamadı' },
+        { error: 'No file found' },
         { status: 400 }
       );
     }
@@ -46,12 +46,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       recordCount: processedData.length,
-      message: `${processedData.length} kayıt başarıyla yüklendi ve işlendi`,
+      message: `${processedData.length} records successfully uploaded and processed`,
     });
   } catch (error: any) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: error.message || 'Dosya işlenirken hata oluştu' },
+      { error: error.message || 'An error occurred while processing the file' },
       { status: 500 }
     );
   }

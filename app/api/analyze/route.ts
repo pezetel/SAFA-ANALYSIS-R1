@@ -26,7 +26,7 @@ export async function GET() {
 
     if (!data || data.length === 0) {
       return NextResponse.json(
-        { error: 'Henüz veri yüklenmedi' },
+        { error: 'No data has been loaded yet' },
         { status: 404 }
       );
     }
@@ -100,7 +100,7 @@ export async function GET() {
   } catch (error: any) {
     console.error('Analysis error:', error);
     return NextResponse.json(
-      { error: error.message || 'Analiz sırasında hata oluştu' },
+      { error: error.message || 'An error occurred during analysis' },
       { status: 500 }
     );
   }
