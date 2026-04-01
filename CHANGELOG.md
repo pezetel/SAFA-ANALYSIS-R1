@@ -19,9 +19,16 @@
 - **Visual Click Indicators**: All clickable elements now show 🔍 icon and hover effects (ring highlight, background change, cursor pointer) to indicate interactivity.
 - **"Click bars to view records" hint**: Added to all Component Comparison chart headers.
 - **Tip in Problem Type explanation**: Added guidance text explaining click behavior (click name = both groups, click bar = single group).
+- **Centralized Version Management**: Created `lib/version.ts` as the single source of truth for the app version. Home page header badge and footer now import from this file instead of using a hardcoded constant. Future version changes only require updating `lib/version.ts` and `package.json`.
+- **"RING" Keyword Smart Routing**: Standalone `RING` keyword in finding descriptions is now intelligently routed:
+  - If `CARGO` is also present in the description → classified as `CARGO_NETS`
+  - Otherwise → classified as `LANYARD_RING`
+  - Explicit multi-word keywords (`LANYARD RING`, `CARGO NET`, etc.) still take priority over the standalone `RING` fallback.
+- **`PAINTDAMAGE` added to `PAINT_DAMAGE`**: The no-space variant `PAINTDAMAGE` is now recognized and correctly classified as `PAINT_DAMAGE` problem type.
 
 ### Meta
 - Version bumped to `2.1.1`.
+- `package.json` version updated to `2.1.1`.
 
 ## [2.1.0] - 2026-04-01
 
