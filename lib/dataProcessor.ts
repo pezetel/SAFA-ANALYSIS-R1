@@ -171,7 +171,7 @@ function extractProblemType(description: string): string {
 
   const problemTypes = [
     { keywords: ['DENT', 'DENTED'], type: 'DENT' },
-    { keywords: ['PAINT DAMAGE', 'PAINT DAMAGED', 'PAINTING DAMAGE'], type: 'PAINT_DAMAGE' },
+    { keywords: ['PAINT DAMAGE', 'PAINT DAMAGED', 'PAINTING DAMAGE', 'PAINT DAMAGES', 'PAINT DMG', 'PEELED OF PAINT', 'PEELED OFF PAINT'], type: 'PAINT_DAMAGE' },
     { keywords: ['MISSING', 'MISS'], type: 'MISSING' },
     { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN'], type: 'DAMAGED' },
     { keywords: ['LOOSE', 'NOT FIXED'], type: 'LOOSE' },
@@ -193,12 +193,26 @@ function extractComponent(description: string): string {
   const text = description.toUpperCase();
 
   const components = [
+    // Antiskating Foil (incl. typos: antistating, outflow valve foil)
+    { keywords: ['ANTISKATING FOIL', 'ANTISKATINGFOIL', 'ANTISTATINGFOIL', 'OUTFLOW VALVE FOIL', 'OUTFLOW VALVE ANTISTATING'], component: 'ANTISKATING_FOIL' },
     // Landing Gear - Oil Charging Valve (with all known typo variations)
     { keywords: ['OIL SERVICING CHARGING', 'OIL SERVICING CHARGER', 'OIL CHARGING VALVE', 'OIL CHARHING VALVE', 'OIL CHARGINGVALVE', 'OIL CHARHINGVALUE', 'OIL CHARGING', 'OIL CHARGIN', 'OILCHARGING'], component: 'LG_OIL_CHARGING_VALVE' },
-    // Bonding (including jumper wires)
+    // Fuselage Skin (skin panels, butt joints, body fairings)
+    { keywords: ['FUS SKIN', 'FUSELAGE SKIN', 'BUTT JOINT SEALANT', 'BODY FAIRING', 'BODYFAIRING'], component: 'FUSELAGE_SKIN' },
+    // Scuff Plate
+    { keywords: ['SCUFF PLATE', 'SCUFF PLATE FILLER'], component: 'SCUFF_PLATE' },
+    // Security Box
+    { keywords: ['SECURITY BOX'], component: 'SECURITY_BOX' },
+    // Blade Seal
+    { keywords: ['BLADE SEAL', 'BLADE SEALS'], component: 'BLADE_SEAL' },
+    // Drain Mast
+    { keywords: ['DRAIN MAST'], component: 'DRAIN_MAST' },
+    // Vapor Barrier
+    { keywords: ['VAPOR BARRIER'], component: 'VAPOR_BARRIER' },
+    // Bonding (including jumper wires, anchor plates)
     { keywords: ['JUMPER', 'BONDING WIRE', 'BONDING'], component: 'BONDING' },
-    // Lanyard Ring (with apostrophe variations)
-    { keywords: ['LANYARD RING', 'LANYARDS RING', 'LANYARD\'S RING', 'LANYARDS RINGS', 'LANYARD RINGS'], component: 'LANYARD_RING' },
+    // Lanyard Ring (with apostrophe variations, lanyard assy, line yard typo)
+    { keywords: ['LANYARD RING', 'LANYARDS RING', 'LANYARD\'S RING', 'LANYARDS RINGS', 'LANYARD RINGS', 'LANYARD ASSY', 'LINE YARD', 'LANYARD'], component: 'LANYARD_RING' },
     // Horizontal Stabilizer
     { keywords: ['HORIZONTAL STAB', 'HORIZONTAL STABILIZER', 'HORIZONTAL STABILISER'], component: 'HORIZONTAL_STABILIZER' },
     // Overhead Bin
@@ -209,12 +223,12 @@ function extractComponent(description: string): string {
     { keywords: ['TRAY TABLE'], component: 'TRAY_TABLE' },
     // Seat Belt
     { keywords: ['SEAT BELT', 'SAFETY HARNESS', 'SAFETY BELT'], component: 'SEAT_BELT' },
-    // Light
-    { keywords: ['READING LIGHT', 'FLOOD LIGHT', 'LIGHT LENS'], component: 'LIGHT' },
+    // Light (specific types first)
+    { keywords: ['READING LIGHT', 'FLOOD LIGHT', 'LIGHT LENS', 'LANDING LIGHT'], component: 'LIGHT' },
     // Life Vest
     { keywords: ['LIFE VEST'], component: 'LIFE_VEST' },
-    // Placard
-    { keywords: ['PLACARD'], component: 'PLACARD' },
+    // Placard (incl. stickers, stencils, labels, danger stickers)
+    { keywords: ['PLACARD', 'PLACRDS', 'STICKER', 'STENCIL', 'LABEL'], component: 'PLACARD' },
     // Lavatory
     { keywords: ['LAVATORY', 'LAV A', 'LAV B', 'LAV C', 'LAV D', 'LAV E'], component: 'LAVATORY' },
     // Galley
@@ -229,10 +243,10 @@ function extractComponent(description: string): string {
     { keywords: ['MIRROR'], component: 'MIRROR' },
     // Carpet
     { keywords: ['CARPET', 'FLOOR MAT'], component: 'CARPET' },
-    // Cargo Nets
-    { keywords: ['CARGO NET', 'CARGO NETS', 'NET', 'NETS'], component: 'CARGO_NETS' },
-    // Cargo Tapes
-    { keywords: ['AFT CARGO COMPARTMENT TAPE', 'CARGO PANEL TAPE', 'SIDE WALL PANEL TAPE', 'CARGO LINING TAPE', 'CARGO SOME TAPE', 'CARGO SOME TAPES', 'CARGOS TAPE', 'CARGOS TAPES', 'SIDE WALL TAPE', 'SIDEWALL TAPE', 'CARGO SIDEWALL TAPE', 'CARGO TAPE', 'CARGO TAPES', 'CARGOTAPES'], component: 'CARGO_TAPES' },
+    // Cargo Nets / Cargo Rings (incl. split ring, rings found damage)
+    { keywords: ['CARGO NET', 'CARGO NETS'], component: 'CARGO_NETS' },
+    // Cargo Tapes (incl. lining tapes, glass fabric, tappes typo)
+    { keywords: ['AFT CARGO COMPARTMENT TAPE', 'CARGO PANEL TAPE', 'SIDE WALL PANEL TAPE', 'CARGO LINING TAPE', 'CARGO SOME TAPE', 'CARGO SOME TAPES', 'CARGOS TAPE', 'CARGOS TAPES', 'SIDE WALL TAPE', 'SIDEWALL TAPE', 'CARGO SIDEWALL TAPE', 'CARGO TAPE', 'CARGO TAPES', 'CARGOTAPES', 'CARGO TAPPES'], component: 'CARGO_TAPES' },
     // Antenna
     { keywords: ['ANTENNA'], component: 'ANTENNA' },
     // Kruger Flap
@@ -243,8 +257,8 @@ function extractComponent(description: string): string {
     { keywords: ['FLAP'], component: 'FLAP' },
     // Engine
     { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON', 'ENG'], component: 'ENGINE' },
-    // Landing Gear
-    { keywords: ['LANDING LIGHT', 'LANDING GEAR'], component: 'LANDING_GEAR' },
+    // Landing Gear (incl. tire, shock strut, wheel well, brake unit, MLG, NLG)
+    { keywords: ['LANDING GEAR', 'TIRE', 'SHOCK STRUT', 'SHOCK CHARGING', 'WHEEL WELL', 'BRAKE UNIT', 'MLG', 'NLG'], component: 'LANDING_GEAR' },
     // Water System
     { keywords: ['WATER SERVICE', 'POTABLE WATER', 'PORTABLE WATER'], component: 'WATER_SYSTEM' },
     // Hinge
@@ -269,7 +283,7 @@ function extractComponent(description: string): string {
     // Door
     { keywords: ['DOOR'], component: 'DOOR' },
     // Light (generic - must be last, uses word boundary)
-    { keywords: ['\\bLIGHT\\b'], component: 'LIGHT' },
+    { keywords: ['\bLIGHT\b'], component: 'LIGHT' },
   ];
 
   for (const { keywords, component } of components) {

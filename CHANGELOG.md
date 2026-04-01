@@ -10,10 +10,35 @@
 - Section title changed: "Most Frequent Problems" → "All Findings by Component".
 - Section subtitle changed: "Top 10 problems by component..." → "All components classified by finding type (Click to view details)".
 - Footer updated: now shows "Showing all X components · Y total findings".
+- **Full English Translation**: `README.md`, `DEPLOYMENT.md`, and `push-instructions.md` fully translated from Turkish to English.
 
-### Added
-- **New Component Group — `LG_OIL_CHARGING_VALVE`**: Added component grouping for oil charging valve findings with all known typo variations:
+### Added — New Component Groups
+- **`LG_OIL_CHARGING_VALVE`**: Oil charging valve findings with typo variations:
   - `OIL CHARGING VALVE`, `OIL CHARHING VALVE`, `OIL CHARGINGVALVE`, `OIL CHARHINGVALUE`, `OIL CHARGING`, `OIL CHARGIN`, `OILCHARGING`, `OIL SERVICING CHARGING`, `OIL SERVICING CHARGER`
+- **`ANTISKATING_FOIL`**: Antiskating foil findings with typo variations:
+  - `ANTISKATING FOIL`, `ANTISKATINGFOIL`, `ANTISTATINGFOIL`, `OUTFLOW VALVE FOIL`, `OUTFLOW VALVE ANTISTATING`
+- **`FUSELAGE_SKIN`**: Fuselage skin, butt joints, body fairings:
+  - `FUS SKIN`, `FUSELAGE SKIN`, `BUTT JOINT SEALANT`, `BODY FAIRING`, `BODYFAIRING`
+- **`SCUFF_PLATE`**: Scuff plates:
+  - `SCUFF PLATE`, `SCUFF PLATE FILLER`
+- **`SECURITY_BOX`**: Security boxes:
+  - `SECURITY BOX`
+- **`BLADE_SEAL`**: Blade seals:
+  - `BLADE SEAL`, `BLADE SEALS`
+- **`DRAIN_MAST`**: Drain masts:
+  - `DRAIN MAST`
+- **`VAPOR_BARRIER`**: Vapor barriers:
+  - `VAPOR BARRIER`
+
+### Added — New Keywords to Existing Components
+- **`LIGHT`**: Added `LANDING LIGHT` (moved from LANDING_GEAR)
+- **`LANYARD_RING`**: Added `LANYARD ASSY`, `LINE YARD` (typo), `LANYARD` (generic catch-all)
+- **`PLACARD`**: Added `PLACRDS` (typo), `STICKER`, `STENCIL`, `LABEL`
+- **`LANDING_GEAR`**: Added `TIRE`, `SHOCK STRUT`, `SHOCK CHARGING`, `WHEEL WELL`, `BRAKE UNIT`, `MLG`, `NLG` (removed `LANDING LIGHT` — moved to LIGHT component)
+- **`CARGO_TAPES`**: Added `CARGO TAPPES` (typo)
+
+### Added — New Keywords to Problem Types
+- **`PAINT_DAMAGE`**: Added `PAINT DAMAGES`, `PAINT DMG`, `PEELED OF PAINT`, `PEELED OFF PAINT`
 
 ### Refactored
 - **`extractProblemType()` consolidated**: `DENT` was previously handled as a standalone if-block outside the main list. It is now moved into the unified `problemTypes` array (with `DENTED` variant added) for consistency and readability.
