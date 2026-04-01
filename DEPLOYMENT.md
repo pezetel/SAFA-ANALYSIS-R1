@@ -1,110 +1,110 @@
-# 🚀 GitHub ve Vercel Deployment Rehberi
+# 🚀 GitHub & Vercel Deployment Guide
 
-## 📋 Ön Hazırlık
+## 📋 Prerequisites
 
-### 1. Gerekli Hesaplar
-- [GitHub](https://github.com) hesabı
-- [Vercel](https://vercel.com) hesabı (GitHub ile giriş yapın)
+### 1. Required Accounts
+- [GitHub](https://github.com) account
+- [Vercel](https://vercel.com) account (sign in with GitHub)
 
-### 2. Gerekli Araçlar
-- Git yüklü olmalı
-- Node.js 18.x veya üzeri
+### 2. Required Tools
+- Git installed
+- Node.js 18.x or above
 
 ---
 
-## 📦 Projeyi GitHub'a Yükleme
+## 📦 Uploading the Project to GitHub
 
-### Adım 1: GitHub'da Yeni Repo Oluşturun
+### Step 1: Create a New Repository on GitHub
 
-1. GitHub'a gidin: https://github.com/new
-2. Repository adı girin: `safa-trend-analysis` (veya istediğiniz ad)
-3. **Public** veya **Private** seçin
-4. **"Initialize this repository"** seçeneklerini **SEÇMEYIN** (README, .gitignore, license)
-5. **"Create repository"** tıklayın
+1. Go to GitHub: https://github.com/new
+2. Enter a repository name: `safa-trend-analysis` (or any name you prefer)
+3. Select **Public** or **Private**
+4. **DO NOT select** any "Initialize this repository" options (README, .gitignore, license)
+5. Click **"Create repository"**
 
-### Adım 2: Lokal Projeyi Hazırlayın
+### Step 2: Prepare the Local Project
 
-Proje klasörünüze gidin ve şu komutları çalıştırın:
+Navigate to your project folder and run the following commands:
 
 ```bash
-# Git başlat
+# Initialize Git
 git init
 
-# Tüm dosyaları ekle
+# Add all files
 git add .
 
-# İlk commit
+# First commit
 git commit -m "Initial commit: SAFA Trend Analysis Platform"
 
-# Ana branch'i main olarak ayarla
+# Set the main branch
 git branch -M main
 
-# GitHub remote ekle (YOUR_USERNAME yerine kendi kullanıcı adınızı yazın)
+# Add GitHub remote (replace YOUR_USERNAME with your actual GitHub username)
 git remote add origin https://github.com/YOUR_USERNAME/safa-trend-analysis.git
 
-# GitHub'a push et
+# Push to GitHub
 git push -u origin main
 ```
 
-**Not:** GitHub'da username/password sorduğunda:
-- Username: GitHub kullanıcı adınız
-- Password: **Personal Access Token** kullanın (şifre değil!)
+**Note:** When GitHub prompts for username/password:
+- Username: Your GitHub username
+- Password: Use a **Personal Access Token** (not your password!)
 
-### Personal Access Token Oluşturma
+### Creating a Personal Access Token
 
-Eğer token'ınız yoksa:
+If you don't have a token:
 
 1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
 2. "Generate new token" → "Generate new token (classic)"
 3. Note: "SAFA Project"
-4. Expiration: 90 days (veya istediğiniz)
-5. Scope: **repo** seçin (tüm repo erişimi)
-6. "Generate token" tıklayın
-7. Token'ı kopyalayın ve güvenli yere kaydedin!
+4. Expiration: 90 days (or as preferred)
+5. Scope: Select **repo** (full repository access)
+6. Click "Generate token"
+7. Copy the token and save it in a safe place!
 
 ---
 
-## 🌐 Vercel'e Deploy Etme
+## 🌐 Deploying to Vercel
 
-### Yöntem 1: Vercel Dashboard (ÖNERİLEN)
+### Method 1: Vercel Dashboard (RECOMMENDED)
 
-1. **Vercel'e gidin:** https://vercel.com/login
-2. **GitHub ile giriş yapın**
-3. **"New Project"** butonuna tıklayın
-4. **GitHub reposunu bulun:**
-   - "Import Git Repository" bölümünde
-   - `safa-trend-analysis` reposunu arayın
-   - **"Import"** tıklayın
+1. **Go to Vercel:** https://vercel.com/login
+2. **Sign in with GitHub**
+3. **Click "New Project"**
+4. **Find your GitHub repo:**
+   - In the "Import Git Repository" section
+   - Search for `safa-trend-analysis`
+   - Click **"Import"**
 
-5. **Proje Ayarları:**
+5. **Project Settings:**
    ```
    Framework Preset: Next.js
    Root Directory: ./ (default)
-   Build Command: pnpm build (otomatik algılanacak)
-   Output Directory: .next (otomatik algılanacak)
-   Install Command: pnpm install (otomatik algılanacak)
+   Build Command: pnpm build (auto-detected)
+   Output Directory: .next (auto-detected)
+   Install Command: pnpm install (auto-detected)
    ```
 
-6. **Environment Variables (Şimdilik gerekli değil):**
-   - İleride ekleyebilirsiniz
+6. **Environment Variables (Not required for now):**
+   - You can add them later if needed
 
-7. **"Deploy"** butonuna tıklayın
+7. **Click "Deploy"**
 
-8. **Bekleyin (2-3 dakika):**
-   - Build logları göreceksiniz
-   - Başarılı olduğunda "Congratulations!" mesajı
-   - Vercel URL'iniz: `https://safa-trend-analysis-xxx.vercel.app`
+8. **Wait (2-3 minutes):**
+   - You will see build logs
+   - On success you'll see a "Congratulations!" message
+   - Your Vercel URL: `https://safa-trend-analysis-xxx.vercel.app`
 
-### Yöntem 2: Vercel CLI
+### Method 2: Vercel CLI
 
 ```bash
-# Vercel CLI yükle
+# Install Vercel CLI
 npm i -g vercel
 
-# Giriş yap
+# Login
 vercel login
 
-# Deploy et
+# Deploy
 vercel
 
 # Production deploy
@@ -113,43 +113,43 @@ vercel --prod
 
 ---
 
-## 🔄 Otomatik Deployment (CI/CD)
+## 🔄 Automatic Deployment (CI/CD)
 
-GitHub'a push ettiğinizde Vercel otomatik olarak deploy eder:
+Vercel automatically deploys when you push to GitHub:
 
 ```bash
-# Değişiklik yap
+# Make changes
 git add .
 git commit -m "Fix: Component detection algorithm"
 git push origin main
 
-# Vercel otomatik olarak yeni deploy başlatır!
+# Vercel automatically starts a new deployment!
 ```
 
 **Branch Preview:**
-- `git checkout -b feature/new-feature` ile yeni branch
-- Push ettiğinizde Vercel ayrı bir preview URL oluşturur
-- Main branch production'da kalır
+- Create a new branch with `git checkout -b feature/new-feature`
+- When pushed, Vercel creates a separate preview URL
+- The main branch stays in production
 
 ---
 
-## ⚙️ Vercel Dashboard Ayarları
+## ⚙️ Vercel Dashboard Settings
 
-### Önemli Ayarlar
+### Important Settings
 
 1. **Settings → General:**
-   - Node.js Version: 18.x (otomatik)
+   - Node.js Version: 18.x (automatic)
    - Install Command: `pnpm install`
    - Build Command: `pnpm build`
    - Output Directory: `.next`
 
 2. **Settings → Environment Variables:**
-   - Şimdilik gerekli değil
-   - İleride API key eklemek isterseniz buradan
+   - Not required for now
+   - Use this section if you need to add API keys later
 
 3. **Settings → Domains:**
-   - Custom domain ekleyebilirsiniz
-   - Örnek: `safa-analysis.yourdomain.com`
+   - You can add a custom domain
+   - Example: `safa-analysis.yourdomain.com`
 
 4. **Settings → Git:**
    - Production Branch: `main`
@@ -157,85 +157,85 @@ git push origin main
 
 ---
 
-## 🐛 Deployment Sorunları
+## 🐛 Deployment Troubleshooting
 
 ### Build Error: "Module not found"
 
 ```bash
-# Lokal olarak test edin
+# Test locally
 pnpm install
 pnpm build
 
-# Çalışıyorsa, package.json'u kontrol edin
-# Vercel'de "Redeploy" deneyin
+# If it works locally, check package.json
+# Try "Redeploy" on Vercel
 ```
 
 ### Build Error: "Out of memory"
 
-Vercel Settings → Functions → Memory: 1024 MB (default yeterli)
+Vercel Settings → Functions → Memory: 1024 MB (default is sufficient)
 
 ### TypeScript Error
 
 ```bash
-# Lokal olarak kontrol
+# Check locally
 pnpm build
 
-# Type hataları varsa düzeltin
+# Fix any type errors
 ```
 
-### Port 3000 çakışması
+### Port 3000 conflict
 
-Vercel production'da port yönetimi yapar, sorun olmaz.
+Vercel manages ports in production — no action needed.
 
 ---
 
-## 📊 Production'da Kullanım
+## 📊 Production Usage
 
-### Önemli Notlar:
+### Important Notes:
 
 1. **Memory Storage:**
-   - Veriler şu an memory'de (global değişken)
-   - Her deploy sonrası veriler sıfırlanır
-   - Production'da **database** kullanın (PostgreSQL, MongoDB, vb.)
+   - Data is currently stored in localStorage (browser-side)
+   - Data persists across sessions in the same browser
+   - For multi-user production, consider a **database** (PostgreSQL, MongoDB, etc.)
 
 2. **File Upload:**
-   - Vercel'de 4.5 MB body limit var
-   - Büyük Excel'ler için:
-     - S3/Cloudinary gibi storage
-     - Veya Vercel Pro (50 MB limit)
+   - Vercel has a 4.5 MB body limit
+   - For large Excel files:
+     - Use S3/Cloudinary storage
+     - Or upgrade to Vercel Pro (50 MB limit)
 
 3. **Serverless Function Timeout:**
-   - Hobby: 10 saniye
-   - Pro: 60 saniye (vercel.json'da ayarlı)
-   - Çok büyük Excel'ler için Pro gerekebilir
+   - Hobby: 10 seconds
+   - Pro: 60 seconds (configured in vercel.json)
+   - Very large Excel files may require Pro
 
 ---
 
-## 🔒 Güvenlik Önerileri
+## 🔒 Security Recommendations
 
 1. **Environment Variables:**
-   - Hassas bilgileri `.env.local`'de tutun
-   - `.env.local` Git'e commitlenmesin (.gitignore'da var)
-   - Vercel'de Environment Variables'dan ekleyin
+   - Store sensitive information in `.env.local`
+   - `.env.local` is not committed to Git (in .gitignore)
+   - Add them via Vercel's Environment Variables dashboard
 
 2. **API Security:**
-   - İleride authentication ekleyin
-   - Rate limiting kullanın
+   - Consider adding authentication in the future
+   - Use rate limiting
 
 3. **CORS:**
-   - Şu an gerekli değil
-   - Public API yaparsanız dikkat edin
+   - Not required currently
+   - Be cautious if you make a public API
 
 ---
 
 ## 📈 Monitoring
 
-### Vercel Analytics (Ücretsiz)
+### Vercel Analytics (Free)
 
-1. Project → Analytics sekmesi
-2. Trafik, performance, hata izleme
+1. Project → Analytics tab
+2. Traffic, performance, and error tracking
 
-### Sentry Integration (Opsiyonel)
+### Sentry Integration (Optional)
 
 ```bash
 pnpm add @sentry/nextjs
@@ -244,18 +244,18 @@ npx @sentry/wizard -i nextjs
 
 ---
 
-## 🎯 İleri Seviye
+## 🎯 Advanced Topics
 
-### Database Ekleme (Production için önerilen)
+### Adding a Database (Recommended for production)
 
-**Supabase (Ücretsiz):**
+**Supabase (Free):**
 ```bash
 pnpm add @supabase/supabase-js
 ```
 
 **Vercel Postgres:**
 - Vercel Storage → Postgres → Create
-- Environment variables otomatik eklenir
+- Environment variables are added automatically
 
 **PlanetScale (MySQL):**
 ```bash
@@ -265,28 +265,28 @@ pnpm add @planetscale/database
 ### Custom Domain
 
 1. Vercel → Settings → Domains
-2. Domain adınızı girin
-3. DNS kayıtlarını güncelleyin (A/CNAME)
-4. SSL otomatik oluşturulur
+2. Enter your domain name
+3. Update DNS records (A/CNAME)
+4. SSL certificate is generated automatically
 
 ---
 
 ## ✅ Checklist
 
-- [ ] GitHub reposu oluşturuldu
-- [ ] Kod GitHub'a push edildi
-- [ ] Vercel hesabı oluşturuldu (GitHub ile)
-- [ ] Vercel'de proje import edildi
-- [ ] İlk deploy başarılı
-- [ ] Vercel URL çalışıyor
-- [ ] Excel upload test edildi
-- [ ] Grafikler çalışıyor
-- [ ] Modal detaylar çalışıyor
-- [ ] CSV export çalışıyor
+- [ ] GitHub repository created
+- [ ] Code pushed to GitHub
+- [ ] Vercel account created (with GitHub)
+- [ ] Project imported on Vercel
+- [ ] First deployment successful
+- [ ] Vercel URL is working
+- [ ] Excel upload tested
+- [ ] Charts are working
+- [ ] Modal details are working
+- [ ] Excel export is working
 
 ---
 
-## 🆘 Yardım
+## 🆘 Help
 
 **Vercel Documentation:**
 https://vercel.com/docs
@@ -295,15 +295,15 @@ https://vercel.com/docs
 https://nextjs.org/docs/deployment
 
 **GitHub Issues:**
-Repo'nuzda issue açabilirsiniz
+You can open issues in your repository
 
 ---
 
-## 🎉 Tebrikler!
+## 🎉 Congratulations!
 
-Projeniz artık canlıda! 
+Your project is now live!
 
-Vercel URL'nizi paylaşabilirsiniz:
+Share your Vercel URL:
 `https://safa-trend-analysis-xxx.vercel.app`
 
-Her Git push'unuzda otomatik deploy olacak! 🚀
+Every Git push will trigger an automatic deployment! 🚀

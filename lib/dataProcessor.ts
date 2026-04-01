@@ -169,11 +169,8 @@ function cleanDesc(text: string): string {
 function extractProblemType(description: string): string {
   const text = description.toUpperCase();
 
-  if (text.includes('DENT')) {
-    return 'DENT';
-  }
-
   const problemTypes = [
+    { keywords: ['DENT', 'DENTED'], type: 'DENT' },
     { keywords: ['PAINT DAMAGE', 'PAINT DAMAGED', 'PAINTING DAMAGE'], type: 'PAINT_DAMAGE' },
     { keywords: ['MISSING', 'MISS'], type: 'MISSING' },
     { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN'], type: 'DAMAGED' },
@@ -195,54 +192,83 @@ function extractProblemType(description: string): string {
 function extractComponent(description: string): string {
   const text = description.toUpperCase();
 
-  if (text.includes('JUMPER')) {
-    return 'BONDING';
-  }
-  
-  if (/LANYARDS?['\'\'\']?S?\s+RINGS?/i.test(text)) {
-    return 'LANYARD_RING';
-  }
-
-  if (text.includes('HORIZONTAL STAB')) {
-    return 'HORIZONTAL_STABILIZER';
-  }
-
   const components = [
+    // Landing Gear - Oil Charging Valve (with all known typo variations)
+    { keywords: ['OIL SERVICING CHARGING', 'OIL SERVICING CHARGER', 'OIL CHARGING VALVE', 'OIL CHARHING VALVE', 'OIL CHARGINGVALVE', 'OIL CHARHINGVALUE', 'OIL CHARGING', 'OIL CHARGIN', 'OILCHARGING'], component: 'LG_OIL_CHARGING_VALVE' },
+    // Bonding (including jumper wires)
+    { keywords: ['JUMPER', 'BONDING WIRE', 'BONDING'], component: 'BONDING' },
+    // Lanyard Ring (with apostrophe variations)
+    { keywords: ['LANYARD RING', 'LANYARDS RING', 'LANYARD\'S RING', 'LANYARDS RINGS', 'LANYARD RINGS'], component: 'LANYARD_RING' },
+    // Horizontal Stabilizer
+    { keywords: ['HORIZONTAL STAB', 'HORIZONTAL STABILIZER', 'HORIZONTAL STABILISER'], component: 'HORIZONTAL_STABILIZER' },
+    // Overhead Bin
     { keywords: ['OVERHEAD BIN', 'STOWAGE BIN', 'OVERHEAD STOWAGE'], component: 'OVERHEAD_BIN' },
+    // Bin Stopper
     { keywords: ['BIN STOPPER', 'DOOR STOPPER'], component: 'BIN_STOPPER' },
+    // Tray Table
     { keywords: ['TRAY TABLE'], component: 'TRAY_TABLE' },
+    // Seat Belt
     { keywords: ['SEAT BELT', 'SAFETY HARNESS', 'SAFETY BELT'], component: 'SEAT_BELT' },
+    // Light
     { keywords: ['READING LIGHT', 'FLOOD LIGHT', 'LIGHT LENS'], component: 'LIGHT' },
+    // Life Vest
     { keywords: ['LIFE VEST'], component: 'LIFE_VEST' },
+    // Placard
     { keywords: ['PLACARD'], component: 'PLACARD' },
+    // Lavatory
     { keywords: ['LAVATORY', 'LAV A', 'LAV B', 'LAV C', 'LAV D', 'LAV E'], component: 'LAVATORY' },
+    // Galley
     { keywords: ['GALLEY'], component: 'GALLEY' },
+    // Sunshade
     { keywords: ['SUNSHADE', 'WINDOW SHADE', 'PAX WINDOW SHADE', 'WINDOW SHADES'], component: 'SUNSHADE' },
+    // Curtain
     { keywords: ['CURTAIN'], component: 'CURTAIN' },
+    // Oxygen
     { keywords: ['OXYGEN', 'OXY BOTTLE'], component: 'OXYGEN' },
+    // Mirror
     { keywords: ['MIRROR'], component: 'MIRROR' },
+    // Carpet
     { keywords: ['CARPET', 'FLOOR MAT'], component: 'CARPET' },
+    // Cargo Nets
     { keywords: ['CARGO NET', 'CARGO NETS', 'NET', 'NETS'], component: 'CARGO_NETS' },
+    // Cargo Tapes
     { keywords: ['AFT CARGO COMPARTMENT TAPE', 'CARGO PANEL TAPE', 'SIDE WALL PANEL TAPE', 'CARGO LINING TAPE', 'CARGO SOME TAPE', 'CARGO SOME TAPES', 'CARGOS TAPE', 'CARGOS TAPES', 'SIDE WALL TAPE', 'SIDEWALL TAPE', 'CARGO SIDEWALL TAPE', 'CARGO TAPE', 'CARGO TAPES', 'CARGOTAPES'], component: 'CARGO_TAPES' },
+    // Antenna
     { keywords: ['ANTENNA'], component: 'ANTENNA' },
+    // Kruger Flap
     { keywords: ['KRUGER FLAP', 'KRUGER'], component: 'KRUGER_FLAP' },
+    // Slat
     { keywords: ['SLAT'], component: 'SLAT' },
+    // Flap
     { keywords: ['FLAP'], component: 'FLAP' },
+    // Engine
     { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON', 'ENG'], component: 'ENGINE' },
+    // Landing Gear
     { keywords: ['LANDING LIGHT', 'LANDING GEAR'], component: 'LANDING_GEAR' },
+    // Water System
     { keywords: ['WATER SERVICE', 'POTABLE WATER', 'PORTABLE WATER'], component: 'WATER_SYSTEM' },
-    { keywords: ['BONDING WIRE', 'BONDING'], component: 'BONDING' },
+    // Hinge
     { keywords: ['HINGE'], component: 'HINGE' },
+    // Latch
     { keywords: ['LATCH'], component: 'LATCH' },
+    // Floor Panel
     { keywords: ['FLOOR PANEL'], component: 'FLOOR_PANEL' },
+    // Ceiling Panel
     { keywords: ['CEILING PANEL'], component: 'CEILING_PANEL' },
+    // Door Panel
     { keywords: ['DOOR PANEL'], component: 'DOOR_PANEL' },
+    // Side Panel
     { keywords: ['SIDE PANEL', 'WALL PANEL'], component: 'SIDE_PANEL' },
+    // Trim Panel
     { keywords: ['TRIM PANEL'], component: 'TRIM_PANEL' },
+    // Panel (generic - must be after specific panels)
     { keywords: ['PANEL', 'TRIM'], component: 'PANEL' },
+    // Seat (must be after seat belt)
     { keywords: ['PAX SEAT', 'PASSENGER SEAT', 'ATTENDANT SEAT'], component: 'SEAT' },
     { keywords: ['SEAT'], component: 'SEAT' },
+    // Door
     { keywords: ['DOOR'], component: 'DOOR' },
+    // Light (generic - must be last, uses word boundary)
     { keywords: ['\\bLIGHT\\b'], component: 'LIGHT' },
   ];
 

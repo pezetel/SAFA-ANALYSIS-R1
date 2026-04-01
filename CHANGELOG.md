@@ -3,10 +3,24 @@
 ## [2.1.0] - 2026-04-01
 
 ### Changed
-- **Chronic Problem Reclassification**: Chronic label is no longer based on aircraft count. A component is now marked as "Chronic" when it has **5 or more total findings** regardless of how many aircraft are affected.
-- **Finding Type Breakdown**: Each component in the "Most Frequent Problems" list now shows a full breakdown of its finding types (e.g., MISSING 12, DAMAGED 8, LOOSE 3) as color-coded tags.
-- Removed aircraft count metric from the Top Problems list; replaced with finding type count.
-- Updated chronic definition footer text: "Components with 5 or more total findings".
+- **Chronic Label Removed**: The "Chronic" badge and its definition have been completely removed from the UI.
+- **All Findings Listed**: The "Most Frequent Problems" section renamed to "All Findings by Component" — no longer limited to Top 10, all components are now displayed.
+- **Finding Type Breakdown**: Each component shows a full classification of its finding types (e.g., MISSING 12, DAMAGED 8, LOOSE 3) as color-coded tags.
+- Removed aircraft count metric from the problems list; replaced with finding type count.
+- Section title changed: "Most Frequent Problems" → "All Findings by Component".
+- Section subtitle changed: "Top 10 problems by component..." → "All components classified by finding type (Click to view details)".
+- Footer updated: now shows "Showing all X components · Y total findings".
+
+### Added
+- **New Component Group — `LG_OIL_CHARGING_VALVE`**: Added component grouping for oil charging valve findings with all known typo variations:
+  - `OIL CHARGING VALVE`, `OIL CHARHING VALVE`, `OIL CHARGINGVALVE`, `OIL CHARHINGVALUE`, `OIL CHARGING`, `OIL CHARGIN`, `OILCHARGING`, `OIL SERVICING CHARGING`, `OIL SERVICING CHARGER`
+
+### Refactored
+- **`extractProblemType()` consolidated**: `DENT` was previously handled as a standalone if-block outside the main list. It is now moved into the unified `problemTypes` array (with `DENTED` variant added) for consistency and readability.
+- **`extractComponent()` consolidated**: `BONDING` (including `JUMPER`), `LANYARD_RING` (with all apostrophe variations), and `HORIZONTAL_STABILIZER` were previously handled as standalone if-blocks before the main components list. They are now integrated into the single `components` array with descriptive comments for each group.
+- All component entries now have inline comments describing the group (e.g., `// Landing Gear - Oil Charging Valve`, `// Bonding (including jumper wires)`, etc.).
+
+### Meta
 - Version bumped to `2.1`.
 - Version displayed on home page header badge and footer.
 

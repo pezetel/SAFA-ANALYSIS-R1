@@ -1,54 +1,53 @@
 # GitHub Push Instructions
 
-Değişiklikler commit edildi. GitHub'a push etmek için:
+Changes have been committed. To push to GitHub:
 
-## Opsiyon 1: Terminal'den
+## Option 1: From Terminal
 
 ```bash
 git push origin HEAD:main
 ```
 
-## Opsiyon 2: Web Üzerinden
+## Option 2: Via Web Interface
 
-Aşağıdaki dosyaları GitHub'da güncelleyin:
+Update the following files on GitHub:
 
 ### 1. `components/FileUpload.tsx`
-- Excel dosyasını browser'da okur (XLSX kütüphanesi ile)
-- API'ye sadece parse edilmiş veriyi gönderir
-- İşlenmiş veriyi localStorage'a kaydeder
-- Vercel'de serverless sorununu çözer
+- Reads the Excel file in the browser (using the XLSX library)
+- Sends only the parsed data to the API
+- Saves processed data to localStorage
+- Solves the Vercel serverless issue
 
-### 2. `app/api/process/route.ts` (YENİ DOSYA)
-- Parse edilmiş veriyi alır
-- processExcelData ile işler
-- İşlenmiş veriyi client'a geri döndürür
-- Dosya yükleme işlemi yapmaz (client-side)
+### 2. `app/api/process/route.ts` (NEW FILE)
+- Receives parsed data
+- Processes it with processExcelData
+- Returns processed data back to the client
+- No file upload handling (client-side)
 
 ### 3. `app/dashboard/page.tsx`
-- localStorage'dan veriyi okur
-- API'ye bağımlı değil
-- Tarih string'lerini Date objesine çevirir
-- İstatistikleri client-side hesaplar
+- Reads data from localStorage
+- Not dependent on API
+- Converts date strings to Date objects
+- Calculates statistics client-side
 
-## Değişiklik Özeti
+## Change Summary
 
-**Eski Mimari (Sorunlu):**
+**Old Architecture (Problematic):**
 ```
 Browser -> Upload Excel -> API (file system) -> global.safaData
-Browser -> Dashboard -> API -> global.safaData (BOŞ - farklı instance!)
+Browser -> Dashboard -> API -> global.safaData (EMPTY - different instance!)
 ```
 
-**Yeni Mimari (Çalışan):**
+**New Architecture (Working):**
 ```
 Browser -> Parse Excel (XLSX) -> API Process -> localStorage
-Browser -> Dashboard -> localStorage (HER ZAMAN DOLU!)
+Browser -> Dashboard -> localStorage (ALWAYS AVAILABLE!)
 ```
 
-## Neden localStorage?
+## Why localStorage?
 
-1. Vercel serverless fonksiyonlar stateless
-2. /tmp her cold start'ta silinir
-3. Global değişkenler instance'lar arası paylaşılmaz
-4. localStorage browser'da kalıcı ve güvenilir
-5. SAFA analiz verisi kullanıcıya özel (paysaşım gerekmez)
-
+1. Vercel serverless functions are stateless
+2. /tmp is cleared on every cold start
+3. Global variables are not shared across instances
+4. localStorage is persistent and reliable in the browser
+5. SAFA analysis data is user-specific (no sharing required)

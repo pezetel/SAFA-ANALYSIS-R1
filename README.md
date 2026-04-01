@@ -1,79 +1,90 @@
-# ✈️ SAFA Trend Analiz Platformu
+# ✈️ SAFA Trend Analysis Platform
 
-Uçak SAFA (Safety Assessment of Foreign Aircraft) bulgularının kapsamlı trend analizi ve raporlama sistemi.
+Comprehensive trend analysis and reporting system for aircraft SAFA (Safety Assessment of Foreign Aircraft) findings.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14.2.3-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-2.1-orange)
 
-## 🎯 Özellikler
+## 🎯 Features
 
-### 📤 Excel Yükleme & Veri İşleme
-- Sürükle-bırak veya tıkla-seç ile XLSX/XLS dosya yükleme
-- Otomatik veri validasyonu ve temizleme
-- EOD numaraları ve standart kalıpların akıllı temizlenmesi
-- Esnek kolon eşleştirme (W/O Date, ATA, A/C, Description)
+### 📤 Excel Upload & Data Processing
+- Drag-and-drop or click-to-select XLSX/XLS file upload
+- Automatic data validation and cleaning
+- Smart cleaning of EOD numbers and standard patterns
+- Flexible column mapping (W/O Date, ATA, A/C, Description)
 
-### 📊 Dashboard & Görselleştirme
-- **İstatistik Kartları**: Toplam bulgu, uçak sayısı, ATA chapter, dönem
-- **ATA Distribution**: Pie chart ile sistem dağılımı
-- **Problem Type Chart**: Bar chart ile problem tipleri (Missing, Damaged, vb.)
-- **Top 10 Problems**: Kronik problem tespiti (5+ uçakta görülen)
-- **Zaman Serisi Grafiği**: Aylık bulgu sayıları trendi
-- **Aircraft Heatmap**: Uçak x Zaman yoğunluk haritası
+### 📊 Dashboard & Visualization
+- **Statistics Cards**: Total findings, aircraft count, ATA chapters, analysis period
+- **ATA Distribution**: Pie chart showing system category distribution
+- **Problem Type Chart**: Bar chart of problem types (Missing, Damaged, etc.)
+- **All Findings by Component**: Full component listing with finding type breakdown as color-coded tags
+- **Time Series Chart**: Monthly finding count trends
+- **Aircraft Heatmap**: Aircraft × Time density map
+- **ATA Heatmap**: ATA Chapter × Time density map
+- **Component Heatmap**: Component × Time density map
 
-### 🔍 İnteraktif Detay Görünümü
-- Tüm grafiklere ve listelere tıklayarak detay görüntüleme
-- Modal pencerede filtrelenmiş kayıtlar
-- Canlı arama ve sayfalama
-- CSV export özelliği
+### 🔍 Interactive Detail View
+- Click on any chart or list item to view details
+- Modal window with filtered records
+- Live search and pagination
+- Excel export from detail view
 
-### 🎛️ Gelişmiş Filtreler
-- Tarih aralığı seçimi
-- Uçak multi-select
-- ATA chapter seçimi
-- Problem tipi filtreleme
-- Aktif filtre sayacı
+### 🎛️ Advanced Filters
+- Date range selection
+- Aircraft type filter (B737-NG / B737-MAX)
+- Aircraft multi-select with search
+- ATA chapter selection with search
+- Problem type filtering
+- Component filtering with search
+- Active filter counter
 
-### 💾 Export & Raporlama
-- CSV export (tüm veri veya filtrelenmiş)
-- Türkçe tarih formatı
-- Temiz, analiz edilmiş veri
+### 📅 Period Comparison
+- Compare two custom date periods side by side
+- Quick select buttons (First 6 vs Last 6 months, 2024 vs 2025, Q1 vs Q2, Q3 vs Q4)
+- Most increased / decreased problems
+- Component comparison bar chart
 
-## 🚀 Kurulum
+### 💾 Export & Reporting
+- Excel export (all data or filtered)
+- Detail modal export
+- Clean, analyzed data output
 
-### Gereksinimler
-- Node.js 18+ veya 20+
-- pnpm (veya npm/yarn)
+## 🚀 Installation
 
-### Adımlar
+### Requirements
+- Node.js 18+ or 20+
+- pnpm (or npm/yarn)
 
-1. **Repository'yi klonlayın**
+### Steps
+
+1. **Clone the repository**
 ```bash
 git clone https://github.com/yourusername/safa-trend-analysis.git
 cd safa-trend-analysis
 ```
 
-2. **Bağımlılıkları yükleyin**
+2. **Install dependencies**
 ```bash
 pnpm install
-# veya
+# or
 npm install
-# veya
+# or
 yarn install
 ```
 
-3. **Development server'ı başlatın**
+3. **Start the development server**
 ```bash
 pnpm dev
-# veya
+# or
 npm run dev
-# veya
+# or
 yarn dev
 ```
 
-4. **Tarayıcıda açın**
+4. **Open in browser**
 ```
 http://localhost:3000
 ```
@@ -85,120 +96,147 @@ pnpm build
 pnpm start
 ```
 
-## 🌐 Vercel'e Deploy
+## 🌐 Deploy to Vercel
 
-### Otomatik Deploy (Önerilen)
-1. GitHub repository'nizi Vercel'e bağlayın
-2. Vercel otomatik olarak her commit'te deploy eder
+### Automatic Deploy (Recommended)
+1. Connect your GitHub repository to Vercel
+2. Vercel will automatically deploy on every commit
 
-### Manuel Deploy
+### Manual Deploy
 ```bash
 npm i -g vercel
 vercel
 ```
 
-## 📝 Kullanım
+## 📝 Usage
 
-### 1. Excel Formatı
+### 1. Excel Format
 
-Excel dosyanız şu kolonları içermelidir:
+Your Excel file should contain the following columns:
 
-| Kolon Adı | Açıklama | Örnek |
-|-----------|----------|-------|
-| W/O Number | İş emri numarası | 1292209 |
-| W/O Date | Tarih | 1.05.2025 veya 01.05.2025 |
-| ATA | ATA kodu | 25-22-00 |
-| A/C | Uçak kuyruk numarası | TC-SOH |
-| Description | Bulgu açıklaması | FINDING (NRC) DOCUMENT EOD-B737-00-0001-R00... |
+| Column Name | Description | Example |
+|-------------|-------------|----------|
+| W/O Number | Work order number | 1292209 |
+| W/O Date | Date | 1.05.2025 or 01.05.2025 |
+| ATA | ATA code | 25-22-00 |
+| A/C | Aircraft tail number | TC-SOH |
+| Description | Finding description | FINDING (NRC) DOCUMENT EOD-B737-00-0001-R00... |
 
-**Not:** Kolon isimleri esnek - sistem şu alternatifleri de kabul eder:
+**Note:** Column names are flexible — the system also accepts these alternatives:
 - Date: `w/o date`, `wo date`, `date`, `tarih`
 - Aircraft: `a/c`, `ac`, `aircraft`, `registration`
-- Description: `description`, `açıklama`, `finding`, `desc`
+- Description: `description`, `aciklama`, `finding`, `desc`
 
-### 2. Veri Yükleme
+### 2. Data Upload
 
-1. Ana sayfada "Excel dosyasını sürükleyin veya tıklayın" alanına tıklayın
-2. XLSX veya XLS dosyanızı seçin
-3. Sistem otomatik olarak verileri işleyecek ve dashboard'a yönlendirecektir
+1. On the home page, click the "Drag and drop your Excel file or click here" area
+2. Select your XLSX or XLS file
+3. The system will automatically process the data and redirect to the dashboard
 
-### 3. Dashboard Kullanımı
+### 3. Dashboard Usage
 
-#### Genel Bakış Sekmesi
-- Grafiklere ve listelere **tıklayarak** detayları görün
-- Kronik problemleri (5+ uçakta görülen) kolayca tespit edin
-- Problem tiplerine göre dağılımı inceleyin
+#### Overview Tab
+- Click on **charts and lists** to view details
+- See all components with their finding type breakdown
+- Analyze distribution by problem type
 
-#### Trend Analizi Sekmesi
-- Aylık trend grafiği ile zaman içindeki değişimleri izleyin
-- Heat map'teki **hücrelere tıklayarak** o uçak + ay kombinasyonunun detaylarını görün
-- Hangi uçakların hangi aylarda yoğun bulgu aldığını keşfedin
+#### Trend Analysis Tab
+- Track changes over time with the monthly trend chart
+- Click **heatmap cells** to view details for that aircraft/ATA + month combination
+- Discover which aircraft or systems had the most findings in which months
 
-#### Detaylı Veriler Sekmesi
-- Tüm kayıtları tablo formatında görüntüleyin
-- Kolonlara tıklayarak sıralama yapın
-- Canlı arama ile kayıt bulun
-- CSV olarak export edin
+#### Period Analysis Tab
+- Use quick select buttons or enter custom date ranges
+- Compare two periods side by side
+- See which problems increased or decreased
 
-### 4. Filtreler
+#### Detailed Data Tab
+- View all records in table format
+- Click column headers to sort
+- Use live search to find records
+- Export to Excel
 
-- **Tarih Aralığı**: Başlangıç ve bitiş tarihi seçin
-- **Uçak**: Birden fazla uçak seçimi yapabilirsiniz
-- **ATA Chapter**: Sistem kategorilerine göre filtreleyin
-- **Problem Tipi**: MISSING, DAMAGED, LOOSE, vb.
-- **Temizle**: Tüm filtreleri sıfırlayın
+### 4. Filters
 
-## 🧹 Veri Temizleme
+- **Aircraft Type**: Filter by B737-NG or B737-MAX fleet
+- **Date Range**: Select start and end dates
+- **Aircraft**: Multi-select with search
+- **ATA Chapter**: Filter by system categories with search
+- **Problem Type**: MISSING, DAMAGED, LOOSE, etc.
+- **Component**: Filter by component with search
+- **Clear**: Reset all filters
 
-Sistem otomatik olarak şu gürültüleri temizler:
+## 🧹 Data Cleaning
 
-- ✅ `FINDING (NRC) DOCUMENT EOD-B737-00-0001-R00PARAG NO B01` → Temizlenir
-- ✅ `PARAG NO B06`, `PARAGRAPH B12` → Temizlenir
-- ✅ `DURING PERFORM WO:1159857` → Temizlenir
-- ✅ `W/O 1234567`, `TC-SOH` referansları → Temizlenir
-- ✅ `NRC`, `NRC1`, `NRC2` → Severity olarak ayrıştırılır
+The system automatically cleans the following noise from descriptions:
 
-## 🎨 Komponent Kategorileri
+- ✅ `FINDING (NRC) DOCUMENT EOD-B737-00-0001-R00PARAG NO B01` → Cleaned
+- ✅ `PARAG NO B06`, `PARAGRAPH B12` → Cleaned
+- ✅ `DURING PERFORM WO:1159857` → Cleaned
+- ✅ `W/O 1234567`, `TC-SOH` references → Cleaned
+- ✅ `NRC`, `NRC1`, `NRC2` → Parsed as severity
+- ✅ Common typos: `FOND` → `FOUND`, `NOR WORKING` → `NOT WORKING`, `MISISING` → `MISSING`
 
-Sistem otomatik olarak şu komponentleri tanır:
+## 🎨 Component Categories
 
-- `PLACARD` - Plaketler
-- `SEAT` - Koltuklar
-- `OVERHEAD_BIN` - Üst bölmeler
-- `BIN_STOPPER` - Bölme stoperleri
-- `TRAY_TABLE` - Tepsi masaları
-- `GALLEY` - Galley
-- `LAVATORY` - Lavabo
-- `SEAT_BELT` - Emniyet kemeri
-- `SUNSHADE` - Güneşlik
-- `LIGHT` - Işıklar
-- `DOOR` - Kapılar
-- `OXYGEN` - Oksijen
-- `CURTAIN` - Perde
-- `LIFE_VEST` - Can yeleği
-- `MIRROR` - Ayna
-- `ENGINE` - Motor
-- `LANDING_GEAR` - İniş takımı
-- `WATER_SYSTEM` - Su sistemleri
-- `BONDING` - Bonding wire
-- `HINGE` - Menteşe
-- `LATCH` - Mandal
-- `CARPET` - Halı
-- `TRIM_PANEL` - Trim ve paneller
-- `OTHER` - Diğer
+The system automatically recognizes and groups the following components:
 
-## 🔧 Problem Tipleri
+| Component | Description |
+|-----------|-------------|
+| `LG_OIL_CHARGING_VALVE` | Landing gear oil charging valve (incl. typo variants) |
+| `BONDING` | Bonding wires and jumper wires |
+| `LANYARD_RING` | Lanyard rings (incl. apostrophe variants) |
+| `HORIZONTAL_STABILIZER` | Horizontal stabilizer |
+| `OVERHEAD_BIN` | Overhead stowage bins |
+| `BIN_STOPPER` | Bin / door stoppers |
+| `TRAY_TABLE` | Tray tables |
+| `SEAT_BELT` | Seat belts and safety harnesses |
+| `LIGHT` | Reading lights, flood lights, light lenses |
+| `LIFE_VEST` | Life vests |
+| `PLACARD` | Placards |
+| `LAVATORY` | Lavatories |
+| `GALLEY` | Galleys |
+| `SUNSHADE` | Window shades / sunshades |
+| `CURTAIN` | Curtains |
+| `OXYGEN` | Oxygen bottles and systems |
+| `MIRROR` | Mirrors |
+| `CARPET` | Carpets and floor mats |
+| `CARGO_NETS` | Cargo nets |
+| `CARGO_TAPES` | Cargo compartment tapes (sidewall, lining, panel) |
+| `ANTENNA` | Antennas |
+| `KRUGER_FLAP` | Kruger flaps |
+| `SLAT` | Slats |
+| `FLAP` | Flaps |
+| `ENGINE` | Engines, cowls, fan blades, pylons |
+| `LANDING_GEAR` | Landing gear and landing lights |
+| `WATER_SYSTEM` | Water service and potable water systems |
+| `HINGE` | Hinges |
+| `LATCH` | Latches |
+| `FLOOR_PANEL` | Floor panels |
+| `CEILING_PANEL` | Ceiling panels |
+| `DOOR_PANEL` | Door panels |
+| `SIDE_PANEL` | Side / wall panels |
+| `TRIM_PANEL` | Trim panels |
+| `PANEL` | Generic panels and trim |
+| `SEAT` | Passenger seats, attendant seats |
+| `DOOR` | Doors |
+| `OTHER` | Unclassified |
 
-- `MISSING` - Eksik parçalar
-- `DAMAGED` - Hasarlı, kırık, yıpranmış
-- `LOOSE` - Gevşek, sabit değil
-- `INOPERATIVE` - Çalışmıyor
-- `CLEANLINESS` - Temizlik
-- `LOW_LEVEL` - Düşük seviye
-- `ADJUSTMENT` - Ayar gerektiren
-- `OTHER` - Diğer
+## 🔧 Problem Types
 
-## 🏗️ Teknoloji Stack
+| Type | Matched Keywords |
+|------|------------------|
+| `DENT` | Dent, dented |
+| `PAINT_DAMAGE` | Paint damage, paint damaged, painting damage |
+| `MISSING` | Missing, miss |
+| `DAMAGED` | Damaged, damage, crack, broken, torn, worn |
+| `LOOSE` | Loose, not fixed |
+| `INOPERATIVE` | Inop, not working, not illuminate, not functioning, faulty |
+| `CLEANLINESS` | Dirty |
+| `ADJUSTMENT` | Adjustment, out of adjustment |
+| `OTHER` | Unclassified |
+
+## 🏗️ Technology Stack
 
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
@@ -209,64 +247,64 @@ Sistem otomatik olarak şu komponentleri tanır:
 - **Date Handling**: date-fns
 - **Deployment**: Vercel
 
-## 📂 Proje Yapısı
+## 📂 Project Structure
 
 ```
 safa-trend-analysis/
 ├── app/
 │   ├── api/
 │   │   ├── upload/          # Excel upload endpoint
+│   │   ├── process/         # Data processing endpoint
 │   │   └── analyze/         # Analysis endpoint
 │   ├── dashboard/           # Dashboard page
 │   ├── layout.tsx
-│   ├── page.tsx             # Home page
+│   ├── page.tsx             # Home page (with version display)
 │   └── globals.css
 ├── components/
 │   ├── FileUpload.tsx       # Excel upload component
 │   ├── DashboardStats.tsx   # Statistics cards
 │   ├── TrendChart.tsx       # Time series chart
-│   ├── AircraftHeatmap.tsx  # Heatmap visualization
+│   ├── AircraftHeatmap.tsx  # Aircraft heatmap
+│   ├── ATAHeatmap.tsx       # ATA chapter heatmap
+│   ├── ComponentHeatmap.tsx # Component heatmap
 │   ├── ATADistribution.tsx  # Pie chart
 │   ├── ProblemTypeChart.tsx # Bar chart
-│   ├── TopProblems.tsx      # Top 10 problems list
+│   ├── TopProblems.tsx      # All findings by component
+│   ├── PeriodComparison.tsx # Period comparison analysis
 │   ├── FilterPanel.tsx      # Filtering UI
 │   ├── DataTable.tsx        # Data table with sorting
-│   └── DetailModal.tsx      # Modal for details
+│   └── DetailModal.tsx      # Modal for record details
 ├── lib/
 │   ├── dataProcessor.ts     # Data cleaning & processing
 │   └── types.ts             # TypeScript types
-├── public/
-├── .gitignore
+├── CHANGELOG.md             # Version history
 ├── package.json
 ├── tailwind.config.js
 ├── tsconfig.json
+├── vercel.json
 └── README.md
 ```
 
-## 🤝 Katkıda Bulunma
+## 🤝 Contributing
 
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit edin (`git commit -m 'Add amazing feature'`)
-4. Push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 📄 Lisans
+## 📄 License
 
-MIT License - detaylar için [LICENSE](LICENSE) dosyasına bakın.
+MIT License — see the [LICENSE](LICENSE) file for details.
 
-## 👨‍💻 Geliştirici
+## 👨‍💻 About
 
-Bu proje havacılık bakım operasyonları için trend analizi ihtiyacından doğmuştur.
+This project was born from the need for trend analysis in aviation maintenance operations.
 
-## 🐛 Bug Raporlama
+## 🐛 Bug Reporting
 
-Bir hata bulduysanız veya öneriniz varsa lütfen [issue açın](https://github.com/yourusername/safa-trend-analysis/issues).
-
-## 📧 İletişim
-
-Sorularınız için: [email@example.com](mailto:email@example.com)
+If you find a bug or have a suggestion, please [open an issue](https://github.com/yourusername/safa-trend-analysis/issues).
 
 ---
 
-**Not**: Bu proje binlerce SAFA kaydını hızlıca analiz edebilir. Performans için optimize edilmiştir.
+**Note**: This project can quickly analyze thousands of SAFA records. It is optimized for performance.
