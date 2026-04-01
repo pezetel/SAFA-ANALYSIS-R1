@@ -1,7 +1,7 @@
 'use client';
 
 import { SAFARecord } from '@/lib/types';
-import { AlertTriangle, TrendingUp, Package, ChevronRight, Tag } from 'lucide-react';
+import { AlertTriangle, Package, ChevronRight, Tag } from 'lucide-react';
 import { useState } from 'react';
 import { DetailModal } from './DetailModal';
 
@@ -20,11 +20,10 @@ export function TopProblems({ records }: TopProblemsProps) {
     return acc;
   }, {} as Record<string, number>);
 
-  const topComponents = Object.entries(componentCounts)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 10);
+  const allComponents = Object.entries(componentCounts)
+    .sort(([, a], [, b]) => b - a);
 
-  const maxCount = topComponents[0]?.[1] || 1;
+  const maxCount = allComponents[0]?.[1] || 1;
 
   // Classify all findings by problem type per component
   const componentBreakdown = records.reduce((acc, record) => {
@@ -36,11 +35,6 @@ export function TopProblems({ records }: TopProblemsProps) {
     }
     return acc;
   }, {} as Record<string, Record<string, number>>);
-
-  // Calculate chronic issues — 5+ total findings for the same component
-  const isChronic = (component: string): boolean => {
-    return (componentCounts[component] || 0) >= 5;
-  };
 
   const handleComponentClick = (component: string) => {
     const filtered = records.filter(r => r.component === component);
@@ -65,14 +59,13 @@ export function TopProblems({ records }: TopProblemsProps) {
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="mb-4">
-          <h2 className="text-base font-bold text-gray-900">Most Frequent Problems</h2>
-          <p className="text-xs text-gray-600 mt-1">Top 10 problems by component with finding type breakdown (Click to view details)</p>
+          <h2 className="text-base font-bold text-gray-900">All Findings by Component</h2>
+          <p className="text-xs text-gray-600 mt-1">All components classified by finding type (Click to view details)</p>
         </div>
 
         <div className="space-y-3">
-          {topComponents.map(([component, count], index) => {
+          {allComponents.map(([component, count], index) => {
             const percentage = (count / records.length) * 100;
-            const chronic = isChronic(component);
             const breakdown = componentBreakdown[component] || {};
             const sortedTypes = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
 
@@ -92,12 +85,6 @@ export function TopProblems({ records }: TopProblemsProps) {
                         <span className="font-semibold text-sm text-gray-900">
                           {component}
                         </span>
-                        {chronic && (
-                          <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
-                            <AlertTriangle className="h-2.5 w-2.5" />
-                            Chronic
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2.5 text-xs text-gray-500 mt-0.5">
                         <span className="flex items-center gap-1">
@@ -134,9 +121,7 @@ export function TopProblems({ records }: TopProblemsProps) {
 
                 <div className="relative h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className={`absolute left-0 top-0 h-full rounded-full transition-all ${
-                      chronic ? 'bg-red-500' : 'bg-blue-500'
-                    }`}
+                    className="absolute left-0 top-0 h-full rounded-full transition-all bg-blue-500"
                     style={{ width: `${(count / maxCount) * 100}%` }}
                   />
                 </div>
@@ -145,11 +130,8 @@ export function TopProblems({ records }: TopProblemsProps) {
           })}
         </div>
 
-        <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 text-gray-600">
-            <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
-            <span>Chronic Problem: Components with 5 or more total findings</span>
-          </div>
+        <div className="mt-4 pt-3 border-t border-gray-200 text-xs text-gray-500 text-center">
+          Showing all {allComponents.length} components &middot; {records.length} total findings
         </div>
       </div>
 
