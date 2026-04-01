@@ -170,74 +170,14 @@ function extractProblemType(description: string): string {
   const text = description.toUpperCase();
 
   const problemTypes = [
-    {
-      type: 'DENT',
-      keywords: [
-        'DENT',
-        'DENTED',
-      ],
-    },
-    {
-      type: 'PAINT_DAMAGE',
-      keywords: [
-        'PAINT DAMAGE',
-        'PAINT DAMAGED',
-        'PAINTING DAMAGE',
-        'PAINT DAMAGES',
-        'PAINT DMG',
-        'PEELED OF PAINT',
-        'PEELED OFF PAINT',
-        'PAINTDAMAGE',
-      ],
-    },
-    {
-      type: 'MISSING',
-      keywords: [
-        'MISSING',
-        'MISS',
-      ],
-    },
-    {
-      type: 'DAMAGED',
-      keywords: [
-        'DAMAGED',
-        'DAMAGE',
-        'CRACK',
-        'BROKEN',
-        'TORN',
-        'WORN',
-      ],
-    },
-    {
-      type: 'LOOSE',
-      keywords: [
-        'LOOSE',
-        'NOT FIXED',
-      ],
-    },
-    {
-      type: 'INOPERATIVE',
-      keywords: [
-        'INOP',
-        'NOT WORKING',
-        'NOT ILLUMINATE',
-        'NOT FUNCTIONING',
-        'FAULTY',
-      ],
-    },
-    {
-      type: 'CLEANLINESS',
-      keywords: [
-        'DIRTY',
-      ],
-    },
-    {
-      type: 'ADJUSTMENT',
-      keywords: [
-        'ADJUSTMENT',
-        'OUT OF ADJUSTMENT',
-      ],
-    },
+    { keywords: ['DENT', 'DENTED'], type: 'DENT' },
+    { keywords: ['PAINT DAMAGE', 'PAINT DAMAGED', 'PAINTING DAMAGE', 'PAINT DAMAGES', 'PAINT DMG', 'PEELED OF PAINT', 'PEELED OFF PAINT', 'PAINTDAMAGE'], type: 'PAINT_DAMAGE' },
+    { keywords: ['MISSING', 'MISS'], type: 'MISSING' },
+    { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN'], type: 'DAMAGED' },
+    { keywords: ['LOOSE', 'NOT FIXED'], type: 'LOOSE' },
+    { keywords: ['INOP', 'NOT WORKING', 'NOT ILLUMINATE', 'NOT FUNCTIONING', 'FAULTY'], type: 'INOPERATIVE' },
+    { keywords: ['DIRTY'], type: 'CLEANLINESS' },
+    { keywords: ['ADJUSTMENT', 'OUT OF ADJUSTMENT'], type: 'ADJUSTMENT' },
   ];
 
   for (const { keywords, type } of problemTypes) {
@@ -254,419 +194,100 @@ function extractComponent(description: string): string {
 
   const components = [
     // Antiskating Foil (incl. typos: antistating, outflow valve foil)
-    {
-      component: 'ANTISKATING_FOIL',
-      keywords: [
-        'ANTISKATING FOIL',
-        'ANTISKATINGFOIL',
-        'ANTISTATINGFOIL',
-        'OUTFLOW VALVE FOIL',
-        'OUTFLOW VALVE ANTISTATING',
-      ],
-    },
+    { keywords: ['ANTISKATING FOIL', 'ANTISKATINGFOIL', 'ANTISTATINGFOIL', 'OUTFLOW VALVE FOIL', 'OUTFLOW VALVE ANTISTATING'], component: 'ANTISKATING_FOIL' },
     // Landing Gear - Oil Charging Valve (with all known typo variations)
-    {
-      component: 'LG_OIL_CHARGING_VALVE',
-      keywords: [
-        'OIL SERVICING CHARGING',
-        'OIL SERVICING CHARGER',
-        'OIL CHARGING VALVE',
-        'OIL CHARHING VALVE',
-        'OIL CHARGINGVALVE',
-        'OIL CHARHINGVALUE',
-        'OIL CHARGING',
-        'OIL CHARGIN',
-        'OILCHARGING',
-      ],
-    },
+    { keywords: ['OIL SERVICING CHARGING', 'OIL SERVICING CHARGER', 'OIL CHARGING VALVE', 'OIL CHARHING VALVE', 'OIL CHARGINGVALVE', 'OIL CHARHINGVALUE', 'OIL CHARGING', 'OIL CHARGIN', 'OILCHARGING'], component: 'LG_OIL_CHARGING_VALVE' },
     // Fuselage Skin (skin panels, butt joints, body fairings)
-    {
-      component: 'FUSELAGE_SKIN',
-      keywords: [
-        'FUS SKIN',
-        'FUSELAGE SKIN',
-        'BUTT JOINT SEALANT',
-        'BODY FAIRING',
-        'BODYFAIRING',
-      ],
-    },
+    { keywords: ['FUS SKIN', 'FUSELAGE SKIN', 'BUTT JOINT SEALANT', 'BODY FAIRING', 'BODYFAIRING'], component: 'FUSELAGE_SKIN' },
     // Scuff Plate
-    {
-      component: 'SCUFF_PLATE',
-      keywords: [
-        'SCUFF PLATE',
-        'SCUFF PLATE FILLER',
-      ],
-    },
+    { keywords: ['SCUFF PLATE', 'SCUFF PLATE FILLER'], component: 'SCUFF_PLATE' },
     // Security Box
-    {
-      component: 'SECURITY_BOX',
-      keywords: [
-        'SECURITY BOX',
-      ],
-    },
+    { keywords: ['SECURITY BOX'], component: 'SECURITY_BOX' },
     // Blade Seal
-    {
-      component: 'BLADE_SEAL',
-      keywords: [
-        'BLADE SEAL',
-        'BLADE SEALS',
-      ],
-    },
+    { keywords: ['BLADE SEAL', 'BLADE SEALS'], component: 'BLADE_SEAL' },
     // Drain Mast
-    {
-      component: 'DRAIN_MAST',
-      keywords: [
-        'DRAIN MAST',
-      ],
-    },
+    { keywords: ['DRAIN MAST'], component: 'DRAIN_MAST' },
     // Vapor Barrier
-    {
-      component: 'VAPOR_BARRIER',
-      keywords: [
-        'VAPOR BARRIER',
-      ],
-    },
+    { keywords: ['VAPOR BARRIER'], component: 'VAPOR_BARRIER' },
     // Bonding (including jumper wires, anchor plates)
-    {
-      component: 'BONDING',
-      keywords: [
-        'JUMPER',
-        'BONDING WIRE',
-        'BONDING',
-      ],
-    },
+    { keywords: ['JUMPER', 'BONDING WIRE', 'BONDING'], component: 'BONDING' },
     // Lanyard Ring (with apostrophe variations, lanyard assy, line yard typo)
-    // NOTE: Standalone "RING"/"RINGS" is handled as a fallback at the end.
-    //       If RING appears with CARGO in the same description → LANYARD_RING
-    //       Cargo nets are already caught above by "CARGO NET"/"CARGO NETS".
-    {
-      component: 'LANYARD_RING',
-      keywords: [
-        'LANYARD RING',
-        'LANYARDS RING',
-        'LANYARD\'S RING',
-        'LANYARDS RINGS',
-        'LANYARD RINGS',
-        'LANYARD ASSY',
-        'LINE YARD',
-        'LANYARD',
-      ],
-    },
+    // NOTE: Standalone "RING"/"RINGS" + "CARGO" fallback is handled at the end of this function.
+    { keywords: ['LANYARD RING', 'LANYARDS RING', 'LANYARD\'S RING', 'LANYARDS RINGS', 'LANYARD RINGS', 'LANYARD ASSY', 'LINE YARD', 'LANYARD'], component: 'LANYARD_RING' },
     // Horizontal Stabilizer
-    {
-      component: 'HORIZONTAL_STABILIZER',
-      keywords: [
-        'HORIZONTAL STAB',
-        'HORIZONTAL STABILIZER',
-        'HORIZONTAL STABILISER',
-      ],
-    },
+    { keywords: ['HORIZONTAL STAB', 'HORIZONTAL STABILIZER', 'HORIZONTAL STABILISER'], component: 'HORIZONTAL_STABILIZER' },
     // Overhead Bin
-    {
-      component: 'OVERHEAD_BIN',
-      keywords: [
-        'OVERHEAD BIN',
-        'STOWAGE BIN',
-        'OVERHEAD STOWAGE',
-      ],
-    },
+    { keywords: ['OVERHEAD BIN', 'STOWAGE BIN', 'OVERHEAD STOWAGE'], component: 'OVERHEAD_BIN' },
     // Bin Stopper
-    {
-      component: 'BIN_STOPPER',
-      keywords: [
-        'BIN STOPPER',
-        'DOOR STOPPER',
-      ],
-    },
+    { keywords: ['BIN STOPPER', 'DOOR STOPPER'], component: 'BIN_STOPPER' },
     // Tray Table
-    {
-      component: 'TRAY_TABLE',
-      keywords: [
-        'TRAY TABLE',
-      ],
-    },
+    { keywords: ['TRAY TABLE'], component: 'TRAY_TABLE' },
     // Seat Belt
-    {
-      component: 'SEAT_BELT',
-      keywords: [
-        'SEAT BELT',
-        'SAFETY HARNESS',
-        'SAFETY BELT',
-      ],
-    },
+    { keywords: ['SEAT BELT', 'SAFETY HARNESS', 'SAFETY BELT'], component: 'SEAT_BELT' },
     // Light (specific types first)
-    {
-      component: 'LIGHT',
-      keywords: [
-        'READING LIGHT',
-        'FLOOD LIGHT',
-        'LIGHT LENS',
-        'LANDING LIGHT',
-      ],
-    },
+    { keywords: ['READING LIGHT', 'FLOOD LIGHT', 'LIGHT LENS', 'LANDING LIGHT'], component: 'LIGHT' },
     // Life Vest
-    {
-      component: 'LIFE_VEST',
-      keywords: [
-        'LIFE VEST',
-      ],
-    },
+    { keywords: ['LIFE VEST'], component: 'LIFE_VEST' },
     // Placard (incl. stickers, stencils, labels, danger stickers)
-    {
-      component: 'PLACARD',
-      keywords: [
-        'PLACARD',
-        'PLACRDS',
-        'STICKER',
-        'STENCIL',
-        'LABEL',
-      ],
-    },
+    { keywords: ['PLACARD', 'PLACRDS', 'STICKER', 'STENCIL', 'LABEL'], component: 'PLACARD' },
     // Lavatory
-    {
-      component: 'LAVATORY',
-      keywords: [
-        'LAVATORY',
-        'LAV A',
-        'LAV B',
-        'LAV C',
-        'LAV D',
-        'LAV E',
-      ],
-    },
+    { keywords: ['LAVATORY', 'LAV A', 'LAV B', 'LAV C', 'LAV D', 'LAV E'], component: 'LAVATORY' },
     // Galley
-    {
-      component: 'GALLEY',
-      keywords: [
-        'GALLEY',
-      ],
-    },
+    { keywords: ['GALLEY'], component: 'GALLEY' },
     // Sunshade
-    {
-      component: 'SUNSHADE',
-      keywords: [
-        'SUNSHADE',
-        'WINDOW SHADE',
-        'PAX WINDOW SHADE',
-        'WINDOW SHADES',
-      ],
-    },
+    { keywords: ['SUNSHADE', 'WINDOW SHADE', 'PAX WINDOW SHADE', 'WINDOW SHADES'], component: 'SUNSHADE' },
     // Curtain
-    {
-      component: 'CURTAIN',
-      keywords: [
-        'CURTAIN',
-      ],
-    },
+    { keywords: ['CURTAIN'], component: 'CURTAIN' },
     // Oxygen
-    {
-      component: 'OXYGEN',
-      keywords: [
-        'OXYGEN',
-        'OXY BOTTLE',
-      ],
-    },
+    { keywords: ['OXYGEN', 'OXY BOTTLE'], component: 'OXYGEN' },
     // Mirror
-    {
-      component: 'MIRROR',
-      keywords: [
-        'MIRROR',
-      ],
-    },
+    { keywords: ['MIRROR'], component: 'MIRROR' },
     // Carpet
-    {
-      component: 'CARPET',
-      keywords: [
-        'CARPET',
-        'FLOOR MAT',
-      ],
-    },
+    { keywords: ['CARPET', 'FLOOR MAT'], component: 'CARPET' },
     // Cargo Nets
-    {
-      component: 'CARGO_NETS',
-      keywords: [
-        'CARGO NET',
-        'CARGO NETS',
-      ],
-    },
+    { keywords: ['CARGO NET', 'CARGO NETS'], component: 'CARGO_NETS' },
     // Cargo Tapes (incl. lining tapes, glass fabric, tappes typo)
-    {
-      component: 'CARGO_TAPES',
-      keywords: [
-        'AFT CARGO COMPARTMENT TAPE',
-        'CARGO PANEL TAPE',
-        'SIDE WALL PANEL TAPE',
-        'CARGO LINING TAPE',
-        'CARGO SOME TAPE',
-        'CARGO SOME TAPES',
-        'CARGOS TAPE',
-        'CARGOS TAPES',
-        'SIDE WALL TAPE',
-        'SIDEWALL TAPE',
-        'CARGO SIDEWALL TAPE',
-        'CARGO TAPE',
-        'CARGO TAPES',
-        'CARGOTAPES',
-        'CARGO TAPPES',
-      ],
-    },
+    { keywords: ['AFT CARGO COMPARTMENT TAPE', 'CARGO PANEL TAPE', 'SIDE WALL PANEL TAPE', 'CARGO LINING TAPE', 'CARGO SOME TAPE', 'CARGO SOME TAPES', 'CARGOS TAPE', 'CARGOS TAPES', 'SIDE WALL TAPE', 'SIDEWALL TAPE', 'CARGO SIDEWALL TAPE', 'CARGO TAPE', 'CARGO TAPES', 'CARGOTAPES', 'CARGO TAPPES'], component: 'CARGO_TAPES' },
     // Antenna
-    {
-      component: 'ANTENNA',
-      keywords: [
-        'ANTENNA',
-      ],
-    },
+    { keywords: ['ANTENNA'], component: 'ANTENNA' },
     // Kruger Flap
-    {
-      component: 'KRUGER_FLAP',
-      keywords: [
-        'KRUGER FLAP',
-        'KRUGER',
-      ],
-    },
+    { keywords: ['KRUGER FLAP', 'KRUGER'], component: 'KRUGER_FLAP' },
     // Slat
-    {
-      component: 'SLAT',
-      keywords: [
-        'SLAT',
-      ],
-    },
+    { keywords: ['SLAT'], component: 'SLAT' },
     // Flap
-    {
-      component: 'FLAP',
-      keywords: [
-        'FLAP',
-      ],
-    },
+    { keywords: ['FLAP'], component: 'FLAP' },
     // Engine
-    {
-      component: 'ENGINE',
-      keywords: [
-        '#1 ENGINE',
-        '#2 ENGINE',
-        '#1 ENG',
-        '#2 ENG',
-        'ENGINE COWL',
-        'FAN BLADE',
-        'ENGINE PYLON',
-        'ENG',
-      ],
-    },
+    { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON', 'ENG'], component: 'ENGINE' },
     // Landing Gear (incl. tire, shock strut, wheel well, brake unit, MLG, NLG)
-    {
-      component: 'LANDING_GEAR',
-      keywords: [
-        'LANDING GEAR',
-        'TIRE',
-        'SHOCK STRUT',
-        'SHOCK CHARGING',
-        'WHEEL WELL',
-        'BRAKE UNIT',
-        'MLG',
-        'NLG',
-      ],
-    },
+    { keywords: ['LANDING GEAR', 'TIRE', 'SHOCK STRUT', 'SHOCK CHARGING', 'WHEEL WELL', 'BRAKE UNIT', 'MLG', 'NLG'], component: 'LANDING_GEAR' },
     // Water System
-    {
-      component: 'WATER_SYSTEM',
-      keywords: [
-        'WATER SERVICE',
-        'POTABLE WATER',
-        'PORTABLE WATER',
-      ],
-    },
+    { keywords: ['WATER SERVICE', 'POTABLE WATER', 'PORTABLE WATER'], component: 'WATER_SYSTEM' },
     // Hinge
-    {
-      component: 'HINGE',
-      keywords: [
-        'HINGE',
-      ],
-    },
+    { keywords: ['HINGE'], component: 'HINGE' },
     // Latch
-    {
-      component: 'LATCH',
-      keywords: [
-        'LATCH',
-      ],
-    },
+    { keywords: ['LATCH'], component: 'LATCH' },
     // Floor Panel
-    {
-      component: 'FLOOR_PANEL',
-      keywords: [
-        'FLOOR PANEL',
-      ],
-    },
+    { keywords: ['FLOOR PANEL'], component: 'FLOOR_PANEL' },
     // Ceiling Panel
-    {
-      component: 'CEILING_PANEL',
-      keywords: [
-        'CEILING PANEL',
-      ],
-    },
+    { keywords: ['CEILING PANEL'], component: 'CEILING_PANEL' },
     // Door Panel
-    {
-      component: 'DOOR_PANEL',
-      keywords: [
-        'DOOR PANEL',
-      ],
-    },
+    { keywords: ['DOOR PANEL'], component: 'DOOR_PANEL' },
     // Side Panel
-    {
-      component: 'SIDE_PANEL',
-      keywords: [
-        'SIDE PANEL',
-        'WALL PANEL',
-      ],
-    },
+    { keywords: ['SIDE PANEL', 'WALL PANEL'], component: 'SIDE_PANEL' },
     // Trim Panel
-    {
-      component: 'TRIM_PANEL',
-      keywords: [
-        'TRIM PANEL',
-      ],
-    },
+    { keywords: ['TRIM PANEL'], component: 'TRIM_PANEL' },
     // Panel (generic - must be after specific panels)
-    {
-      component: 'PANEL',
-      keywords: [
-        'PANEL',
-        'TRIM',
-      ],
-    },
+    { keywords: ['PANEL', 'TRIM'], component: 'PANEL' },
     // Seat (must be after seat belt)
-    {
-      component: 'SEAT',
-      keywords: [
-        'PAX SEAT',
-        'PASSENGER SEAT',
-        'ATTENDANT SEAT',
-      ],
-    },
-    {
-      component: 'SEAT',
-      keywords: [
-        'SEAT',
-      ],
-    },
+    { keywords: ['PAX SEAT', 'PASSENGER SEAT', 'ATTENDANT SEAT'], component: 'SEAT' },
+    { keywords: ['SEAT'], component: 'SEAT' },
     // Door
-    {
-      component: 'DOOR',
-      keywords: [
-        'DOOR',
-      ],
-    },
+    { keywords: ['DOOR'], component: 'DOOR' },
     // Light (generic - must be last, uses word boundary)
-    {
-      component: 'LIGHT',
-      keywords: [
-        '\bLIGHT\b',
-      ],
-    },
+    { keywords: ['\bLIGHT\b'], component: 'LIGHT' },
   ];
 
-  // Main keyword loop — check all explicit multi-word and single-word keywords
+  // Main keyword loop
   for (const { keywords, component } of components) {
     if (keywords.some(keyword => {
       if (keyword === '\\bLIGHT\\b') {
@@ -678,13 +299,7 @@ function extractComponent(description: string): string {
     }
   }
 
-  // --- Standalone "RING" / "RINGS" fallback ---
-  // If none of the explicit keywords above matched, check for "RING" or "RINGS".
-  // Only classify if CARGO is ALSO present in the description — this catches
-  // cargo-related ring findings like "CARGO COMPARTMENT RING DAMAGED",
-  // "CARGO RING MISSING", "AFT CARGO SPLIT RING" etc. that weren't caught
-  // by the more specific CARGO_NET/CARGO_TAPES keywords above.
-  // Without CARGO context, a standalone RING is too ambiguous to auto-classify.
+  // Standalone "RING"/"RINGS" fallback — only if CARGO is also in the description
   if (/\bRINGS?\b/.test(text) && text.includes('CARGO')) {
     return 'LANYARD_RING';
   }
