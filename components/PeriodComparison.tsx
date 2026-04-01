@@ -3,7 +3,8 @@
 import { SAFARecord } from '@/lib/types';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, Plane, Search, X, ChevronDown, Calendar, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { DetailModal } from './DetailModal';
 
 interface PeriodComparisonProps {
   records: SAFARecord[];
@@ -55,13 +56,15 @@ function ProblemTypeComparisonChart({
   label1,
   label2,
   color1 = '#3b82f6',
-  color2 = '#8b5cf6'
+  color2 = '#8b5cf6',
+  onClickItem,
 }: {
   data: { type: string; count1: number; count2: number; pct1: number; pct2: number }[];
   label1: string;
   label2: string;
   color1?: string;
   color2?: string;
+  onClickItem?: (type: string, group: 'group1' | 'group2' | 'both') => void;
 }) {
   if (data.length === 0) return <p className="text-sm text-gray-400 text-center py-8">No problem type data</p>;
 
@@ -90,10 +93,17 @@ function ProblemTypeComparisonChart({
 
       {data.map((item, idx) => {
         const diff = item.count2 - item.count1;
+        const clickable = !!onClickItem;
         return (
           <div key={idx} className="rounded-lg hover:bg-gray-50 transition-colors px-1 py-2 border-b border-gray-50 last:border-0">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-gray-800">{item.type}</span>
+              <span
+                className={`text-xs font-bold text-gray-800 ${clickable ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''}`}
+                onClick={() => clickable && onClickItem!(item.type, 'both')}
+              >
+                {item.type}
+                {clickable && <span className="ml-1 text-[10px] text-gray-400">🔍</span>}
+              </span>
               {diff > 0 ? (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600">
                   <TrendingUp className="h-2.5 w-2.5" />
@@ -112,7 +122,10 @@ function ProblemTypeComparisonChart({
             </div>
 
             {/* Bar for group 1 */}
-            <div className="grid grid-cols-[1fr_80px_60px] gap-2 items-center mb-1">
+            <div
+              className={`grid grid-cols-[1fr_80px_60px] gap-2 items-center mb-1 ${clickable ? 'cursor-pointer rounded-md hover:ring-2 hover:ring-blue-200 transition-all' : ''}`}
+              onClick={() => clickable && onClickItem!(item.type, 'group1')}
+            >
               <div className="w-full bg-gray-100 rounded-full h-5 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500 flex items-center px-2"
@@ -131,7 +144,10 @@ function ProblemTypeComparisonChart({
             </div>
 
             {/* Bar for group 2 */}
-            <div className="grid grid-cols-[1fr_80px_60px] gap-2 items-center">
+            <div
+              className={`grid grid-cols-[1fr_80px_60px] gap-2 items-center ${clickable ? 'cursor-pointer rounded-md hover:ring-2 hover:ring-purple-200 transition-all' : ''}`}
+              onClick={() => clickable && onClickItem!(item.type, 'group2')}
+            >
               <div className="w-full bg-gray-100 rounded-full h-5 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500 flex items-center px-2"
@@ -159,6 +175,7 @@ function ProblemTypeComparisonChart({
           <p><strong>Count:</strong> Number of findings for each problem type.</p>
           <p><strong>% of Group:</strong> The proportion of that problem type within its own group. E.g., if {label1} has 100 findings and 20 are &quot;Defect&quot; → {label1} Defect = 20%.</p>
           <p><strong>Badge:</strong> Shows the count difference between the two groups. The group with more findings is displayed with the difference.</p>
+          {onClickItem && <p className="mt-1"><strong>💡 Tip:</strong> Click on the problem type name to see all records, or click on a specific bar to see only that group&apos;s records.</p>}
         </div>
       </div>
     </div>
@@ -362,6 +379,17 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
   // Fleet: per-aircraft normalization toggle
   const [fleetNormalize, setFleetNormalize] = useState(false);
 
+  // Detail modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalRecords, setModalRecords] = useState<SAFARecord[]>([]);
+
+  const openModal = (title: string, recs: SAFARecord[]) => {
+    setModalTitle(title);
+    setModalRecords(recs);
+    setModalOpen(true);
+  };
+
   const allAircraft = useMemo(() => Array.from(new Set(records.map(r => r.aircraft))).sort(), [records]);
 
   const aircraftCounts = useMemo(() => records.reduce((acc, r) => { acc[r.aircraft] = (acc[r.aircraft] || 0) + 1; return acc; }, {} as Record<string, number>), [records]);
@@ -474,8 +502,10 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
       const c1 = p1Comp[comp] || 0, c2 = p2Comp[comp] || 0;
       const change = c2 - c1;
       const changePercent = c1 > 0 ? (change / c1) * 100 : (c2 > 0 ? 100 : 0);
-      return { component: comp.replace(/_/g, ' '), period1: c1, period2: c2, change, changePercent };
+      return { component: comp.replace(/_/g, ' '), rawComponent: comp, period1: c1, period2: c2, change, changePercent };
     }).sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+
+    const problemTypeData = buildProblemTypeData(period1Records, period2Records);
 
     return {
       period1: { total: period1Records.length, records: period1Records, dateRange: `${period1Start} - ${period1End}` },
@@ -484,7 +514,8 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
       totalChangePercent: period1Records.length > 0 ? ((period2Records.length - period1Records.length) / period1Records.length) * 100 : 0,
       componentComparison: componentComparison.slice(0, 10),
       increased: componentComparison.filter(c => c.change > 0).slice(0, 5),
-      decreased: componentComparison.filter(c => c.change < 0).slice(0, 5)
+      decreased: componentComparison.filter(c => c.change < 0).slice(0, 5),
+      problemTypeData,
     };
   }, [records, period1Start, period1End, period2Start, period2End]);
 
@@ -504,7 +535,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
 
     const componentComparison = allComp.map(comp => {
       const c1 = ac1Comp[comp] || 0, c2 = ac2Comp[comp] || 0;
-      return { component: comp.replace(/_/g, ' '), aircraft1: c1, aircraft2: c2, difference: c2 - c1 };
+      return { component: comp.replace(/_/g, ' '), rawComponent: comp, aircraft1: c1, aircraft2: c2, difference: c2 - c1 };
     }).sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
 
     const group1Label = aircraft1List.length === 1 ? aircraft1List[0] : `Group A (${aircraft1List.length})`;
@@ -537,8 +568,6 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
     const ngUniqueAC = new Set(ngRecords.map(r => r.aircraft)).size;
     const maxUniqueAC = new Set(maxRecords.map(r => r.aircraft)).size;
 
-    // ── Component comparison ──
-    // Per component: count how many total findings AND how many unique aircraft had that component finding
     const ngCompMap: Record<string, { count: number; aircraft: Set<string> }> = {};
     ngRecords.forEach(r => {
       const c = r.component;
@@ -563,6 +592,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
       const ngAcCount = ngCompMap[comp]?.aircraft.size || 0;
       const maxAcCount = maxCompMap[comp]?.aircraft.size || 0;
       return {
+        rawComponent: comp,
         component: comp.replace(/_/g, ' '),
         ngRaw: ngCount,
         maxRaw: maxCount,
@@ -573,34 +603,28 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
       };
     });
 
-    // Build two versions: raw and normalized
     const componentComparisonForChart = componentComparisonRaw.map(c => ({
-      component: c.component,
+      ...c,
       ng: fleetNormalize ? parseFloat(c.ngAvg.toFixed(2)) : c.ngRaw,
       max: fleetNormalize ? parseFloat(c.maxAvg.toFixed(2)) : c.maxRaw,
       difference: fleetNormalize ? parseFloat((c.maxAvg - c.ngAvg).toFixed(2)) : (c.maxRaw - c.ngRaw),
-      ngRaw: c.ngRaw,
-      maxRaw: c.maxRaw,
-      ngAcCount: c.ngAcCount,
-      maxAcCount: c.maxAcCount,
-      ngAvg: c.ngAvg,
-      maxAvg: c.maxAvg,
     })).sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
 
     const problemTypeData = buildProblemTypeData(ngRecords, maxRecords);
 
-    // For summary cards - normalized using fleet-wide unique aircraft with findings
     const ngTotalNorm = ngUniqueAC > 0 ? ngRecords.length / ngUniqueAC : 0;
     const maxTotalNorm = maxUniqueAC > 0 ? maxRecords.length / maxUniqueAC : 0;
 
     return {
       ng: {
         total: ngRecords.length,
+        records: ngRecords,
         aircraftCount: ngUniqueAC,
         avgPerAircraft: ngUniqueAC > 0 ? (ngRecords.length / ngUniqueAC).toFixed(1) : '0'
       },
       max: {
         total: maxRecords.length,
+        records: maxRecords,
         aircraftCount: maxUniqueAC,
         avgPerAircraft: maxUniqueAC > 0 ? (maxRecords.length / maxUniqueAC).toFixed(1) : '0'
       },
@@ -614,8 +638,165 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
     };
   }, [records, selectedPeriodStart, selectedPeriodEnd, fleetNormalize]);
 
+  // ── Click handlers for drilldown ──
+
+  // Period mode: component chart click
+  const handlePeriodComponentClick = (componentName: string, group: 'period1' | 'period2' | 'both') => {
+    if (!periodComparisonData) return;
+    const rawComp = componentName.replace(/ /g, '_');
+    let recs: SAFARecord[] = [];
+    let title = '';
+    if (group === 'period1' || group === 'both') {
+      recs = [...recs, ...periodComparisonData.period1.records.filter(r => r.component === rawComp || r.component.replace(/_/g, ' ') === componentName)];
+    }
+    if (group === 'period2' || group === 'both') {
+      recs = [...recs, ...periodComparisonData.period2.records.filter(r => r.component === rawComp || r.component.replace(/_/g, ' ') === componentName)];
+    }
+    if (group === 'both') {
+      title = `${componentName} — Both Periods (${recs.length} records)`;
+    } else if (group === 'period1') {
+      title = `${componentName} — Period 1 (${recs.length} records)`;
+    } else {
+      title = `${componentName} — Period 2 (${recs.length} records)`;
+    }
+    openModal(title, recs);
+  };
+
+  // Period mode: problem type click
+  const handlePeriodProblemTypeClick = (problemType: string, group: 'group1' | 'group2' | 'both') => {
+    if (!periodComparisonData) return;
+    let recs: SAFARecord[] = [];
+    let title = '';
+    if (group === 'group1' || group === 'both') {
+      recs = [...recs, ...periodComparisonData.period1.records.filter(r => r.problemType === problemType)];
+    }
+    if (group === 'group2' || group === 'both') {
+      recs = [...recs, ...periodComparisonData.period2.records.filter(r => r.problemType === problemType)];
+    }
+    if (group === 'both') {
+      title = `${problemType} — Both Periods (${recs.length} records)`;
+    } else if (group === 'group1') {
+      title = `${problemType} — Period 1 (${recs.length} records)`;
+    } else {
+      title = `${problemType} — Period 2 (${recs.length} records)`;
+    }
+    openModal(title, recs);
+  };
+
+  // Aircraft mode: component click
+  const handleAircraftComponentClick = (componentName: string, group: 'group1' | 'group2' | 'both') => {
+    if (!aircraftComparisonData) return;
+    const rawComp = componentName.replace(/ /g, '_');
+    let recs: SAFARecord[] = [];
+    let title = '';
+    if (group === 'group1' || group === 'both') {
+      recs = [...recs, ...aircraftComparisonData.aircraft1.records.filter(r => r.component === rawComp || r.component.replace(/_/g, ' ') === componentName)];
+    }
+    if (group === 'group2' || group === 'both') {
+      recs = [...recs, ...aircraftComparisonData.aircraft2.records.filter(r => r.component === rawComp || r.component.replace(/_/g, ' ') === componentName)];
+    }
+    if (group === 'both') {
+      title = `${componentName} — Both Groups (${recs.length} records)`;
+    } else if (group === 'group1') {
+      title = `${componentName} — ${aircraftComparisonData.group1Label} (${recs.length} records)`;
+    } else {
+      title = `${componentName} — ${aircraftComparisonData.group2Label} (${recs.length} records)`;
+    }
+    openModal(title, recs);
+  };
+
+  // Aircraft mode: problem type click
+  const handleAircraftProblemTypeClick = (problemType: string, group: 'group1' | 'group2' | 'both') => {
+    if (!aircraftComparisonData) return;
+    let recs: SAFARecord[] = [];
+    let title = '';
+    if (group === 'group1' || group === 'both') {
+      recs = [...recs, ...aircraftComparisonData.aircraft1.records.filter(r => r.problemType === problemType)];
+    }
+    if (group === 'group2' || group === 'both') {
+      recs = [...recs, ...aircraftComparisonData.aircraft2.records.filter(r => r.problemType === problemType)];
+    }
+    if (group === 'both') {
+      title = `${problemType} — Both Groups (${recs.length} records)`;
+    } else if (group === 'group1') {
+      title = `${problemType} — ${aircraftComparisonData.group1Label} (${recs.length} records)`;
+    } else {
+      title = `${problemType} — ${aircraftComparisonData.group2Label} (${recs.length} records)`;
+    }
+    openModal(title, recs);
+  };
+
+  // Fleet mode: component click
+  const handleFleetComponentClick = (componentName: string, group: 'ng' | 'max' | 'both') => {
+    if (!fleetComparisonData) return;
+    const rawComp = componentName.replace(/ /g, '_');
+    let recs: SAFARecord[] = [];
+    let title = '';
+    if (group === 'ng' || group === 'both') {
+      recs = [...recs, ...fleetComparisonData.ng.records.filter(r => r.component === rawComp || r.component.replace(/_/g, ' ') === componentName)];
+    }
+    if (group === 'max' || group === 'both') {
+      recs = [...recs, ...fleetComparisonData.max.records.filter(r => r.component === rawComp || r.component.replace(/_/g, ' ') === componentName)];
+    }
+    if (group === 'both') {
+      title = `${componentName} — NG + MAX (${recs.length} records)`;
+    } else if (group === 'ng') {
+      title = `${componentName} — B737-NG (${recs.length} records)`;
+    } else {
+      title = `${componentName} — B737-MAX (${recs.length} records)`;
+    }
+    openModal(title, recs);
+  };
+
+  // Fleet mode: problem type click
+  const handleFleetProblemTypeClick = (problemType: string, group: 'group1' | 'group2' | 'both') => {
+    if (!fleetComparisonData) return;
+    let recs: SAFARecord[] = [];
+    let title = '';
+    if (group === 'group1' || group === 'both') {
+      recs = [...recs, ...fleetComparisonData.ng.records.filter(r => r.problemType === problemType)];
+    }
+    if (group === 'group2' || group === 'both') {
+      recs = [...recs, ...fleetComparisonData.max.records.filter(r => r.problemType === problemType)];
+    }
+    if (group === 'both') {
+      title = `${problemType} — NG + MAX (${recs.length} records)`;
+    } else if (group === 'group1') {
+      title = `${problemType} — B737-NG (${recs.length} records)`;
+    } else {
+      title = `${problemType} — B737-MAX (${recs.length} records)`;
+    }
+    openModal(title, recs);
+  };
+
+  // ── Custom bar click handler for recharts ──
+  const ClickableBar = (props: any) => {
+    const { x, y, width, height, fill, onClick } = props;
+    return (
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={fill}
+        rx={2}
+        ry={2}
+        className="cursor-pointer transition-opacity hover:opacity-80"
+        onClick={onClick}
+      />
+    );
+  };
+
   return (
     <div className="space-y-6">
+      {/* Detail Modal */}
+      <DetailModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalTitle}
+        records={modalRecords}
+      />
+
       {/* Mode Selector */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex gap-2">
@@ -742,13 +923,26 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                 </div>
               </div>
 
+              {/* Problem Type Comparison for Period mode */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-5">Problem Type Comparison</h3>
+                <ProblemTypeComparisonChart
+                  data={periodComparisonData.problemTypeData}
+                  label1="Period 1"
+                  label2="Period 2"
+                  color1="#3b82f6"
+                  color2="#8b5cf6"
+                  onClickItem={handlePeriodProblemTypeClick}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><TrendingUp className="h-5 w-5 text-red-600" /> Most Increased</h3>
                   <div className="space-y-2">
                     {periodComparisonData.increased.length > 0 ? periodComparisonData.increased.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                        <div><p className="text-sm font-semibold text-gray-900">{item.component}</p><p className="text-xs text-gray-600">{item.period1} → {item.period2}</p></div>
+                      <div key={idx} className="flex items-center justify-between p-3 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 hover:shadow-sm transition-all" onClick={() => handlePeriodComponentClick(item.component, 'both')}>
+                        <div><p className="text-sm font-semibold text-gray-900">{item.component} <span className="text-[10px] text-gray-400">🔍</span></p><p className="text-xs text-gray-600">{item.period1} → {item.period2}</p></div>
                         <div className="text-right"><p className="text-lg font-bold text-red-600">+{item.change}</p><p className="text-xs text-red-600">+{item.changePercent.toFixed(0)}%</p></div>
                       </div>
                     )) : <p className="text-sm text-gray-500 text-center py-4">No increased problems</p>}
@@ -758,8 +952,8 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><TrendingDown className="h-5 w-5 text-green-600" /> Most Decreased</h3>
                   <div className="space-y-2">
                     {periodComparisonData.decreased.length > 0 ? periodComparisonData.decreased.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                        <div><p className="text-sm font-semibold text-gray-900">{item.component}</p><p className="text-xs text-gray-600">{item.period1} → {item.period2}</p></div>
+                      <div key={idx} className="flex items-center justify-between p-3 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 hover:shadow-sm transition-all" onClick={() => handlePeriodComponentClick(item.component, 'both')}>
+                        <div><p className="text-sm font-semibold text-gray-900">{item.component} <span className="text-[10px] text-gray-400">🔍</span></p><p className="text-xs text-gray-600">{item.period1} → {item.period2}</p></div>
                         <div className="text-right"><p className="text-lg font-bold text-green-600">{item.change}</p><p className="text-xs text-green-600">{item.changePercent.toFixed(0)}%</p></div>
                       </div>
                     )) : <p className="text-sm text-gray-500 text-center py-4">No decreased problems</p>}
@@ -768,7 +962,10 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
               </div>
 
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Component Comparison</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Component Comparison</h3>
+                  <span className="text-xs text-gray-400 flex items-center gap-1">💡 Click bars to view records</span>
+                </div>
                 <div className="h-96">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={periodComparisonData.componentComparison}>
@@ -777,8 +974,14 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                       <YAxis stroke="#6b7280" style={{ fontSize: '11px' }} />
                       <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }} />
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
-                      <Bar dataKey="period1" fill="#3b82f6" name="Period 1" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="period2" fill="#8b5cf6" name="Period 2" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="period1" fill="#3b82f6" name="Period 1" radius={[2, 2, 0, 0]}
+                        onClick={(data: any) => handlePeriodComponentClick(data.component, 'period1')}
+                        className="cursor-pointer"
+                      />
+                      <Bar dataKey="period2" fill="#8b5cf6" name="Period 2" radius={[2, 2, 0, 0]}
+                        onClick={(data: any) => handlePeriodComponentClick(data.component, 'period2')}
+                        className="cursor-pointer"
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -865,11 +1068,15 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                   label2={aircraftComparisonData.group2Label}
                   color1="#3b82f6"
                   color2="#8b5cf6"
+                  onClickItem={handleAircraftProblemTypeClick}
                 />
               </div>
 
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Component Comparison</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Component Comparison</h3>
+                  <span className="text-xs text-gray-400 flex items-center gap-1">💡 Click bars to view records</span>
+                </div>
                 <div className="h-96">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={aircraftComparisonData.componentComparison}>
@@ -878,8 +1085,14 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                       <YAxis stroke="#6b7280" style={{ fontSize: '11px' }} />
                       <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }} />
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
-                      <Bar dataKey="aircraft1" fill="#3b82f6" name={aircraftComparisonData.group1Label} radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="aircraft2" fill="#8b5cf6" name={aircraftComparisonData.group2Label} radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="aircraft1" fill="#3b82f6" name={aircraftComparisonData.group1Label} radius={[2, 2, 0, 0]}
+                        onClick={(data: any) => handleAircraftComponentClick(data.component, 'group1')}
+                        className="cursor-pointer"
+                      />
+                      <Bar dataKey="aircraft2" fill="#8b5cf6" name={aircraftComparisonData.group2Label} radius={[2, 2, 0, 0]}
+                        onClick={(data: any) => handleAircraftComponentClick(data.component, 'group2')}
+                        className="cursor-pointer"
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -890,8 +1103,8 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                   <h3 className="text-lg font-bold text-gray-900 mb-4">{aircraftComparisonData.group1Label} Has More</h3>
                   <div className="space-y-2">
                     {aircraftComparisonData.higher.length > 0 ? aircraftComparisonData.higher.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                        <div><p className="text-sm font-semibold text-gray-900">{item.component}</p><p className="text-xs text-gray-600">{item.aircraft1} vs {item.aircraft2}</p></div>
+                      <div key={idx} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 hover:shadow-sm transition-all" onClick={() => handleAircraftComponentClick(item.component, 'group1')}>
+                        <div><p className="text-sm font-semibold text-gray-900">{item.component} <span className="text-[10px] text-gray-400">🔍</span></p><p className="text-xs text-gray-600">{item.aircraft1} vs {item.aircraft2}</p></div>
                         <p className="text-lg font-bold text-blue-600">+{Math.abs(item.difference)}</p>
                       </div>
                     )) : <p className="text-sm text-gray-500 text-center py-4">No differences</p>}
@@ -901,8 +1114,8 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                   <h3 className="text-lg font-bold text-gray-900 mb-4">{aircraftComparisonData.group2Label} Has More</h3>
                   <div className="space-y-2">
                     {aircraftComparisonData.lower.length > 0 ? aircraftComparisonData.lower.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                        <div><p className="text-sm font-semibold text-gray-900">{item.component}</p><p className="text-xs text-gray-600">{item.aircraft1} vs {item.aircraft2}</p></div>
+                      <div key={idx} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg cursor-pointer hover:bg-purple-100 hover:shadow-sm transition-all" onClick={() => handleAircraftComponentClick(item.component, 'group2')}>
+                        <div><p className="text-sm font-semibold text-gray-900">{item.component} <span className="text-[10px] text-gray-400">🔍</span></p><p className="text-xs text-gray-600">{item.aircraft1} vs {item.aircraft2}</p></div>
                         <p className="text-lg font-bold text-purple-600">+{Math.abs(item.difference)}</p>
                       </div>
                     )) : <p className="text-sm text-gray-500 text-center py-4">No differences</p>}
@@ -1064,6 +1277,7 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                   label2="B737-MAX"
                   color1="#3b82f6"
                   color2="#8b5cf6"
+                  onClickItem={handleFleetProblemTypeClick}
                 />
               </div>
 
@@ -1071,11 +1285,14 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-900">Component Comparison</h3>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    fleetNormalize ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {fleetNormalize ? '📊 Per-Aircraft Average' : '📊 Total Count'}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 flex items-center gap-1">💡 Click bars to view records</span>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      fleetNormalize ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {fleetNormalize ? '📊 Per-Aircraft Average' : '📊 Total Count'}
+                    </span>
+                  </div>
                 </div>
                 <div className="h-96">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1096,8 +1313,14 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                         }}
                       />
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
-                      <Bar dataKey="ng" fill="#3b82f6" name="B737-NG" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="max" fill="#8b5cf6" name="B737-MAX" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="ng" fill="#3b82f6" name="B737-NG" radius={[2, 2, 0, 0]}
+                        onClick={(data: any) => handleFleetComponentClick(data.component, 'ng')}
+                        className="cursor-pointer"
+                      />
+                      <Bar dataKey="max" fill="#8b5cf6" name="B737-MAX" radius={[2, 2, 0, 0]}
+                        onClick={(data: any) => handleFleetComponentClick(data.component, 'max')}
+                        className="cursor-pointer"
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1120,9 +1343,9 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                   <p className="text-xs text-gray-500 mb-4">{fleetNormalize ? 'Per-aircraft average basis' : 'Total count basis'}</p>
                   <div className="space-y-2">
                     {fleetComparisonData.ngHigher.length > 0 ? fleetComparisonData.ngHigher.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div key={idx} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 hover:shadow-sm transition-all" onClick={() => handleFleetComponentClick(item.component, 'ng')}>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">{item.component}</p>
+                          <p className="text-sm font-semibold text-gray-900">{item.component} <span className="text-[10px] text-gray-400">🔍</span></p>
                           {fleetNormalize ? (
                             <p className="text-xs text-gray-500">NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} findings, {item.ngAcCount} ac) — MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} findings, {item.maxAcCount} ac)</p>
                           ) : (
@@ -1139,9 +1362,9 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                   <p className="text-xs text-gray-500 mb-4">{fleetNormalize ? 'Per-aircraft average basis' : 'Total count basis'}</p>
                   <div className="space-y-2">
                     {fleetComparisonData.maxHigher.length > 0 ? fleetComparisonData.maxHigher.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                      <div key={idx} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg cursor-pointer hover:bg-purple-100 hover:shadow-sm transition-all" onClick={() => handleFleetComponentClick(item.component, 'max')}>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">{item.component}</p>
+                          <p className="text-sm font-semibold text-gray-900">{item.component} <span className="text-[10px] text-gray-400">🔍</span></p>
                           {fleetNormalize ? (
                             <p className="text-xs text-gray-500">MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} findings, {item.maxAcCount} ac) — NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} findings, {item.ngAcCount} ac)</p>
                           ) : (

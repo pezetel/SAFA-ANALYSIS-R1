@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { Plane, TrendingUp, AlertCircle, BarChart3 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-const APP_VERSION = '2.1';
+import { APP_VERSION } from '@/lib/version';
 
 export default function Home() {
   const router = useRouter();

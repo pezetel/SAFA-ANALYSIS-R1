@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.1.1] - 2025-04-01
+
+### Fixed
+- **Turkish Text Removed**: All remaining Turkish text in `PeriodComparison.tsx` has been translated to English:
+  - Problem Type Comparison info/explanation section (Count, % of Group, Badge descriptions)
+  - Per-Aircraft Normalization toggle description
+  - Per-Aircraft Average note under the Component Comparison chart
+  - Chart tooltip text
+- **Per-Aircraft Normalization Bug Fixed**: Component-level normalization now correctly divides each component's total findings by the number of aircraft that had findings for *that specific component*, not the total unique aircraft count from the period. This provides accurate per-component averages.
+- **Aircraft Counts Derived from Findings Data**: The note section and summary cards in Per-Aircraft Normalization now clearly show aircraft counts derived from actual findings data ("X aircraft with findings"), not from fleet definition constants.
+
+### Added
+- **Drilldown Detail Modal on Component Comparison**: Clicking any bar in the Component Comparison chart opens a DetailModal showing the underlying records for that component and group. Works across all three comparison modes (Period vs Period, Aircraft vs Aircraft, NG vs MAX Fleet).
+- **Drilldown Detail Modal on Problem Type Comparison**: Clicking a problem type name shows records from both groups combined. Clicking a specific group's bar shows only that group's records. Works across all three comparison modes.
+- **Drilldown on Most Increased / Decreased / Has More Cards**: Clicking any item in the summary cards (Most Increased, Most Decreased, NG Has More, MAX Has More, Group A/B Has More) opens the DetailModal with filtered records.
+- **Problem Type Comparison added to Period vs Period mode**: Previously only available in Aircraft and Fleet modes, now also shown in Period vs Period comparisons.
+- **Visual Click Indicators**: All clickable elements now show 🔍 icon and hover effects (ring highlight, background change, cursor pointer) to indicate interactivity.
+- **"Click bars to view records" hint**: Added to all Component Comparison chart headers.
+- **Tip in Problem Type explanation**: Added guidance text explaining click behavior (click name = both groups, click bar = single group).
+
+### Meta
+- Version bumped to `2.1.1`.
+
 ## [2.1.0] - 2026-04-01
 
 ### Changed
