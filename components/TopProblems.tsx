@@ -1,7 +1,7 @@
 'use client';
 
 import { SAFARecord } from '@/lib/types';
-import { AlertTriangle, TrendingUp, Package, ChevronRight } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Package, ChevronRight, Tag } from 'lucide-react';
 import { useState } from 'react';
 import { DetailModal } from './DetailModal';
 
@@ -26,16 +26,21 @@ export function TopProblems({ records }: TopProblemsProps) {
 
   const maxCount = topComponents[0]?.[1] || 1;
 
-  // Calculate chronic issues (appearing in multiple aircraft)
-  const componentAircraft = records.reduce((acc, record) => {
+  // Classify all findings by problem type per component
+  const componentBreakdown = records.reduce((acc, record) => {
     if (record.component) {
       if (!acc[record.component]) {
-        acc[record.component] = new Set();
+        acc[record.component] = {};
       }
-      acc[record.component].add(record.aircraft);
+      acc[record.component][record.problemType] = (acc[record.component][record.problemType] || 0) + 1;
     }
     return acc;
-  }, {} as Record<string, Set<string>>);
+  }, {} as Record<string, Record<string, number>>);
+
+  // Calculate chronic issues — 5+ total findings for the same component
+  const isChronic = (component: string): boolean => {
+    return (componentCounts[component] || 0) >= 5;
+  };
 
   const handleComponentClick = (component: string) => {
     const filtered = records.filter(r => r.component === component);
@@ -43,19 +48,33 @@ export function TopProblems({ records }: TopProblemsProps) {
     setSelectedComponent(component);
   };
 
+  const PROBLEM_TYPE_COLORS: Record<string, string> = {
+    MISSING: 'bg-red-100 text-red-700',
+    DAMAGED: 'bg-orange-100 text-orange-700',
+    DENT: 'bg-amber-100 text-amber-700',
+    LOOSE: 'bg-yellow-100 text-yellow-700',
+    INOPERATIVE: 'bg-purple-100 text-purple-700',
+    CLEANLINESS: 'bg-cyan-100 text-cyan-700',
+    LOW_LEVEL: 'bg-teal-100 text-teal-700',
+    ADJUSTMENT: 'bg-green-100 text-green-700',
+    PAINT_DAMAGE: 'bg-pink-100 text-pink-700',
+    OTHER: 'bg-gray-100 text-gray-700',
+  };
+
   return (
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="mb-4">
           <h2 className="text-base font-bold text-gray-900">Most Frequent Problems</h2>
-          <p className="text-xs text-gray-600 mt-1">Top 10 problems by component (Click to view details)</p>
+          <p className="text-xs text-gray-600 mt-1">Top 10 problems by component with finding type breakdown (Click to view details)</p>
         </div>
 
         <div className="space-y-3">
           {topComponents.map(([component, count], index) => {
             const percentage = (count / records.length) * 100;
-            const aircraftCount = componentAircraft[component]?.size || 0;
-            const isChronic = aircraftCount > 5;
+            const chronic = isChronic(component);
+            const breakdown = componentBreakdown[component] || {};
+            const sortedTypes = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
 
             return (
               <button
@@ -73,7 +92,7 @@ export function TopProblems({ records }: TopProblemsProps) {
                         <span className="font-semibold text-sm text-gray-900">
                           {component}
                         </span>
-                        {isChronic && (
+                        {chronic && (
                           <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
                             <AlertTriangle className="h-2.5 w-2.5" />
                             Chronic
@@ -86,8 +105,8 @@ export function TopProblems({ records }: TopProblemsProps) {
                           {count} findings
                         </span>
                         <span className="flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3" />
-                          {aircraftCount} aircraft
+                          <Tag className="h-3 w-3" />
+                          {sortedTypes.length} type{sortedTypes.length !== 1 ? 's' : ''}
                         </span>
                       </div>
                     </div>
@@ -100,10 +119,23 @@ export function TopProblems({ records }: TopProblemsProps) {
                     <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                   </div>
                 </div>
+
+                {/* Problem type breakdown tags */}
+                <div className="flex flex-wrap gap-1 ml-9">
+                  {sortedTypes.map(([type, typeCount]) => (
+                    <span
+                      key={type}
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${PROBLEM_TYPE_COLORS[type] || PROBLEM_TYPE_COLORS.OTHER}`}
+                    >
+                      {type} <span className="font-bold">{typeCount}</span>
+                    </span>
+                  ))}
+                </div>
+
                 <div className="relative h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className={`absolute left-0 top-0 h-full rounded-full transition-all ${
-                      isChronic ? 'bg-red-500' : 'bg-blue-500'
+                      chronic ? 'bg-red-500' : 'bg-blue-500'
                     }`}
                     style={{ width: `${(count / maxCount) * 100}%` }}
                   />
@@ -116,7 +148,7 @@ export function TopProblems({ records }: TopProblemsProps) {
         <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 text-gray-600">
             <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
-            <span>Chronic Problem: Issues found in 5+ different aircraft</span>
+            <span>Chronic Problem: Components with 5 or more total findings</span>
           </div>
         </div>
       </div>

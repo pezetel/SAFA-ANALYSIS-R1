@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.1.0] - 2026-04-01
+
+### Changed
+- **Chronic Problem Reclassification**: Chronic label is no longer based on aircraft count. A component is now marked as "Chronic" when it has **5 or more total findings** regardless of how many aircraft are affected.
+- **Finding Type Breakdown**: Each component in the "Most Frequent Problems" list now shows a full breakdown of its finding types (e.g., MISSING 12, DAMAGED 8, LOOSE 3) as color-coded tags.
+- Removed aircraft count metric from the Top Problems list; replaced with finding type count.
+- Updated chronic definition footer text: "Components with 5 or more total findings".
+- Version bumped to `2.1`.
+- Version displayed on home page header badge and footer.
+
 ## [4.0.0] - 2025-01-20
 
 ### Changed
