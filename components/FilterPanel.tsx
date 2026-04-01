@@ -65,7 +65,6 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
       ];
     }
 
-    // Ucak tipi filtresini uygula
     let aircraftToFilter = [...selectedAircraft];
     if (selectedAircraftTypes.length > 0) {
       const typeAircraft = selectedAircraftTypes.flatMap(type => AIRCRAFT_TYPES[type as keyof typeof AIRCRAFT_TYPES] || []);
@@ -127,7 +126,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
       >
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-600" />
-          <span className="text-sm font-semibold text-gray-900">Filtreler</span>
+          <span className="text-sm font-semibold text-gray-900">Filters</span>
           {activeFiltersCount > 0 && (
             <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
               {activeFiltersCount}
@@ -143,7 +142,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
               }}
               className="px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
             >
-              Temizle
+              Clear
             </button>
           )}
           <X className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-45' : ''}`} />
@@ -155,7 +154,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
           {/* Aircraft Type Filter */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">
-              Ucak Tipi ({selectedAircraftTypes.length}/2)
+              Aircraft Type ({selectedAircraftTypes.length}/2)
             </label>
             <div className="flex gap-2">
               <label className="flex items-center gap-1.5 p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer flex-1">
@@ -196,7 +195,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
             {/* Aircraft with Search */}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Ucak ({selectedAircraft.length}/{aircraft.length})
+                Aircraft ({selectedAircraft.length}/{aircraft.length})
               </label>
               <div className="border border-gray-300 rounded-lg">
                 <div className="p-1.5 border-b border-gray-200">
@@ -204,7 +203,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
                     <Search className="absolute left-2 top-1.5 h-3 w-3 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Ara..."
+                      placeholder="Search..."
                       value={aircraftSearch}
                       onChange={(e) => setAircraftSearch(e.target.value)}
                       className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
@@ -232,7 +231,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
                       </label>
                     ))
                   ) : (
-                    <p className="text-xs text-gray-400 text-center py-1">Sonuc yok</p>
+                    <p className="text-xs text-gray-400 text-center py-1">No results</p>
                   )}
                 </div>
               </div>
@@ -249,7 +248,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
                     <Search className="absolute left-2 top-1.5 h-3 w-3 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Ara..."
+                      placeholder="Search..."
                       value={ataSearch}
                       onChange={(e) => setATASearch(e.target.value)}
                       className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
@@ -277,7 +276,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
                       </label>
                     ))
                   ) : (
-                    <p className="text-xs text-gray-400 text-center py-1">Sonuc yok</p>
+                    <p className="text-xs text-gray-400 text-center py-1">No results</p>
                   )}
                 </div>
               </div>
@@ -286,7 +285,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
             {/* Problem Type */}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Problem Tipi ({selectedProblemTypes.length}/{problemTypes.length})
+                Problem Type ({selectedProblemTypes.length}/{problemTypes.length})
               </label>
               <div className="border border-gray-300 rounded-lg p-1.5 max-h-32 overflow-y-auto">
                 {problemTypes.map(type => (
@@ -313,7 +312,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
             {/* Component with Search */}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Komponent ({selectedComponents.length}/{components.length})
+                Component ({selectedComponents.length}/{components.length})
               </label>
               <div className="border border-gray-300 rounded-lg">
                 <div className="p-1.5 border-b border-gray-200">
@@ -321,7 +320,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
                     <Search className="absolute left-2 top-1.5 h-3 w-3 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Ara..."
+                      placeholder="Search..."
                       value={componentSearch}
                       onChange={(e) => setComponentSearch(e.target.value)}
                       className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
@@ -349,7 +348,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
                       </label>
                     ))
                   ) : (
-                    <p className="text-xs text-gray-400 text-center py-1">Sonuc yok</p>
+                    <p className="text-xs text-gray-400 text-center py-1">No results</p>
                   )}
                 </div>
               </div>
@@ -359,7 +358,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
           {/* Date Range at bottom */}
           <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Baslangic Tarihi</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Start Date</label>
               <input
                 type="date"
                 value={startDate}
@@ -369,7 +368,7 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Bitis Tarihi</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">End Date</label>
               <input
                 type="date"
                 value={endDate}

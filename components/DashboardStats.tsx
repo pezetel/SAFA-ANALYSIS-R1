@@ -19,29 +19,29 @@ export function DashboardStats({ records }: DashboardStatsProps) {
 
   const stats = [
     {
-      label: 'Toplam Kayıt',
-      value: records.length.toLocaleString('tr-TR'),
+      label: 'Total Records',
+      value: records.length.toLocaleString('en-US'),
       icon: FileText,
       color: 'bg-blue-500',
       bgColor: 'bg-blue-50',
     },
     {
-      label: 'Uçak Sayısı',
-      value: uniqueAircraft.toLocaleString('tr-TR'),
+      label: 'Aircraft Count',
+      value: uniqueAircraft.toLocaleString('en-US'),
       icon: Plane,
       color: 'bg-green-500',
       bgColor: 'bg-green-50',
     },
     {
-      label: 'ATA Kodu',
-      value: uniqueATA.toLocaleString('tr-TR'),
+      label: 'ATA Codes',
+      value: uniqueATA.toLocaleString('en-US'),
       icon: AlertCircle,
       color: 'bg-orange-500',
       bgColor: 'bg-orange-50',
     },
     {
-      label: 'Analiz Dönemi',
-      value: `${daysDiff} gün`,
+      label: 'Analysis Period',
+      value: `${daysDiff} days`,
       icon: Calendar,
       color: 'bg-purple-500',
       bgColor: 'bg-purple-50',

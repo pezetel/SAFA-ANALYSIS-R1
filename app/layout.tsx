@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SAFA Trend Analiz Platformu",
-  description: "Uçak SAFA bulgularının kapsamlı trend analizi ve raporlama sistemi",
+  title: "SAFA Trend Analysis Platform",
+  description: "Comprehensive trend analysis and reporting system for aircraft SAFA findings",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr">
+    <html lang="en">
       <body className={inter.className}>{children}</body>
     </html>
   );

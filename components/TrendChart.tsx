@@ -3,7 +3,7 @@
 import { SAFARecord } from '@/lib/types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO, startOfMonth } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
 interface TrendChartProps {
   records: SAFARecord[];
@@ -23,7 +23,7 @@ export function TrendChart({ records }: TrendChartProps) {
   const values = sortedMonths.map(month => monthlyData[month]);
 
   const chartData = sortedMonths.map((month) => ({
-    month: format(parseISO(month + '-01'), 'MMM yyyy', { locale: tr }),
+    month: format(parseISO(month + '-01'), 'MMM yyyy', { locale: enUS }),
     count: monthlyData[month],
   }));
 
@@ -32,8 +32,8 @@ export function TrendChart({ records }: TrendChartProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <div className="mb-4">
-        <h2 className="text-base font-bold text-gray-900">Zaman Serisi Analizi</h2>
-        <p className="text-xs text-gray-600 mt-0.5">Aylik bulgu sayilari</p>
+        <h2 className="text-base font-bold text-gray-900">Time Series Analysis</h2>
+        <p className="text-xs text-gray-600 mt-0.5">Monthly finding counts</p>
       </div>
 
       <div className="h-72">
@@ -77,7 +77,7 @@ export function TrendChart({ records }: TrendChartProps) {
               stroke="#3b82f6" 
               strokeWidth={3}
               fill="url(#colorCount)"
-              name="Bulgu Sayisi"
+              name="Finding Count"
               dot={{ fill: '#3b82f6', r: 4, strokeWidth: 2, stroke: '#fff' }}
               activeDot={{ r: 6, strokeWidth: 2 }}
             />
@@ -87,25 +87,25 @@ export function TrendChart({ records }: TrendChartProps) {
 
       <div className="mt-4 grid grid-cols-4 gap-3 pt-3 border-t border-gray-200">
         <div className="text-center p-2 bg-blue-50 rounded-lg">
-          <p className="text-xs text-blue-700 font-medium">Ortalama/Ay</p>
+          <p className="text-xs text-blue-700 font-medium">Average/Month</p>
           <p className="text-lg font-bold text-blue-900">
             {n > 0 ? (values.reduce((a, b) => a + b, 0) / n).toFixed(0) : 0}
           </p>
         </div>
         <div className="text-center p-2 bg-red-50 rounded-lg">
-          <p className="text-xs text-red-700 font-medium">En Yuksek</p>
+          <p className="text-xs text-red-700 font-medium">Highest</p>
           <p className="text-lg font-bold text-red-900">
             {n > 0 ? Math.max(...values) : 0}
           </p>
         </div>
         <div className="text-center p-2 bg-green-50 rounded-lg">
-          <p className="text-xs text-green-700 font-medium">En Dusuk</p>
+          <p className="text-xs text-green-700 font-medium">Lowest</p>
           <p className="text-lg font-bold text-green-900">
             {n > 0 ? Math.min(...values) : 0}
           </p>
         </div>
         <div className="text-center p-2 bg-purple-50 rounded-lg">
-          <p className="text-xs text-purple-700 font-medium">Standart Sapma</p>
+          <p className="text-xs text-purple-700 font-medium">Std. Deviation</p>
           <p className="text-lg font-bold text-purple-900">
             {(() => {
               if (n === 0) return '0';

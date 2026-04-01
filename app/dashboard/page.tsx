@@ -36,7 +36,7 @@ export default function Dashboard() {
       const savedData = localStorage.getItem('safaData');
       
       if (!savedData) {
-        setError('Henuz veri yuklenmedi');
+        setError('No data loaded yet');
         setLoading(false);
         return;
       }
@@ -113,7 +113,7 @@ export default function Dashboard() {
       setFilteredData(processedRecords);
     } catch (error) {
       console.error('Error loading data:', error);
-      setError('Veri yuklenirken hata olustu');
+      setError('An error occurred while loading data');
     } finally {
       setLoading(false);
     }
@@ -158,7 +158,7 @@ export default function Dashboard() {
       ['W/O Number', 'Date', 'ATA', 'Aircraft', 'Problem Type', 'Component', 'Clean Description'],
       ...filteredData.map(r => [
         r.woNumber,
-        new Date(r.date).toLocaleDateString('tr-TR'),
+        new Date(r.date).toLocaleDateString('en-US'),
         r.ata,
         r.aircraft,
         r.problemType,
@@ -190,7 +190,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Veriler yukleniyor...</p>
+          <p className="text-gray-600">Loading data...</p>
         </div>
       </div>
     );
@@ -202,16 +202,16 @@ export default function Dashboard() {
         <div className="text-center max-w-md mx-auto p-8">
           <div className="bg-white rounded-lg shadow-lg p-8">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Henuz veri yuklenmedi</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">No Data Loaded Yet</h2>
             <p className="text-gray-600 mb-6">
-              {error || 'Dashboardu goruntlemek icin once bir Excel dosyasi yuklemeniz gerekmektedir.'}
+              {error || 'You need to upload an Excel file first to view the dashboard.'}
             </p>
             <Link 
               href="/" 
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
-              Ana sayfaya don ve dosya yukle
+              Go to home page and upload a file
             </Link>
           </div>
         </div>
@@ -229,8 +229,8 @@ export default function Dashboard() {
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Analiz Dashboard</h1>
-                <p className="text-sm text-gray-600">Toplam {data.records.length} kayit analiz edildi</p>
+                <h1 className="text-xl font-bold text-gray-900">Analysis Dashboard</h1>
+                <p className="text-sm text-gray-600">Total {data.records.length} records analyzed</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -246,7 +246,7 @@ export default function Dashboard() {
                 className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 <RefreshCw className="h-4 w-4" />
-                Yenile
+                Refresh
               </button>
             </div>
           </div>
@@ -260,7 +260,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Genel Bakis
+              Overview
             </button>
             <button
               onClick={() => setActiveTab('trends')}
@@ -270,7 +270,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Trend Analizi
+              Trend Analysis
             </button>
             <button
               onClick={() => setActiveTab('period')}
@@ -280,7 +280,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Donem Analizi
+              Period Analysis
             </button>
             <button
               onClick={() => setActiveTab('details')}
@@ -290,7 +290,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Detayli Veriler
+              Detailed Data
             </button>
           </div>
         </div>

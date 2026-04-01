@@ -11,7 +11,7 @@ const COLUMN_ALIASES = {
 
 export function processExcelData(rawData: any[]): SAFARecord[] {
   if (!rawData || rawData.length === 0) {
-    throw new Error('Excel dosyasi bos veya gecersiz');
+    throw new Error('Excel file is empty or invalid');
   }
 
   const normalizedData = rawData.map(row => {
@@ -36,10 +36,10 @@ export function processExcelData(rawData: any[]): SAFARecord[] {
   });
 
   if (!columnMap.date) {
-    throw new Error('Tarih kolonu bulunamadi (W/O Date)');
+    throw new Error('Date column not found (W/O Date)');
   }
   if (!columnMap.description) {
-    throw new Error('Aciklama kolonu bulunamadi (Description)');
+    throw new Error('Description column not found (Description)');
   }
 
   const records: SAFARecord[] = [];
@@ -85,7 +85,7 @@ export function processExcelData(rawData: any[]): SAFARecord[] {
   });
 
   if (records.length === 0) {
-    throw new Error('Islenebilir veri bulunamadi');
+    throw new Error('No processable data found');
   }
 
   return records;
@@ -169,7 +169,6 @@ function cleanDesc(text: string): string {
 function extractProblemType(description: string): string {
   const text = description.toUpperCase();
 
-  // Önce DENT kontrolü yap
   if (text.includes('DENT')) {
     return 'DENT';
   }
@@ -196,7 +195,6 @@ function extractProblemType(description: string): string {
 function extractComponent(description: string): string {
   const text = description.toUpperCase();
 
-  // Oncelikli kontroller - diger komponentlerden once
   if (text.includes('JUMPER')) {
     return 'BONDING';
   }
@@ -205,7 +203,6 @@ function extractComponent(description: string): string {
     return 'LANYARD_RING';
   }
 
-  // HORIZONTAL STABILIZER kontrolü
   if (text.includes('HORIZONTAL STAB')) {
     return 'HORIZONTAL_STABILIZER';
   }
@@ -251,7 +248,6 @@ function extractComponent(description: string): string {
 
   for (const { keywords, component } of components) {
     if (keywords.some(keyword => {
-      // Kelime sınırı kontrolü için regex kullan
       if (keyword === '\\bLIGHT\\b') {
         return /\bLIGHT\b/.test(text);
       }

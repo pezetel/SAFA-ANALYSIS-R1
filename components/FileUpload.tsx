@@ -29,28 +29,25 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
     setDataReady(false);
 
     try {
-      // Read Excel file on client-side
       const bytes = await file.arrayBuffer();
       const workbook = XLSX.read(bytes, { type: 'array' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const rawData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
 
-      // Process data on client-side
       const processedData = processExcelData(rawData);
 
-      // Save to localStorage
       localStorage.setItem('safaData', JSON.stringify(processedData));
       localStorage.setItem('safaDataTimestamp', new Date().toISOString());
 
       setStatus('success');
       setRecordCount(processedData.length);
-      setMessage(`${processedData.length} kayıt başarıyla yüklendi ve işlendi`);
+      setMessage(`${processedData.length} records successfully loaded and processed`);
       setDataReady(true);
     } catch (error: any) {
       console.error('Upload error:', error);
       setStatus('error');
-      setMessage(error.message || 'Dosya işlenirken hata oluştu. Lütfen Excel formatını kontrol edin.');
+      setMessage(error.message || 'An error occurred while processing the file. Please check the Excel format.');
       setDataReady(false);
     } finally {
       setUploading(false);
@@ -85,7 +82,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
       }
     } else {
       setStatus('error');
-      setMessage('Lütfen geçerli bir Excel dosyası (.xlsx veya .xls) yükleyin');
+      setMessage('Please upload a valid Excel file (.xlsx or .xls)');
     }
   };
 
@@ -126,10 +123,10 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
 
           <div>
             <p className="text-base font-semibold text-gray-900 mb-1">
-              {uploading ? 'Dosya işleniyor...' : 'Excel dosyasını sürükleyin veya tıklayın'}
+              {uploading ? 'Processing file...' : 'Drag and drop your Excel file or click here'}
             </p>
             <p className="text-sm text-gray-500">
-              {fileName || 'XLSX veya XLS formatında olmalıdır'}
+              {fileName || 'Must be in XLSX or XLS format'}
             </p>
           </div>
 
@@ -139,7 +136,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
               className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
             >
               <Upload className="h-4 w-4" />
-              Dosya Seç
+              Select File
             </button>
           )}
         </div>
@@ -149,7 +146,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
         <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
           <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-green-900">Başarılı!</p>
+            <p className="text-sm font-medium text-green-900">Success!</p>
             <p className="text-sm text-green-700">{message}</p>
           </div>
         </div>
@@ -159,7 +156,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
         <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
           <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
           <div>
-            <p className="text-sm font-medium text-red-900">Hata!</p>
+            <p className="text-sm font-medium text-red-900">Error!</p>
             <p className="text-sm text-red-700">{message}</p>
           </div>
         </div>
@@ -174,7 +171,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            Analizi Başlat ({recordCount} kayıt)
+            Start Analysis ({recordCount} records)
           </button>
         </div>
       )}

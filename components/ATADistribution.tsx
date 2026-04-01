@@ -58,8 +58,8 @@ export function ATADistribution({ records }: ATADistributionProps) {
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">ATA Chapter Dağılımı</h2>
-          <p className="text-sm text-gray-600 mt-1">Top 8 sistem kategorisi (Tıklayarak detayları görün)</p>
+          <h2 className="text-lg font-bold text-gray-900">ATA Chapter Distribution</h2>
+          <p className="text-sm text-gray-600 mt-1">Top 8 system categories (Click to view details)</p>
         </div>
 
         <div className="h-80">
@@ -113,7 +113,7 @@ export function ATADistribution({ records }: ATADistributionProps) {
                 <span className="font-medium text-gray-700 group-hover:text-blue-600">{item.name}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-gray-600">{item.value} bulgu</span>
+                <span className="text-gray-600">{item.value} findings</span>
                 <span className="font-semibold text-gray-900">{item.percentage}%</span>
               </div>
             </button>
@@ -125,7 +125,7 @@ export function ATADistribution({ records }: ATADistributionProps) {
         <DetailModal
           isOpen={!!selectedATA}
           onClose={() => setSelectedATA(null)}
-          title={`ATA ${selectedATA} - Detaylı Bulgular`}
+          title={`ATA ${selectedATA} - Detailed Findings`}
           records={modalRecords}
         />
       )}
