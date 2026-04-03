@@ -100,7 +100,7 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
               <p className="text-sm font-bold text-blue-900">{eodRecords.length.toLocaleString()}</p>
             </div>
             <div className="text-center px-3 py-1 bg-amber-50 rounded-lg">
-              <p className="text-xs text-amber-600 font-medium">Avg Rate</p>
+              <p className="text-xs text-amber-600 font-medium">Overall Avg Rate</p>
               <p className="text-sm font-bold text-amber-900">{overallAvgRate.toFixed(2)}</p>
             </div>
             {latestMonth && latestMonth.eods > 0 && (
@@ -128,7 +128,10 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
                 <p className="font-semibold mb-1">How does it work?</p>
                 <p><strong>Finding Rate</strong> = Number of Findings / Number of EOD Applications per month.</p>
                 <p><strong>🟢 Normal:</strong> Rate ≤ Average | <strong>🟡 Watch:</strong> Average &lt; Rate ≤ 1.5× Average | <strong>🔴 Alert:</strong> Rate &gt; 1.5× Average</p>
-                <p className="mt-1">Aircraft rates are calculated per-aircraft per-month. Component and ATA rates use total monthly EODs as denominator.</p>
+                <p className="mt-1"><strong>Aircraft:</strong> Each aircraft's rate is compared to that month's fleet-wide average (total findings ÷ total EODs).</p>
+                <p><strong>Component:</strong> Each component's rate is compared to its own average across all active months.</p>
+                <p><strong>ATA:</strong> Each ATA chapter's rate is compared to its own average across all active months.</p>
+                <p className="mt-1 text-blue-600">Months with no EOD data are excluded from average calculations (not counted as zero).</p>
               </div>
             </div>
           </div>
