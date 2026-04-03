@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardStats } from '@/components/DashboardStats';
 import { TrendChart } from '@/components/TrendChart';
 import { ComponentHeatmap } from '@/components/ComponentHeatmap';
@@ -14,10 +14,10 @@ import { DataTable } from '@/components/DataTable';
 import { PeriodComparison } from '@/components/PeriodComparison';
 import { EODAlertPanel } from '@/components/EODAlertPanel';
 import { SAFARecord, EODRecord, AnalysisResult } from '@/lib/types';
-import { ArrowLeft, Download, RefreshCw, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { exportFullReport } from '@/lib/excelExporter';
 
 export default function Dashboard() {
   const [data, setData] = useState<AnalysisResult | null>(null);
@@ -182,7 +182,7 @@ export default function Dashboard() {
     setFilteredEodRecords(filteredEOD);
   };
 
-  const exportToExcel = () => {
+  const exportRawExcel = () => {
     if (!filteredData.length) return;
 
     const worksheetData = [
@@ -214,6 +214,14 @@ export default function Dashboard() {
     worksheet['!cols'] = colWidths;
 
     XLSX.writeFile(workbook, `safa-analysis-${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleExportFullReport = () => {
+    if (!filteredData.length) return;
+    exportFullReport({
+      findings: filteredData,
+      eodRecords: filteredEodRecords.length > 0 ? filteredEodRecords : undefined,
+    });
   };
 
   const hasEOD = allEodRecords.length > 0;
@@ -275,11 +283,19 @@ export default function Dashboard() {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={exportToExcel}
+                onClick={handleExportFullReport}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                title="Export all heatmaps, alerts and data as multi-sheet Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Full Report
+              </button>
+              <button
+                onClick={exportRawExcel}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Download className="h-4 w-4" />
-                Export Excel
+                Raw Data
               </button>
               <button
                 onClick={loadData}
