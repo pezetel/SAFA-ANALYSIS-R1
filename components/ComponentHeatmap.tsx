@@ -256,12 +256,12 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
 
         <div className="overflow-x-auto">
           <div className="inline-block min-w-full">
-            <table className="border-collapse">
+            <table className="border-collapse w-full">
               <thead>
                 <tr>
-                  <th className="w-40 text-left align-top h-16"></th>
+                  <th className="text-left align-top h-16 whitespace-nowrap"></th>
                   {heatmapData.months.map((month) => (
-                    <th key={month} className="w-16 h-16 align-bottom p-0">
+                    <th key={month} className="h-16 align-bottom p-0">
                       <div className="flex items-end justify-center h-full pb-1">
                         <div className="transform -rotate-45 origin-bottom-left text-xs font-medium text-gray-600 whitespace-nowrap">
                           {format(parseISO(month + '-01'), 'MMM yy', { locale: enUS })}
@@ -270,13 +270,13 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
                     </th>
                   ))}
                   {viewMode === 'rate' && hasEOD && (
-                    <th className="w-16 h-16 align-bottom p-0">
+                    <th className="h-16 align-bottom p-0">
                       <div className="flex items-end justify-center h-full pb-1">
                         <span className="text-xs font-semibold text-amber-700">Avg Rate</span>
                       </div>
                     </th>
                   )}
-                  <th className="w-16 h-16 align-bottom p-0">
+                  <th className="h-16 align-bottom p-0">
                     <div className="flex items-end justify-center h-full pb-1">
                       <span className="text-xs font-semibold text-gray-700">Total</span>
                     </div>
@@ -292,7 +292,7 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
                   const compAvg = avgRatePerComponent[component] || 0;
                   return (
                     <tr key={component}>
-                      <td className="w-40 pr-2 py-1 text-xs font-medium text-gray-700 align-middle">
+                      <td className="pr-2 py-1 text-xs whitespace-nowrap font-medium text-gray-700 align-middle">
                         {formatComponentName(component)}
                       </td>
                       {heatmapData.months.map((month) => {
