@@ -352,17 +352,6 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
             {n > 0 ? Math.min(...values) : 0}
           </p>
         </div>
-        <div className="text-center p-2 bg-purple-50 rounded-lg">
-          <p className="text-xs text-purple-700 font-medium">Std. Deviation</p>
-          <p className="text-lg font-bold text-purple-900">
-            {(() => {
-              if (n === 0) return '0';
-              const avg = values.reduce((a, b) => a + b, 0) / values.length;
-              const variance = values.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / values.length;
-              return Math.sqrt(variance).toFixed(1);
-            })()}
-          </p>
-        </div>
         {hasEOD && (
           <div className="text-center p-2 bg-amber-50 rounded-lg">
             <p className="text-xs text-amber-700 font-medium">Avg Rate (F/EOD)</p>
