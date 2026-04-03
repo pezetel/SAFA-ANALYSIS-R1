@@ -166,7 +166,6 @@ export function generateAlerts(
   minEODThreshold: number = 1
 ): AlertItem[] {
   const alerts: AlertItem[] = [];
-  const eodMonthly = getEODMonthlyData(eodRecords);
 
   // Build total EOD per month (shared by component & ATA)
   const totalEODPerMonth: Record<string, number> = {};
@@ -175,9 +174,18 @@ export function generateAlerts(
     totalEODPerMonth[month] = (totalEODPerMonth[month] || 0) + 1;
   });
 
+  // All months that appear in findings (defines the heatmap month range)
+  const findingMonths = Array.from(new Set(
+    findings.map(f => format(startOfMonth(new Date(f.date)), 'yyyy-MM'))
+  )).sort();
+
+  // ══════════════════════════════════════════════════════════════
   // ── Aircraft Alerts ──
-  // Uses per-aircraft per-month EOD as denominator (same as AircraftHeatmap)
-  // Average: fleet-wide monthly avg = total findings / total EODs per month
+  // Rate: aircraft findings / aircraft EODs per month
+  //   (same as AircraftHeatmap rateData)
+  // Avg baseline: fleet-wide monthly avg = totalFindings / totalEODs that month
+  //   (same as AircraftHeatmap monthlyAvgRate)
+  // ══════════════════════════════════════════════════════════════
   const aircraftMonthFindings: Record<string, Record<string, number>> = {};
   findings.forEach(f => {
     const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
@@ -192,19 +200,16 @@ export function generateAlerts(
     aircraftMonthEOD[e.aircraft][month] = (aircraftMonthEOD[e.aircraft][month] || 0) + 1;
   });
 
-  // Fleet-wide monthly average rate (matching AircraftHeatmap logic)
+  // Total findings per month (fleet-wide)
   const totalFindingsPerMonth: Record<string, number> = {};
   findings.forEach(f => {
     const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
     totalFindingsPerMonth[month] = (totalFindingsPerMonth[month] || 0) + 1;
   });
 
+  // Fleet-wide monthly average rate (matching AircraftHeatmap monthlyAvgRate)
   const monthlyFleetAvgRate: Record<string, number> = {};
-  const allMonthKeys = Array.from(new Set([
-    ...Object.keys(totalFindingsPerMonth),
-    ...Object.keys(totalEODPerMonth),
-  ]));
-  allMonthKeys.forEach(month => {
+  findingMonths.forEach(month => {
     const tf = totalFindingsPerMonth[month] || 0;
     const te = totalEODPerMonth[month] || 0;
     monthlyFleetAvgRate[month] = te > 0 ? tf / te : 0;
@@ -234,9 +239,15 @@ export function generateAlerts(
     });
   });
 
+  // ══════════════════════════════════════════════════════════════
   // ── Component Alerts ──
-  // Uses total EOD per month as denominator (same as ComponentHeatmap)
-  // Average: per-component own average across months where rate >= 0
+  // Rate: component findings / total EODs that month
+  //   (same as ComponentHeatmap rateData)
+  // Avg baseline: per-component own average across ALL months where rate >= 0
+  //   i.e. iterate all findingMonths, if EOD exists that month → rate = findings/eods
+  //   (even if findings=0 for that component, rate=0 is included in avg)
+  //   (same as ComponentHeatmap avgRatePerComponent)
+  // ══════════════════════════════════════════════════════════════
   const componentMonthFindings: Record<string, Record<string, number>> = {};
   findings.forEach(f => {
     const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
@@ -244,14 +255,17 @@ export function generateAlerts(
     componentMonthFindings[f.component][month] = (componentMonthFindings[f.component][month] || 0) + 1;
   });
 
-  // Calculate per-component average rate (only months with EOD data)
+  // Per-component average rate matching ComponentHeatmap:
+  // Iterate ALL findingMonths → for each month if eod > 0: rate = compFindings/eod (could be 0)
+  // Average of all those rates (rate >= 0)
   const componentAvgRates: Record<string, number> = {};
   Object.keys(componentMonthFindings).forEach(comp => {
     const rates: number[] = [];
-    Object.keys(componentMonthFindings[comp]).forEach(month => {
+    findingMonths.forEach(month => {
       const eodCount = totalEODPerMonth[month] || 0;
       if (eodCount > 0) {
-        rates.push(componentMonthFindings[comp][month] / eodCount);
+        const compFindings = componentMonthFindings[comp]?.[month] || 0;
+        rates.push(compFindings / eodCount);
       }
     });
     componentAvgRates[comp] = rates.length > 0
@@ -283,9 +297,15 @@ export function generateAlerts(
     });
   });
 
+  // ══════════════════════════════════════════════════════════════
   // ── ATA Alerts ──
-  // Uses total EOD per month as denominator (same as ATAHeatmap)
-  // Average: per-ATA own average across months where rate >= 0
+  // Rate: ATA findings / total EODs that month
+  //   (same as ATAHeatmap rateData)
+  // Avg baseline: per-ATA own average across ALL months where rate >= 0
+  //   i.e. iterate all findingMonths, if EOD exists that month → rate = ataFindings/eod
+  //   (even if findings=0 for that ATA, rate=0 is included in avg)
+  //   (same as ATAHeatmap avgRatePerATA)
+  // ══════════════════════════════════════════════════════════════
   const ataMonthFindings: Record<string, Record<string, number>> = {};
   findings.forEach(f => {
     const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
@@ -294,14 +314,16 @@ export function generateAlerts(
     ataMonthFindings[ata2][month] = (ataMonthFindings[ata2][month] || 0) + 1;
   });
 
-  // Calculate per-ATA average rate (only months with EOD data)
+  // Per-ATA average rate matching ATAHeatmap:
+  // Same logic as component — iterate all findingMonths, include rate=0 if EOD exists
   const ataAvgRates: Record<string, number> = {};
   Object.keys(ataMonthFindings).forEach(ata => {
     const rates: number[] = [];
-    Object.keys(ataMonthFindings[ata]).forEach(month => {
+    findingMonths.forEach(month => {
       const eodCount = totalEODPerMonth[month] || 0;
       if (eodCount > 0) {
-        rates.push(ataMonthFindings[ata][month] / eodCount);
+        const ataFindings = ataMonthFindings[ata]?.[month] || 0;
+        rates.push(ataFindings / eodCount);
       }
     });
     ataAvgRates[ata] = rates.length > 0
