@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DashboardStats } from '@/components/DashboardStats';
 import { TrendChart } from '@/components/TrendChart';
 import { ComponentHeatmap } from '@/components/ComponentHeatmap';
@@ -17,11 +17,13 @@ import { SAFARecord, EODRecord, AnalysisResult } from '@/lib/types';
 import { ArrowLeft, Download, RefreshCw, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 export default function Dashboard() {
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [filteredData, setFilteredData] = useState<SAFARecord[]>([]);
-  const [eodRecords, setEodRecords] = useState<EODRecord[]>([]);
+  const [allEodRecords, setAllEodRecords] = useState<EODRecord[]>([]);
+  const [filteredEodRecords, setFilteredEodRecords] = useState<EODRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -59,10 +61,12 @@ export default function Dashboard() {
             ...e,
             perfDate: new Date(e.perfDate)
           }));
-          setEodRecords(processedEOD);
+          setAllEodRecords(processedEOD);
+          setFilteredEodRecords(processedEOD);
         } catch (e) {
           console.warn('Error loading EOD data:', e);
-          setEodRecords([]);
+          setAllEodRecords([]);
+          setFilteredEodRecords([]);
         }
       }
 
@@ -141,6 +145,7 @@ export default function Dashboard() {
     if (!data) return;
 
     let filtered = [...data.records];
+    let filteredEOD = [...allEodRecords];
 
     if (filters.dateRange) {
       const [start, end] = filters.dateRange;
@@ -148,10 +153,17 @@ export default function Dashboard() {
         const date = new Date(r.date);
         return date >= start && date <= end;
       });
+      // Also filter EOD records to the same date range
+      filteredEOD = filteredEOD.filter(e => {
+        const date = new Date(e.perfDate);
+        return date >= start && date <= end;
+      });
     }
 
     if (filters.aircraft && filters.aircraft.length > 0) {
       filtered = filtered.filter(r => filters.aircraft.includes(r.aircraft));
+      // Filter EOD by aircraft too
+      filteredEOD = filteredEOD.filter(e => filters.aircraft.includes(e.aircraft));
     }
 
     if (filters.ata && filters.ata.length > 0) {
@@ -167,6 +179,7 @@ export default function Dashboard() {
     }
 
     setFilteredData(filtered);
+    setFilteredEodRecords(filteredEOD);
   };
 
   const exportToExcel = () => {
@@ -203,6 +216,9 @@ export default function Dashboard() {
     XLSX.writeFile(workbook, `safa-analysis-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const hasEOD = allEodRecords.length > 0;
+  const hasFilteredEOD = filteredEodRecords.length > 0;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -237,8 +253,6 @@ export default function Dashboard() {
     );
   }
 
-  const hasEOD = eodRecords.length > 0;
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b shadow-sm sticky top-0 z-10">
@@ -252,7 +266,10 @@ export default function Dashboard() {
                 <h1 className="text-xl font-bold text-gray-900">Analysis Dashboard</h1>
                 <p className="text-sm text-gray-600">
                   Total {data.records.length} records analyzed
-                  {hasEOD && <span className="text-amber-600 ml-2">• {eodRecords.length} EOD records loaded</span>}
+                  {hasEOD && <span className="text-amber-600 ml-2">• {allEodRecords.length} EOD records loaded</span>}
+                  {hasEOD && filteredEodRecords.length !== allEodRecords.length && (
+                    <span className="text-blue-600 ml-1">(filtered: {filteredEodRecords.length})</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -342,14 +359,14 @@ export default function Dashboard() {
         {activeTab === 'trends' && (
           <div className="space-y-6">
             {/* EOD Alert Panel - shown at top when EOD data exists */}
-            {hasEOD && (
-              <EODAlertPanel findings={filteredData} eodRecords={eodRecords} />
+            {hasFilteredEOD && (
+              <EODAlertPanel findings={filteredData} eodRecords={filteredEodRecords} />
             )}
 
-            <TrendChart records={filteredData} eodRecords={hasEOD ? eodRecords : undefined} />
-            <ComponentHeatmap records={filteredData} eodRecords={hasEOD ? eodRecords : undefined} />
-            <AircraftHeatmap records={filteredData} eodRecords={hasEOD ? eodRecords : undefined} />
-            <ATAHeatmap records={filteredData} eodRecords={hasEOD ? eodRecords : undefined} />
+            <TrendChart records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} />
+            <ComponentHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} />
+            <AircraftHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} />
+            <ATAHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} />
           </div>
         )}
 

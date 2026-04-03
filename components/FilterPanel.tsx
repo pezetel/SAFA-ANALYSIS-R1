@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AnalysisResult } from '@/lib/types';
-import { Filter, X, Search } from 'lucide-react';
+import { Filter, X, Search, Calendar, Clock } from 'lucide-react';
+import { format, subMonths, startOfMonth, endOfMonth, startOfYear } from 'date-fns';
 
 interface FilterPanelProps {
   data: AnalysisResult;
@@ -43,17 +44,64 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
   const problemTypes = Object.keys(data.problemTypeCounts).sort();
   const components = Object.keys(data.componentCounts).sort();
 
-  const filteredAircraft = aircraft.filter(ac => 
+  const filteredAircraft = aircraft.filter(ac =>
     ac.toLowerCase().includes(aircraftSearch.toLowerCase())
   );
 
-  const filteredATA = ataCodes.filter(ata => 
+  const filteredATA = ataCodes.filter(ata =>
     ata.toLowerCase().includes(ataSearch.toLowerCase())
   );
 
-  const filteredComponents = components.filter(comp => 
+  const filteredComponents = components.filter(comp =>
     comp.toLowerCase().includes(componentSearch.toLowerCase())
   );
+
+  // Determine the latest date in the dataset for quick select reference
+  const latestDate = useMemo(() => {
+    return new Date(data.statistics.dateRange.end);
+  }, [data.statistics.dateRange.end]);
+
+  const earliestDate = useMemo(() => {
+    return new Date(data.statistics.dateRange.start);
+  }, [data.statistics.dateRange.start]);
+
+  const quickSelectDate = (type: string) => {
+    const now = latestDate;
+    let start: Date;
+    let end: Date = endOfMonth(now);
+
+    switch (type) {
+      case 'last1m':
+        start = startOfMonth(now);
+        end = endOfMonth(now);
+        break;
+      case 'last3m':
+        start = startOfMonth(subMonths(now, 2));
+        end = endOfMonth(now);
+        break;
+      case 'last6m':
+        start = startOfMonth(subMonths(now, 5));
+        end = endOfMonth(now);
+        break;
+      case 'last12m':
+        start = startOfMonth(subMonths(now, 11));
+        end = endOfMonth(now);
+        break;
+      case 'ytd':
+        start = startOfYear(now);
+        end = endOfMonth(now);
+        break;
+      case 'full':
+        start = earliestDate;
+        end = endOfMonth(now);
+        break;
+      default:
+        return;
+    }
+
+    setStartDate(format(start, 'yyyy-MM-dd'));
+    setEndDate(format(end, 'yyyy-MM-dd'));
+  };
 
   const applyFilters = () => {
     const filters: any = {};
@@ -105,18 +153,58 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
     onFilter({});
   };
 
-  const activeFiltersCount = 
+  const activeFiltersCount =
     selectedAircraftTypes.length +
-    selectedAircraft.length + 
-    selectedATA.length + 
-    selectedProblemTypes.length + 
+    selectedAircraft.length +
+    selectedATA.length +
+    selectedProblemTypes.length +
     selectedComponents.length +
-    (startDate ? 1 : 0) + 
+    (startDate ? 1 : 0) +
     (endDate ? 1 : 0);
+
+  // Active date label for display
+  const activeDateLabel = useMemo(() => {
+    if (!startDate && !endDate) return null;
+    const s = startDate ? format(new Date(startDate), 'dd MMM yyyy') : '...';
+    const e = endDate ? format(new Date(endDate), 'dd MMM yyyy') : '...';
+    return `${s} → ${e}`;
+  }, [startDate, endDate]);
 
   useEffect(() => {
     applyFilters();
   }, [selectedAircraftTypes, selectedAircraft, selectedATA, selectedProblemTypes, selectedComponents, startDate, endDate]);
+
+  const quickButtons = [
+    { key: 'last1m', label: 'Last 1M', icon: '📅' },
+    { key: 'last3m', label: 'Last 3M', icon: '📅' },
+    { key: 'last6m', label: 'Last 6M', icon: '📅' },
+    { key: 'last12m', label: 'Last 12M', icon: '📅' },
+    { key: 'ytd', label: 'YTD', icon: '📆' },
+    { key: 'full', label: 'Full Range', icon: '📋' },
+  ];
+
+  // Determine which quick button is "active" based on current dates
+  const activeQuick = useMemo(() => {
+    if (!startDate || !endDate) return null;
+    const now = latestDate;
+    const checks: Record<string, { start: Date; end: Date }> = {
+      last1m: { start: startOfMonth(now), end: endOfMonth(now) },
+      last3m: { start: startOfMonth(subMonths(now, 2)), end: endOfMonth(now) },
+      last6m: { start: startOfMonth(subMonths(now, 5)), end: endOfMonth(now) },
+      last12m: { start: startOfMonth(subMonths(now, 11)), end: endOfMonth(now) },
+      ytd: { start: startOfYear(now), end: endOfMonth(now) },
+      full: { start: earliestDate, end: endOfMonth(now) },
+    };
+    for (const [key, range] of Object.entries(checks)) {
+      if (
+        format(range.start, 'yyyy-MM-dd') === startDate &&
+        format(range.end, 'yyyy-MM-dd') === endDate
+      ) {
+        return key;
+      }
+    }
+    return null;
+  }, [startDate, endDate, latestDate, earliestDate]);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -130,6 +218,12 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
           {activeFiltersCount > 0 && (
             <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
               {activeFiltersCount}
+            </span>
+          )}
+          {activeDateLabel && (
+            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
+              <Calendar className="h-3 w-3" />
+              {activeDateLabel}
             </span>
           )}
         </div>
@@ -151,6 +245,41 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
 
       {isOpen && (
         <div className="p-3 border-t border-gray-200 space-y-3">
+          {/* Quick Date Select */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-gray-700 mb-2">
+              <Clock className="h-3.5 w-3.5 text-gray-500" />
+              Quick Date Range
+              <span className="text-gray-400 font-normal">(based on latest data: {format(latestDate, 'MMM yyyy')})</span>
+            </label>
+            <div className="flex items-center gap-2 flex-wrap">
+              {quickButtons.map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => quickSelectDate(item.key)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all border ${
+                    activeQuick === item.key
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-gradient-to-b from-gray-50 to-gray-100 text-gray-700 border-gray-200 hover:from-blue-50 hover:to-blue-100 hover:text-blue-700 hover:border-blue-200 hover:shadow-sm'
+                  }`}
+                >
+                  {item.icon} {item.label}
+                </button>
+              ))}
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                  }}
+                  className="px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200"
+                >
+                  ✕ Clear dates
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Aircraft Type Filter */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">
@@ -355,26 +484,31 @@ export function FilterPanel({ data, onFilter }: FilterPanelProps) {
             </div>
           </div>
 
-          {/* Date Range at bottom */}
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Start Date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent text-xs"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">End Date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent text-xs"
-              />
+          {/* Manual Date Range at bottom */}
+          <div className="pt-2 border-t border-gray-100">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-gray-700 mb-2">
+              <Calendar className="h-3.5 w-3.5 text-gray-500" />
+              Manual Date Range
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent text-xs"
+                />
+              </div>
             </div>
           </div>
         </div>
