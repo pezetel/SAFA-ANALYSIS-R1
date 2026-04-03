@@ -1,139 +1,43 @@
 # Changelog
 
-## [2.1.1] - 2025-04-01
-
-### Fixed
-- **Turkish Text Removed**: All remaining Turkish text in `PeriodComparison.tsx` has been translated to English:
-  - Problem Type Comparison info/explanation section (Count, % of Group, Badge descriptions)
-  - Per-Aircraft Normalization toggle description
-  - Per-Aircraft Average note under the Component Comparison chart
-  - Chart tooltip text
-- **Per-Aircraft Normalization Bug Fixed**: Component-level normalization now correctly divides each component's total findings by the number of aircraft that had findings for *that specific component*, not the total unique aircraft count from the period. This provides accurate per-component averages.
-- **Aircraft Counts Derived from Findings Data**: The note section and summary cards in Per-Aircraft Normalization now clearly show aircraft counts derived from actual findings data ("X aircraft with findings"), not from fleet definition constants.
+## [2.2.0] - 2025-01-27
 
 ### Added
-- **Drilldown Detail Modal on Component Comparison**: Clicking any bar in the Component Comparison chart opens a DetailModal showing the underlying records for that component and group. Works across all three comparison modes (Period vs Period, Aircraft vs Aircraft, NG vs MAX Fleet).
-- **Drilldown Detail Modal on Problem Type Comparison**: Clicking a problem type name shows records from both groups combined. Clicking a specific group's bar shows only that group's records. Works across all three comparison modes.
-- **Drilldown on Most Increased / Decreased / Has More Cards**: Clicking any item in the summary cards (Most Increased, Most Decreased, NG Has More, MAX Has More, Group A/B Has More) opens the DetailModal with filtered records.
-- **Problem Type Comparison added to Period vs Period mode**: Previously only available in Aircraft and Fleet modes, now also shown in Period vs Period comparisons.
-- **Visual Click Indicators**: All clickable elements now show 🔍 icon and hover effects (ring highlight, background change, cursor pointer) to indicate interactivity.
-- **"Click bars to view records" hint**: Added to all Component Comparison chart headers.
-- **Tip in Problem Type explanation**: Added guidance text explaining click behavior (click name = both groups, click bar = single group).
-- **Centralized Version Management**: Created `lib/version.ts` as the single source of truth for the app version. Home page header badge and footer now import from this file instead of using a hardcoded constant. Future version changes only require updating `lib/version.ts` and `package.json`.
-- **"RING" Keyword Smart Routing**: Standalone `RING` keyword in finding descriptions is now intelligently routed:
-  - If `CARGO` is also present in the description → classified as `CARGO_NETS`
-  - Otherwise → classified as `LANYARD_RING`
-  - Explicit multi-word keywords (`LANYARD RING`, `CARGO NET`, etc.) still take priority over the standalone `RING` fallback.
-- **`PAINTDAMAGE` added to `PAINT_DAMAGE`**: The no-space variant `PAINTDAMAGE` is now recognized and correctly classified as `PAINT_DAMAGE` problem type.
-
-### Meta
-- Version bumped to `2.1.1`.
-- `package.json` version updated to `2.1.1`.
-
-## [2.1.0] - 2026-04-01
+- **EOD (Engineering Order) Integration** — Upload EOD Excel as optional 2nd file to support trend analysis with normalized finding rates
+- **EOD-Based Alert System** — New `EODAlertPanel` component in Trend Analysis tab with 3-level alerts (🟢 Normal, 🟡 Watch, 🔴 Alert)
+- **Finding Rate Formula** — `Findings / EOD Applications` per month, comparing against average to detect anomalies
+- **Rate View (F/EOD) toggle** on all three heatmaps (Aircraft, Component, ATA Chapter)
+- **Per-component average rate** — Component heatmap compares each component to its own historical average (PLACARD vs ENGINE are not mixed)
+- **Per-ATA average rate** — ATA heatmap compares each ATA chapter to its own historical average
+- **Fleet-wide average rate** — Aircraft heatmap compares each aircraft against the entire fleet average
+- **Avg Rate column** visible in rate mode for Component and ATA heatmaps
+- **Search/filter bar** on all three heatmaps — quickly find aircraft (e.g. "SEK"), components (e.g. "SEAT"), or ATA chapters (e.g. "25", "Landing Gear")
+- **Show 10 / 20 / 50 / All** pagination controls on all heatmaps — no more forced Top 10 only
+- **ATA 2-digit grouping** — ATA heatmap now groups by 2-digit chapter code (25-22-00 + 25-60-00 → ATA 25) with chapter names (e.g. "25 - Equipment/Furnishings")
+- **ATA chapter name labels** — common ATA codes display their human-readable names
 
 ### Changed
-- **Chronic Label Removed**: The "Chronic" badge and its definition have been completely removed from the UI.
-- **All Findings Listed**: The "Most Frequent Problems" section renamed to "All Findings by Component" — no longer limited to Top 10, all components are now displayed.
-- **Finding Type Breakdown**: Each component shows a full classification of its finding types (e.g., MISSING 12, DAMAGED 8, LOOSE 3) as color-coded tags.
-- Removed aircraft count metric from the problems list; replaced with finding type count.
-- Section title changed: "Most Frequent Problems" → "All Findings by Component".
-- Section subtitle changed: "Top 10 problems by component..." → "All components classified by finding type (Click to view details)".
-- Footer updated: now shows "Showing all X components · Y total findings".
-- **Full English Translation**: `README.md`, `DEPLOYMENT.md`, and `push-instructions.md` fully translated from Turkish to English.
-- **Period Analysis Enhanced**: Added three comparison modes:
-  - **Period vs Period**: Compare two custom time periods (existing feature)
-  - **Aircraft vs Aircraft**: Compare two specific aircraft within the same period with radar chart for problem type distribution
-  - **NG Fleet vs MAX Fleet**: Compare B737-NG and B737-MAX fleets with per-aircraft averages and radar visualization
-
-### Added — New Component Groups
-- **`LG_OIL_CHARGING_VALVE`**: Oil charging valve findings with typo variations:
-  - `OIL CHARGING VALVE`, `OIL CHARHING VALVE`, `OIL CHARGINGVALVE`, `OIL CHARHINGVALUE`, `OIL CHARGING`, `OIL CHARGIN`, `OILCHARGING`, `OIL SERVICING CHARGING`, `OIL SERVICING CHARGER`
-- **`ANTISKATING_FOIL`**: Antiskating foil findings with typo variations:
-  - `ANTISKATING FOIL`, `ANTISKATINGFOIL`, `ANTISTATINGFOIL`, `OUTFLOW VALVE FOIL`, `OUTFLOW VALVE ANTISTATING`
-- **`FUSELAGE_SKIN`**: Fuselage skin, butt joints, body fairings:
-  - `FUS SKIN`, `FUSELAGE SKIN`, `BUTT JOINT SEALANT`, `BODY FAIRING`, `BODYFAIRING`
-- **`SCUFF_PLATE`**: Scuff plates:
-  - `SCUFF PLATE`, `SCUFF PLATE FILLER`
-- **`SECURITY_BOX`**: Security boxes:
-  - `SECURITY BOX`
-- **`BLADE_SEAL`**: Blade seals:
-  - `BLADE SEAL`, `BLADE SEALS`
-- **`DRAIN_MAST`**: Drain masts:
-  - `DRAIN MAST`
-- **`VAPOR_BARRIER`**: Vapor barriers:
-  - `VAPOR BARRIER`
-
-### Added — New Keywords to Existing Components
-- **`LIGHT`**: Added `LANDING LIGHT` (moved from LANDING_GEAR)
-- **`LANYARD_RING`**: Added `LANYARD ASSY`, `LINE YARD` (typo), `LANYARD` (generic catch-all)
-- **`PLACARD`**: Added `PLACRDS` (typo), `STICKER`, `STENCIL`, `LABEL`
-- **`LANDING_GEAR`**: Added `TIRE`, `SHOCK STRUT`, `SHOCK CHARGING`, `WHEEL WELL`, `BRAKE UNIT`, `MLG`, `NLG` (removed `LANDING LIGHT` — moved to LIGHT component)
-- **`CARGO_TAPES`**: Added `CARGO TAPPES` (typo)
-
-### Added — New Keywords to Problem Types
-- **`PAINT_DAMAGE`**: Added `PAINT DAMAGES`, `PAINT DMG`, `PEELED OF PAINT`, `PEELED OFF PAINT`
-
-### Refactored
-- **`extractProblemType()` consolidated**: `DENT` was previously handled as a standalone if-block outside the main list. It is now moved into the unified `problemTypes` array (with `DENTED` variant added) for consistency and readability.
-- **`extractComponent()` consolidated**: `BONDING` (including `JUMPER`), `LANYARD_RING` (with all apostrophe variations), and `HORIZONTAL_STABILIZER` were previously handled as standalone if-blocks before the main components list. They are now integrated into the single `components` array with descriptive comments for each group.
-- All component entries now have inline comments describing the group (e.g., `// Landing Gear - Oil Charging Valve`, `// Bonding (including jumper wires)`, etc.).
-
-### Meta
-- Version bumped to `2.1`.
-- Version displayed on home page header badge and footer.
-
-## [4.0.0] - 2025-01-20
-
-### Changed
-- **Complete English Translation (Final Pass)**: Eliminated all remaining Turkish text across the entire codebase.
-- Translated all API route error messages and success messages from Turkish to English:
-  - `app/api/analyze/route.ts`: "Henüz veri yüklenmedi" → "No data has been loaded yet", "Analiz sırasında hata oluştu" → "An error occurred during analysis"
-  - `app/api/process/route.ts`: "Geçersiz veri formatı" → "Invalid data format", "kayıt başarıyla işlendi" → "records successfully processed", "Veri işlenirken hata oluştu" → "An error occurred while processing data"
-  - `app/api/upload/route.ts`: "Dosya bulunamadı" → "No file found", "kayıt başarıyla yüklendi ve işlendi" → "records successfully uploaded and processed", "Dosya işlenirken hata oluştu" → "An error occurred while processing the file"
-- Version number updated to `4.0.0` and displayed on the home page header and footer.
-- Package version bumped to `4.0.0`.
-
-### Note
-- Turkish column aliases in `lib/dataProcessor.ts` (e.g., `tarih`, `aciklama`) are intentionally kept for backward compatibility with Turkish-formatted Excel files.
-
-## [3.0.0] - 2025-01-18
-
-### Changed
-- Major refactoring and performance improvements.
-- Client-side data processing via localStorage for better Vercel compatibility.
-
-## [2.0.0] - 2025-01-15
-
-### Changed
-- **Full English Translation**: All Turkish UI text, labels, tooltips, error messages, and descriptions have been translated to English.
-- Updated `<html lang="tr">` to `<html lang="en">`.
-- Updated page metadata (title, description) from Turkish to English.
-- Updated all component labels, headings, and button texts across the entire application.
-- Date formatting locale changed from Turkish (`tr`) to English (`enUS`) in all chart and heatmap components.
-- Error messages and status messages translated to English.
-- Filter panel labels (Aircraft Type, Aircraft, ATA Chapter, Problem Type, Component, Start Date, End Date) translated.
-- Dashboard tabs (Overview, Trend Analysis, Period Analysis, Detailed Data) translated.
-- Period Comparison section fully translated including quick-select buttons and summary cards.
-- Data Table headers and pagination translated.
-- Detail Modal headers and pagination translated.
-- Heatmap legends and color scale descriptions translated.
-- Top Problems section labels (Chronic, findings, aircraft) translated.
-- File Upload component messages translated.
-- Home page feature cards, stats preview, and info box translated.
-- Version number displayed on the home page footer.
-- Package version bumped to `2.0.0`.
+- `minEODThreshold` changed from `2` to `1` — in aviation EOD is typically applied once per aircraft per month, threshold of 2 was filtering out valid data
+- Dashboard now loads EOD data from `localStorage` and passes `eodRecords` prop to all Trend Analysis child components
+- Time Series chart reference line labels repositioned — "Avg" and "1.5× Avg" badges now sit just outside the plot area (right of Y-axis) without overflowing the card container
+- Chart margin adjusted (`margin.right: 60`) to accommodate reference line labels cleanly
+- Heatmap subtitle now shows count context (e.g. "Top 10 of 23 aircraft", "All 15 components, filtered by SEAT")
 
 ### Fixed
-- Consistent English terminology used throughout ("findings" instead of "bulgu", "records" instead of "kayıt", etc.).
+- EOD data was being processed and stored in localStorage but never loaded into the dashboard — now properly hydrated with Date parsing
+- `EODAlertPanel` was defined but never rendered — now shown at top of Trend Analysis tab when EOD data exists
+- Component and ATA heatmaps had no EOD rate support — now fully integrated with rate toggle and alert coloring
+- ATA heatmap was using 6-digit ATA codes for rate calculation, fragmenting data — now uses 2-digit grouping for meaningful averages
+- Time Series chart "Avg Rate" label was overflowing to the right outside the card — repositioned with custom SVG labels
 
-## [1.0.0] - 2024-12-01
+---
 
-### Initial Release
-- SAFA Trend Analysis Platform with Turkish interface.
-- Excel file upload and processing.
-- Dashboard with statistics, charts, heatmaps.
-- Filter panel with aircraft type, ATA, problem type, and component filters.
-- Period comparison analysis.
-- Detailed data table with search and pagination.
-- Export to Excel functionality.
+## [2.1.0] - Previous Release
+
+- Initial SAFA trend analysis platform
+- Excel upload and processing
+- Dashboard with Overview, Trend Analysis, Period Analysis, Detailed Data tabs
+- Filter panel with date range, aircraft, ATA, problem type, component filters
+- Time Series chart, Component/Aircraft/ATA heatmaps
+- Period comparison analysis
+- Data table with search and export to Excel

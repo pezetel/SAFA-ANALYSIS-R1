@@ -11,6 +11,18 @@ export interface SAFARecord {
   severity: string;
 }
 
+export interface EODRecord {
+  event: string;
+  eventStatus: string;
+  revision: string;
+  effectivity: string;
+  aircraft: string;
+  rotable: string;
+  workorder: string;
+  workpackage: string;
+  perfDate: Date;
+}
+
 export interface AnalysisResult {
   records: SAFARecord[];
   statistics: {
@@ -37,4 +49,22 @@ export interface FilterOptions {
   ata?: string[];
   problemType?: string[];
   component?: string[];
+}
+
+export interface EODMonthlyData {
+  month: string;
+  totalEODs: number;
+  byAircraft: Record<string, number>;
+}
+
+export interface AlertItem {
+  type: 'aircraft' | 'component' | 'ata';
+  name: string;
+  month: string;
+  rate: number;
+  avgRate: number;
+  findings: number;
+  eods: number;
+  level: 'normal' | 'watch' | 'alert';
+  ratio: number;
 }

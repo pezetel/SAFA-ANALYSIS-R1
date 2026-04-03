@@ -1,18 +1,27 @@
 'use client';
 
-import { SAFARecord } from '@/lib/types';
+import { SAFARecord, EODRecord } from '@/lib/types';
 import { format, startOfMonth } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DetailModal } from './DetailModal';
+import { getAlertLevel } from '@/lib/eodProcessor';
+import { ChevronDown, ChevronUp, Search, X } from 'lucide-react';
 
 interface AircraftHeatmapProps {
   records: SAFARecord[];
+  eodRecords?: EODRecord[];
 }
 
-export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
+export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
   const [selectedCell, setSelectedCell] = useState<{ aircraft: string; month: string } | null>(null);
   const [modalRecords, setModalRecords] = useState<SAFARecord[]>([]);
+  const [viewMode, setViewMode] = useState<'count' | 'rate'>('count');
+  const [showAll, setShowAll] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showCount, setShowCount] = useState<number>(10);
+
+  const hasEOD = eodRecords && eodRecords.length > 0;
 
   const aircraft = Array.from(new Set(records.map(r => r.aircraft))).sort();
   const months = Array.from(
@@ -20,7 +29,7 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
   ).sort();
 
   const heatmapData: Record<string, Record<string, number>> = {};
-  
+
   aircraft.forEach(ac => {
     heatmapData[ac] = {};
     months.forEach(month => {
@@ -35,8 +44,52 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
     }
   });
 
+  // EOD data by aircraft by month
+  const eodByAircraftMonth = useMemo(() => {
+    if (!hasEOD) return {};
+    const map: Record<string, Record<string, number>> = {};
+    eodRecords!.forEach(e => {
+      const month = format(startOfMonth(new Date(e.perfDate)), 'yyyy-MM');
+      if (!map[e.aircraft]) map[e.aircraft] = {};
+      map[e.aircraft][month] = (map[e.aircraft][month] || 0) + 1;
+    });
+    return map;
+  }, [eodRecords, hasEOD]);
+
+  // Rate data
+  const rateData = useMemo(() => {
+    if (!hasEOD) return {};
+    const rates: Record<string, Record<string, number>> = {};
+    aircraft.forEach(ac => {
+      rates[ac] = {};
+      months.forEach(month => {
+        const findings = heatmapData[ac][month] || 0;
+        const eods = eodByAircraftMonth[ac]?.[month] || 0;
+        rates[ac][month] = eods > 0 ? findings / eods : -1;
+      });
+    });
+    return rates;
+  }, [aircraft, months, heatmapData, eodByAircraftMonth, hasEOD]);
+
+  // Fleet-wide average rate
+  const avgRate = useMemo(() => {
+    if (!hasEOD) return 0;
+    const allRates: number[] = [];
+    aircraft.forEach(ac => {
+      months.forEach(month => {
+        const r = rateData[ac]?.[month];
+        if (r !== undefined && r >= 0) {
+          allRates.push(r);
+        }
+      });
+    });
+    if (allRates.length === 0) return 0;
+    return allRates.reduce((a, b) => a + b, 0) / allRates.length;
+  }, [rateData, aircraft, months, hasEOD]);
+
   const maxValue = Math.max(
-    ...Object.values(heatmapData).flatMap(monthData => Object.values(monthData))
+    ...Object.values(heatmapData).flatMap(monthData => Object.values(monthData)),
+    1
   );
 
   const getColor = (value: number) => {
@@ -48,18 +101,40 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
     return 'bg-green-200';
   };
 
-  const topAircraft = Object.entries(heatmapData)
-    .map(([ac, data]) => [ac, Object.values(data).reduce((a, b) => a + b, 0)] as [string, number])
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([ac]) => ac);
+  const getRateColor = (rate: number) => {
+    if (rate < 0) return 'bg-gray-100 text-gray-400';
+    if (rate === 0) return 'bg-gray-50';
+    const level = getAlertLevel(rate, avgRate);
+    if (level === 'alert') return 'bg-red-500 text-white';
+    if (level === 'watch') return 'bg-yellow-300 text-gray-900';
+    return 'bg-green-200 text-gray-900';
+  };
+
+  // Sorted by total findings descending
+  const sortedAircraft = useMemo(() => {
+    return Object.entries(heatmapData)
+      .map(([ac, data]) => [ac, Object.values(data).reduce((a, b) => a + b, 0)] as [string, number])
+      .sort((a, b) => b[1] - a[1])
+      .map(([ac]) => ac);
+  }, [heatmapData]);
+
+  // Apply search filter
+  const filteredAircraft = useMemo(() => {
+    if (!searchTerm.trim()) return sortedAircraft;
+    const term = searchTerm.trim().toUpperCase();
+    return sortedAircraft.filter(ac => ac.toUpperCase().includes(term));
+  }, [sortedAircraft, searchTerm]);
+
+  const displayedAircraft = showAll ? filteredAircraft : filteredAircraft.slice(0, showCount);
+  const totalAircraft = filteredAircraft.length;
+  const hasMore = totalAircraft > showCount;
 
   const handleCellClick = (aircraft: string, month: string) => {
     const filtered = records.filter(r => {
       const recordMonth = format(startOfMonth(new Date(r.date)), 'yyyy-MM');
       return r.aircraft === aircraft && recordMonth === month;
     });
-    
+
     if (filtered.length > 0) {
       setModalRecords(filtered);
       setSelectedCell({ aircraft, month });
@@ -69,9 +144,88 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
   return (
     <>
       <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="mb-4">
-          <h2 className="text-base font-bold text-gray-900">Aircraft - Time Heat Map</h2>
-          <p className="text-xs text-gray-600 mt-0.5">Monthly finding density (Top 10 aircraft) - Click cells to view details</p>
+        <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">Aircraft - Time Heat Map</h2>
+            <p className="text-xs text-gray-600 mt-0.5">
+              Monthly finding density ({showAll ? `All ${totalAircraft}` : `Top ${Math.min(showCount, totalAircraft)} of ${sortedAircraft.length}`} aircraft{searchTerm ? `, filtered by "${searchTerm}"` : ''}) - Click cells to view details
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasEOD && (
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setViewMode('count')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    viewMode === 'count'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Count
+                </button>
+                <button
+                  onClick={() => setViewMode('rate')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    viewMode === 'rate'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Rate (F/EOD)
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Search & Show Count Controls */}
+        <div className="mb-3 flex items-center gap-3 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search aircraft (e.g. SEK, TC-SOH)"
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setShowAll(false); }}
+              className="pl-8 pr-8 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent w-56"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500">Show:</span>
+            {[10, 20, 50].map(n => (
+              <button
+                key={n}
+                onClick={() => { setShowCount(n); setShowAll(false); }}
+                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  showCount === n && !showAll
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              onClick={() => setShowAll(true)}
+              className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                showAll
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              All
+            </button>
+          </div>
+          <span className="text-xs text-gray-400 ml-auto">{totalAircraft} aircraft{searchTerm ? ' matched' : ' total'}</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -92,7 +246,7 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
               </tr>
             </thead>
             <tbody>
-              {topAircraft.map(ac => {
+              {displayedAircraft.map(ac => {
                 const total = Object.values(heatmapData[ac]).reduce((a, b) => a + b, 0);
                 return (
                   <tr key={ac} className="hover:bg-gray-50">
@@ -101,18 +255,35 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
                     </td>
                     {months.map(month => {
                       const value = heatmapData[ac][month];
+                      const rate = rateData[ac]?.[month];
+                      const isRateMode = viewMode === 'rate' && hasEOD;
+                      const eodCount = eodByAircraftMonth[ac]?.[month] || 0;
+
+                      const colorClass = isRateMode
+                        ? getRateColor(rate ?? -1)
+                        : getColor(value);
+
+                      const displayValue = isRateMode
+                        ? (rate !== undefined && rate >= 0 ? rate.toFixed(2) : (value > 0 ? `${value}*` : ''))
+                        : (value > 0 ? value : '');
+
+                      const title = isRateMode
+                        ? `${ac} - ${month}: ${value} findings / ${eodCount} EODs = Rate ${rate !== undefined && rate >= 0 ? rate.toFixed(3) : 'N/A'} (fleet avg: ${avgRate.toFixed(3)})`
+                        : `${ac} - ${month}: ${value} findings`;
+
                       return (
                         <td key={month} className="p-0.5 border-b border-gray-100">
                           <button
                             onClick={() => handleCellClick(ac, month)}
                             disabled={value === 0}
+                            title={title}
                             className={`w-full h-8 flex items-center justify-center rounded font-semibold text-xs transition-all ${
-                              getColor(value)
+                              colorClass
                             } ${
                               value > 0 ? 'hover:ring-2 hover:ring-blue-400 cursor-pointer' : 'cursor-default'
                             }`}
                           >
-                            {value > 0 ? value : ''}
+                            {displayValue}
                           </button>
                         </td>
                       );
@@ -123,34 +294,94 @@ export function AircraftHeatmap({ records }: AircraftHeatmapProps) {
                   </tr>
                 );
               })}
+              {displayedAircraft.length === 0 && (
+                <tr>
+                  <td colSpan={months.length + 2} className="text-center py-8 text-sm text-gray-400">
+                    No aircraft found{searchTerm ? ` matching "${searchTerm}"` : ''}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-start gap-2 mb-2">
-            <span className="text-xs font-semibold text-blue-900">📊 Color Scale:</span>
-            <span className="text-xs text-blue-700">Each cell number represents the finding count for that month</span>
+        {/* Show More/Less toggle */}
+        {hasMore && !showAll && (
+          <div className="mt-3 flex justify-center">
+            <button
+              onClick={() => setShowAll(true)}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+              Show All {totalAircraft} Aircraft
+            </button>
           </div>
-          <div className="flex items-center gap-4 text-xs text-gray-700">
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-4 bg-green-200 rounded border border-green-300"></div>
-              <span><strong>Low:</strong> 1-{Math.ceil(maxValue * 0.25)} findings</span>
+        )}
+        {showAll && totalAircraft > 10 && (
+          <div className="mt-3 flex justify-center">
+            <button
+              onClick={() => setShowAll(false)}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+              Collapse to {showCount}
+            </button>
+          </div>
+        )}
+
+        {/* Color Legend */}
+        {viewMode === 'rate' && hasEOD ? (
+          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <div className="flex items-start gap-2 mb-2">
+              <span className="text-xs font-semibold text-amber-900">📊 Rate View (Findings / EOD per aircraft):</span>
+              <span className="text-xs text-amber-700">Colors based on fleet-wide average rate ({avgRate.toFixed(3)})</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-4 bg-yellow-300 rounded border border-yellow-400"></div>
-              <span><strong>Medium:</strong> {Math.ceil(maxValue * 0.25) + 1}-{Math.ceil(maxValue * 0.5)} findings</span>
+            <div className="flex items-center gap-4 text-xs text-gray-700 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <div className="w-8 h-4 bg-green-200 rounded border border-green-300"></div>
+                <span><strong>Normal:</strong> ≤ fleet avg</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-8 h-4 bg-yellow-300 rounded border border-yellow-400"></div>
+                <span><strong>Watch:</strong> &gt; fleet avg &amp; ≤ 1.5×</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-8 h-4 bg-red-500 rounded border border-red-600"></div>
+                <span><strong>Alert:</strong> &gt; 1.5× fleet avg</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-8 h-4 bg-gray-100 rounded border border-gray-300"></div>
+                <span><strong>N/A:</strong> No EOD data</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-4 bg-orange-400 rounded border border-orange-500"></div>
-              <span><strong>High:</strong> {Math.ceil(maxValue * 0.5) + 1}-{Math.ceil(maxValue * 0.75)} findings</span>
+            <p className="text-xs text-amber-600 mt-2">* Value with asterisk means findings exist but no EOD data for that aircraft/month</p>
+          </div>
+        ) : (
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-start gap-2 mb-2">
+              <span className="text-xs font-semibold text-blue-900">📊 Color Scale (sorted by total findings):</span>
+              <span className="text-xs text-blue-700">Each cell number represents the finding count for that month</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-4 bg-red-500 rounded border border-red-600"></div>
-              <span className="text-gray-700"><strong>Very High:</strong> {Math.ceil(maxValue * 0.75) + 1}+ findings</span>
+            <div className="flex items-center gap-4 text-xs text-gray-700 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <div className="w-8 h-4 bg-green-200 rounded border border-green-300"></div>
+                <span><strong>Low:</strong> 1-{Math.ceil(maxValue * 0.25)} findings</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-8 h-4 bg-yellow-300 rounded border border-yellow-400"></div>
+                <span><strong>Medium:</strong> {Math.ceil(maxValue * 0.25) + 1}-{Math.ceil(maxValue * 0.5)} findings</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-8 h-4 bg-orange-400 rounded border border-orange-500"></div>
+                <span><strong>High:</strong> {Math.ceil(maxValue * 0.5) + 1}-{Math.ceil(maxValue * 0.75)} findings</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-8 h-4 bg-red-500 rounded border border-red-600"></div>
+                <span className="text-gray-700"><strong>Very High:</strong> {Math.ceil(maxValue * 0.75) + 1}+ findings</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {selectedCell && (

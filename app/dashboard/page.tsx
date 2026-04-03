@@ -12,7 +12,8 @@ import { TopProblems } from '@/components/TopProblems';
 import { FilterPanel } from '@/components/FilterPanel';
 import { DataTable } from '@/components/DataTable';
 import { PeriodComparison } from '@/components/PeriodComparison';
-import { SAFARecord, AnalysisResult } from '@/lib/types';
+import { EODAlertPanel } from '@/components/EODAlertPanel';
+import { SAFARecord, EODRecord, AnalysisResult } from '@/lib/types';
 import { ArrowLeft, Download, RefreshCw, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
@@ -20,6 +21,7 @@ import * as XLSX from 'xlsx';
 export default function Dashboard() {
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [filteredData, setFilteredData] = useState<SAFARecord[]>([]);
+  const [eodRecords, setEodRecords] = useState<EODRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -47,6 +49,22 @@ export default function Dashboard() {
         ...r,
         date: new Date(r.date)
       }));
+
+      // Load EOD data if available
+      const savedEOD = localStorage.getItem('eodData');
+      if (savedEOD) {
+        try {
+          const eodRaw: EODRecord[] = JSON.parse(savedEOD);
+          const processedEOD = eodRaw.map(e => ({
+            ...e,
+            perfDate: new Date(e.perfDate)
+          }));
+          setEodRecords(processedEOD);
+        } catch (e) {
+          console.warn('Error loading EOD data:', e);
+          setEodRecords([]);
+        }
+      }
 
       const aircraftCounts = processedRecords.reduce((acc, record) => {
         acc[record.aircraft] = (acc[record.aircraft] || 0) + 1;
@@ -219,6 +237,8 @@ export default function Dashboard() {
     );
   }
 
+  const hasEOD = eodRecords.length > 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b shadow-sm sticky top-0 z-10">
@@ -230,7 +250,10 @@ export default function Dashboard() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Analysis Dashboard</h1>
-                <p className="text-sm text-gray-600">Total {data.records.length} records analyzed</p>
+                <p className="text-sm text-gray-600">
+                  Total {data.records.length} records analyzed
+                  {hasEOD && <span className="text-amber-600 ml-2">• {eodRecords.length} EOD records loaded</span>}
+                </p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -318,10 +341,15 @@ export default function Dashboard() {
 
         {activeTab === 'trends' && (
           <div className="space-y-6">
-            <TrendChart records={filteredData} />
-            <ComponentHeatmap records={filteredData} />
-            <AircraftHeatmap records={filteredData} />
-            <ATAHeatmap records={filteredData} />
+            {/* EOD Alert Panel - shown at top when EOD data exists */}
+            {hasEOD && (
+              <EODAlertPanel findings={filteredData} eodRecords={eodRecords} />
+            )}
+
+            <TrendChart records={filteredData} eodRecords={hasEOD ? eodRecords : undefined} />
+            <ComponentHeatmap records={filteredData} eodRecords={hasEOD ? eodRecords : undefined} />
+            <AircraftHeatmap records={filteredData} eodRecords={hasEOD ? eodRecords : undefined} />
+            <ATAHeatmap records={filteredData} eodRecords={hasEOD ? eodRecords : undefined} />
           </div>
         )}
 

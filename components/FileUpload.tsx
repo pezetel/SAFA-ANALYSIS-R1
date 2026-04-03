@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, ClipboardList } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { processExcelData } from '@/lib/dataProcessor';
+import { processEODData } from '@/lib/eodProcessor';
 
 interface FileUploadProps {
   onUploadSuccess: () => void;
@@ -17,6 +18,14 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
   const [recordCount, setRecordCount] = useState(0);
   const [dataReady, setDataReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // EOD state
+  const [eodUploading, setEodUploading] = useState(false);
+  const [eodStatus, setEodStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [eodMessage, setEodMessage] = useState('');
+  const [eodFileName, setEodFileName] = useState('');
+  const [eodRecordCount, setEodRecordCount] = useState(0);
+  const eodFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,6 +63,39 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
     }
   };
 
+  const handleEODFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setEodFileName(file.name);
+    setEodUploading(true);
+    setEodStatus('idle');
+    setEodMessage('');
+
+    try {
+      const bytes = await file.arrayBuffer();
+      const workbook = XLSX.read(bytes, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const rawData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+
+      const processedEOD = processEODData(rawData);
+
+      localStorage.setItem('eodData', JSON.stringify(processedEOD));
+      localStorage.setItem('eodDataTimestamp', new Date().toISOString());
+
+      setEodStatus('success');
+      setEodRecordCount(processedEOD.length);
+      setEodMessage(`${processedEOD.length} EOD records successfully loaded`);
+    } catch (error: any) {
+      console.error('EOD Upload error:', error);
+      setEodStatus('error');
+      setEodMessage(error.message || 'An error occurred while processing the EOD file.');
+    } finally {
+      setEodUploading(false);
+    }
+  };
+
   const handleStartAnalysis = () => {
     if (dataReady) {
       onUploadSuccess();
@@ -63,6 +105,12 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
   const handleClick = () => {
     if (!uploading) {
       fileInputRef.current?.click();
+    }
+  };
+
+  const handleEODClick = () => {
+    if (!eodUploading) {
+      eodFileInputRef.current?.click();
     }
   };
 
@@ -92,75 +140,143 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div
-        onClick={handleClick}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
-          uploading
-            ? 'border-blue-300 bg-blue-50 cursor-not-allowed'
-            : 'border-gray-300 hover:border-blue-500 hover:bg-gray-50'
-        }`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={handleFileChange}
-          className="hidden"
-          disabled={uploading}
-        />
+    <div className="space-y-6">
+      {/* SAFA Findings Upload */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+          SAFA Findings Data <span className="text-red-500">*</span>
+        </h3>
+        <div
+          onClick={handleClick}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
+            uploading
+              ? 'border-blue-300 bg-blue-50 cursor-not-allowed'
+              : 'border-gray-300 hover:border-blue-500 hover:bg-gray-50'
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={handleFileChange}
+            className="hidden"
+            disabled={uploading}
+          />
 
-        <div className="flex flex-col items-center gap-3">
-          {uploading ? (
-            <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
-          ) : (
-            <div className="bg-blue-100 p-3 rounded-full">
-              <FileSpreadsheet className="h-10 w-10 text-blue-600" />
+          <div className="flex flex-col items-center gap-3">
+            {uploading ? (
+              <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+            ) : (
+              <div className="bg-blue-100 p-3 rounded-full">
+                <FileSpreadsheet className="h-10 w-10 text-blue-600" />
+              </div>
+            )}
+
+            <div>
+              <p className="text-base font-semibold text-gray-900 mb-1">
+                {uploading ? 'Processing file...' : 'Drag and drop your SAFA Excel file or click here'}
+              </p>
+              <p className="text-sm text-gray-500">
+                {fileName || 'Must be in XLSX or XLS format'}
+              </p>
             </div>
-          )}
 
-          <div>
-            <p className="text-base font-semibold text-gray-900 mb-1">
-              {uploading ? 'Processing file...' : 'Drag and drop your Excel file or click here'}
-            </p>
-            <p className="text-sm text-gray-500">
-              {fileName || 'Must be in XLSX or XLS format'}
-            </p>
+            {!uploading && !dataReady && (
+              <button
+                type="button"
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+              >
+                <Upload className="h-4 w-4" />
+                Select File
+              </button>
+            )}
           </div>
-
-          {!uploading && !dataReady && (
-            <button
-              type="button"
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
-            >
-              <Upload className="h-4 w-4" />
-              Select File
-            </button>
-          )}
         </div>
+
+        {status === 'success' && (
+          <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg mt-3">
+            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-green-900">Success!</p>
+              <p className="text-sm text-green-700">{message}</p>
+            </div>
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg mt-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-red-900">Error!</p>
+              <p className="text-sm text-red-700">{message}</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {status === 'success' && (
-        <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-green-900">Success!</p>
-            <p className="text-sm text-green-700">{message}</p>
-          </div>
-        </div>
-      )}
+      {/* EOD Data Upload (Optional) */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <ClipboardList className="h-4 w-4 text-amber-600" />
+          EOD (Engineering Order) Data
+          <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Optional</span>
+        </h3>
+        <p className="text-xs text-gray-500 mb-2">
+          Upload EOD data to enable Finding Rate analysis and alert levels. This normalizes findings by EOD application count.
+        </p>
+        <div
+          onClick={handleEODClick}
+          className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all ${
+            eodUploading
+              ? 'border-amber-300 bg-amber-50 cursor-not-allowed'
+              : 'border-gray-200 hover:border-amber-400 hover:bg-amber-50/30'
+          }`}
+        >
+          <input
+            ref={eodFileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={handleEODFileChange}
+            className="hidden"
+            disabled={eodUploading}
+          />
 
-      {status === 'error' && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-red-900">Error!</p>
-            <p className="text-sm text-red-700">{message}</p>
+          <div className="flex items-center justify-center gap-3">
+            {eodUploading ? (
+              <Loader2 className="h-5 w-5 text-amber-600 animate-spin" />
+            ) : (
+              <div className="bg-amber-100 p-2 rounded-full">
+                <ClipboardList className="h-5 w-5 text-amber-600" />
+              </div>
+            )}
+            <div className="text-left">
+              <p className="text-sm font-medium text-gray-700">
+                {eodUploading ? 'Processing EOD file...' : eodFileName || 'Click to upload EOD Excel file'}
+              </p>
+              <p className="text-xs text-gray-400">
+                Expected columns: Event, A/C, Perf. Date
+              </p>
+            </div>
           </div>
         </div>
-      )}
+
+        {eodStatus === 'success' && (
+          <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg mt-2">
+            <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+            <p className="text-sm text-green-700">{eodMessage}</p>
+          </div>
+        )}
+
+        {eodStatus === 'error' && (
+          <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg mt-2">
+            <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+            <p className="text-sm text-red-700">{eodMessage}</p>
+          </div>
+        )}
+      </div>
 
       {dataReady && (
         <div className="flex justify-center pt-2">
@@ -171,7 +287,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            Start Analysis ({recordCount} records)
+            Start Analysis ({recordCount} records{eodRecordCount > 0 ? ` + ${eodRecordCount} EODs` : ''})
           </button>
         </div>
       )}
