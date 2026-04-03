@@ -1,17 +1,18 @@
 # ✈️ SAFA Trend Analysis Platform
 
-Comprehensive trend analysis and reporting system for aircraft SAFA (Safety Assessment of Foreign Aircraft) findings.
+Comprehensive trend analysis and reporting system for aircraft SAFA (Safety Assessment of Foreign Aircraft) findings with EOD-based alert monitoring.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14.2.3-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.1-orange)
+![Version](https://img.shields.io/badge/version-2.3.0-orange)
 
 ## 🎯 Features
 
 ### 📤 Excel Upload & Data Processing
 - Drag-and-drop or click-to-select XLSX/XLS file upload
+- **Dual file support**: SAFA findings (required) + EOD data (optional)
 - Automatic data validation and cleaning
 - Smart cleaning of EOD numbers and standard patterns
 - Flexible column mapping (W/O Date, ATA, A/C, Description)
@@ -21,36 +22,75 @@ Comprehensive trend analysis and reporting system for aircraft SAFA (Safety Asse
 - **ATA Distribution**: Pie chart showing system category distribution
 - **Problem Type Chart**: Bar chart of problem types (Missing, Damaged, etc.)
 - **All Findings by Component**: Full component listing with finding type breakdown as color-coded tags
-- **Time Series Chart**: Monthly finding count trends
-- **Aircraft Heatmap**: Aircraft × Time density map
-- **ATA Heatmap**: ATA Chapter × Time density map
-- **Component Heatmap**: Component × Time density map
+- **Time Series Chart**: Monthly finding count trends with EOD-based finding rate overlay
+- **Aircraft Heatmap**: Aircraft × Time density map with rate view (F/EOD)
+- **ATA Heatmap**: ATA Chapter × Time density map with rate view (F/EOD)
+- **Component Heatmap**: Component × Time density map with rate view (F/EOD)
+
+### 🚨 General Alert View
+- **3-level alert system**: 🟢 Normal, 🟡 Watch (> avg), 🔴 Alert (> 1.5× avg)
+- **Three alert categories**:
+  - **Aircraft**: Each aircraft's rate compared to that month's fleet-wide average
+  - **Component**: Each component's rate compared to its own average across all active months
+  - **ATA**: Each ATA chapter's rate compared to its own average across all active months
+- **Alert averages match heatmaps exactly** — same calculation logic used everywhere
+- **Clickable alert items** — click any alert/watch row to open detail modal with:
+  - Stats header: Findings, EODs, Rate, Avg Rate, Ratio
+  - Searchable findings table with pagination
+  - Excel export per alert item
+- **Filter by type**: All, Aircraft, Component, ATA
+- **Filter by level**: All, Alert Only, Watch Only
+- Months with no EOD data excluded from average calculations
 
 ### 🔍 Interactive Detail View
-- Click on any chart or list item to view details
+- Click on any chart, list item, or heatmap cell to view details
 - Modal window with filtered records
 - Live search and pagination
 - Excel export from detail view
 
 ### 🎛️ Advanced Filters
-- Date range selection
+- **Quick Date Range Buttons**: Last 1M, Last 3M, Last 6M, Last 12M, YTD, Full Range
+  - Based on the latest date in the dataset
+  - Active selection highlighted in blue
+  - Selected range shown as amber badge in filter header
+- Manual date range selection (Start Date / End Date)
 - Aircraft type filter (B737-NG / B737-MAX)
 - Aircraft multi-select with search
 - ATA chapter selection with search
 - Problem type filtering
 - Component filtering with search
 - Active filter counter
+- **EOD records also filtered** — date range and aircraft filters apply to EOD data too, so all rates and averages reflect the selected period
 
 ### 📅 Period Comparison
 - Compare two custom date periods side by side
 - Quick select buttons (First 6 vs Last 6 months, 2024 vs 2025, Q1 vs Q2, Q3 vs Q4)
 - Most increased / decreased problems
 - Component comparison bar chart
+- Fleet normalization (per-aircraft averages)
 
 ### 💾 Export & Reporting
-- Excel export (all data or filtered)
-- Detail modal export
-- Clean, analyzed data output
+
+#### Full Report (Multi-Sheet Excel)
+Click **"Full Report"** button to export all data as a comprehensive multi-sheet Excel file:
+
+| Sheet | Content |
+|-------|--------|
+| **Time Series** | Monthly findings, EODs, rate + summary (total, avg, highest, lowest, avg rate) |
+| **Component (Count)** | Component × Month count heatmap + Total column |
+| **Component (Rate)** | Rate values + Avg Rate + Alert Level column (🔴/🟡/🟢) |
+| **Aircraft (Count)** | Aircraft × Month count heatmap + Total column |
+| **Aircraft (Rate)** | Fleet Avg row + rate values + Max Alert column |
+| **ATA (Count)** | ATA × Month count with chapter names + Total column |
+| **ATA (Rate)** | Rate values + Avg Rate + Alert Level + EOD Total row |
+| **Alerts** | All alert/watch items with level, type, name, month, findings, EODs, rate, avg, ratio + summary |
+| **Raw Data** | All filtered finding records |
+
+#### Raw Data Export
+Click **"Raw Data"** button for a single-sheet Excel with all filtered records.
+
+#### Detail Modal Export
+Export filtered records from any detail modal view.
 
 ## 🚀 Installation
 
@@ -112,6 +152,8 @@ vercel
 
 ### 1. Excel Format
 
+#### SAFA Findings File (Required)
+
 Your Excel file should contain the following columns:
 
 | Column Name | Description | Example |
@@ -127,10 +169,22 @@ Your Excel file should contain the following columns:
 - Aircraft: `a/c`, `ac`, `aircraft`, `registration`
 - Description: `description`, `aciklama`, `finding`, `desc`
 
+#### EOD File (Optional)
+
+Upload an EOD Excel file to enable rate-based analysis and alerts:
+
+| Column Name | Description | Example |
+|-------------|-------------|----------|
+| Event | EOD event number | EOD-B737-00-0001 |
+| A/C | Aircraft tail number | TC-SOH |
+| Perf. Date | Performance date | 15.06.2024 |
+| Event Status | Status | OPEN / CLOSED |
+| Work Order | Work order | 1234567 |
+
 ### 2. Data Upload
 
-1. On the home page, click the "Drag and drop your Excel file or click here" area
-2. Select your XLSX or XLS file
+1. On the home page, upload your **SAFA findings Excel file** (required)
+2. Optionally upload an **EOD Excel file** to enable rate analysis
 3. The system will automatically process the data and redirect to the dashboard
 
 ### 3. Dashboard Usage
@@ -141,9 +195,13 @@ Your Excel file should contain the following columns:
 - Analyze distribution by problem type
 
 #### Trend Analysis Tab
-- Track changes over time with the monthly trend chart
-- Click **heatmap cells** to view details for that aircraft/ATA + month combination
-- Discover which aircraft or systems had the most findings in which months
+- **General Alert View** at the top — click any alert item to see findings detail
+- **Quick Date Range** buttons for fast period selection
+- Track changes over time with the monthly trend chart (with rate overlay when EOD loaded)
+- Toggle **Count / Rate (F/EOD)** on all heatmaps
+- Click **heatmap cells** to view details for that combination
+- Search and paginate through all heatmaps
+- All rates and averages update when filters change
 
 #### Period Analysis Tab
 - Use quick select buttons or enter custom date ranges
@@ -158,13 +216,16 @@ Your Excel file should contain the following columns:
 
 ### 4. Filters
 
+- **Quick Date Range**: Last 1M / 3M / 6M / 12M / YTD / Full Range
+- **Manual Date Range**: Select start and end dates
 - **Aircraft Type**: Filter by B737-NG or B737-MAX fleet
-- **Date Range**: Select start and end dates
 - **Aircraft**: Multi-select with search
 - **ATA Chapter**: Filter by system categories with search
 - **Problem Type**: MISSING, DAMAGED, LOOSE, etc.
 - **Component**: Filter by component with search
 - **Clear**: Reset all filters
+
+> **Note**: Date range and aircraft filters also apply to EOD records, ensuring all rate calculations reflect the selected period.
 
 ## 🧹 Data Cleaning
 
@@ -236,6 +297,30 @@ The system automatically recognizes and groups the following components:
 | `ADJUSTMENT` | Adjustment, out of adjustment |
 | `OTHER` | Unclassified |
 
+## 📐 Rate & Alert Calculation Logic
+
+### Finding Rate
+```
+Rate = Number of Findings / Number of EOD Applications (per month)
+```
+
+### Alert Levels
+| Level | Condition |
+|-------|-----------|
+| 🟢 **Normal** | Rate ≤ Average |
+| 🟡 **Watch** | Average < Rate ≤ 1.5× Average |
+| 🔴 **Alert** | Rate > 1.5× Average |
+
+### Average Calculation by Category
+
+| Category | Average Baseline | Matches |
+|----------|-----------------|----------|
+| **Aircraft** | Fleet-wide monthly avg = `totalFindings ÷ totalEODs` for that month | AircraftHeatmap |
+| **Component** | Per-component own avg across all months where EOD exists (rate=0 included if no findings) | ComponentHeatmap |
+| **ATA** | Per-ATA own avg across all months where EOD exists (rate=0 included if no findings) | ATAHeatmap |
+
+> Months with no EOD data are excluded from average calculations (not counted as zero).
+
 ## 🏗️ Technology Stack
 
 - **Framework**: Next.js 14 (App Router)
@@ -261,22 +346,26 @@ safa-trend-analysis/
 │   ├── page.tsx             # Home page (with version display)
 │   └── globals.css
 ├── components/
-│   ├── FileUpload.tsx       # Excel upload component
+│   ├── FileUpload.tsx       # Excel upload (SAFA + EOD)
 │   ├── DashboardStats.tsx   # Statistics cards
-│   ├── TrendChart.tsx       # Time series chart
-│   ├── AircraftHeatmap.tsx  # Aircraft heatmap
-│   ├── ATAHeatmap.tsx       # ATA chapter heatmap
-│   ├── ComponentHeatmap.tsx # Component heatmap
+│   ├── TrendChart.tsx       # Time series chart with rate overlay
+│   ├── AircraftHeatmap.tsx  # Aircraft heatmap with rate toggle
+│   ├── ATAHeatmap.tsx       # ATA chapter heatmap with rate toggle
+│   ├── ComponentHeatmap.tsx # Component heatmap with rate toggle
+│   ├── EODAlertPanel.tsx    # General Alert View with detail modal
 │   ├── ATADistribution.tsx  # Pie chart
 │   ├── ProblemTypeChart.tsx # Bar chart
 │   ├── TopProblems.tsx      # All findings by component
 │   ├── PeriodComparison.tsx # Period comparison analysis
-│   ├── FilterPanel.tsx      # Filtering UI
+│   ├── FilterPanel.tsx      # Filtering UI with quick date buttons
 │   ├── DataTable.tsx        # Data table with sorting
 │   └── DetailModal.tsx      # Modal for record details
 ├── lib/
 │   ├── dataProcessor.ts     # Data cleaning & processing
-│   └── types.ts             # TypeScript types
+│   ├── eodProcessor.ts      # EOD processing, rates & alert generation
+│   ├── excelExporter.ts     # Full report multi-sheet Excel export
+│   ├── types.ts             # TypeScript types
+│   └── version.ts           # App version
 ├── CHANGELOG.md             # Version history
 ├── package.json
 ├── tailwind.config.js
