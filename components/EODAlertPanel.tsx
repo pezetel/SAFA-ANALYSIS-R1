@@ -174,7 +174,7 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
             </div>
             <div className="text-left">
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                EOD-Based Alert System
+                General Alert View
                 {alertCount > 0 && (
                   <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-full">
                     {alertCount} Alert{alertCount > 1 ? 's' : ''}

@@ -1,5 +1,49 @@
 # Changelog
 
+## [2.3.0] - 2025-01-28
+
+### Added
+- **General Alert View** — Alert panel renamed to "General Alert View" with clear section identity in Trend Analysis tab
+- **Alert Detail Modal** — Click any alert/watch item in the General Alert View to open a full detail modal showing all matching findings
+  - Stats header: Findings, EODs, Rate, Avg Rate, Ratio displayed prominently
+  - Searchable findings table with W/O, Date, Aircraft, ATA, Problem Type, Component, Description
+  - Pagination (First/Previous/Next/Last) and Excel export per alert item
+- **Quick Date Range Buttons** — Filter panel now has quick-select buttons: Last 1M, Last 3M, Last 6M, Last 12M, YTD, Full Range
+  - Based on the latest date in the dataset
+  - Active selection highlighted in blue
+  - Selected date range shown as amber badge in filter header
+  - "Clear dates" button for quick reset
+  - Manual date inputs still available below
+- **Full Report Excel Export** — New "Full Report" button (blue) in header exports multi-sheet Excel:
+  - Time Series: monthly findings, EODs, rate + summary stats
+  - Component (Count): component × month heatmap with totals
+  - Component (Rate): rate values + Avg Rate + Alert Level columns
+  - Aircraft (Count): aircraft × month heatmap with totals
+  - Aircraft (Rate): Fleet Avg row + rate values + Max Alert column
+  - ATA (Count): ATA × month heatmap with chapter names + totals
+  - ATA (Rate): rate values + Avg Rate + Alert Level + EOD Total row
+  - Alerts: all alert/watch items with level, type, name, month, findings, EODs, rate, avg, ratio + summary
+  - Raw Data: all filtered finding records
+- **EOD Period Filtering** — Date range and aircraft filters now also filter EOD records, so all rate calculations, averages, and alerts reflect the selected period
+  - Header shows filtered EOD count when filters are active
+  - Aircraft type filter (NG/MAX) filters EOD records by aircraft too
+
+### Changed
+- **Alert Panel averages now match heatmaps exactly:**
+  - Aircraft alerts: compare each aircraft's rate to that month's fleet-wide average (totalFindings ÷ totalEODs), matching AircraftHeatmap
+  - Component alerts: per-component own average across ALL months where rate ≥ 0 (including months with 0 findings but EOD exists), matching ComponentHeatmap
+  - ATA alerts: per-ATA own average across ALL months where rate ≥ 0 (including months with 0 findings but EOD exists), matching ATAHeatmap
+- **Component Heatmap responsive width** — Removed fixed `w-16`/`w-40` cell widths, table now uses `w-full` to fill container; fewer months = larger cells that fill the available space
+- **Export buttons reorganized** — "Full Report" (blue, multi-sheet) and "Raw Data" (green, single sheet) clearly separated
+
+### Fixed
+- Alert panel was using a single global average for all components/ATAs instead of per-item averages — now each component/ATA uses its own average matching the heatmap calculation
+- Alert panel was using a single global average for aircraft instead of per-month fleet average — now uses monthly fleet average matching AircraftHeatmap
+- EOD records were not filtered when date range or aircraft filters were applied — TrendChart, heatmaps, and alert panel all received unfiltered EOD data causing incorrect rates for selected periods
+- Component heatmap cells did not expand to fill container when fewer months were selected (e.g. Last 3M showed tiny cells with empty space)
+
+---
+
 ## [2.2.0] - 2025-01-27
 
 ### Added
