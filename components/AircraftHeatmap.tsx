@@ -56,7 +56,28 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
     return map;
   }, [eodRecords, hasEOD]);
 
-  // Rate data
+  // Total EOD per month (fleet-wide) for monthly average calculation
+  const totalEODPerMonth = useMemo(() => {
+    if (!hasEOD) return {};
+    const map: Record<string, number> = {};
+    eodRecords!.forEach(e => {
+      const month = format(startOfMonth(new Date(e.perfDate)), 'yyyy-MM');
+      map[month] = (map[month] || 0) + 1;
+    });
+    return map;
+  }, [eodRecords, hasEOD]);
+
+  // Total findings per month (fleet-wide)
+  const totalFindingsPerMonth = useMemo(() => {
+    const map: Record<string, number> = {};
+    records.forEach(r => {
+      const month = format(startOfMonth(new Date(r.date)), 'yyyy-MM');
+      map[month] = (map[month] || 0) + 1;
+    });
+    return map;
+  }, [records]);
+
+  // Rate data: aircraft finding count / aircraft EOD count for that month
   const rateData = useMemo(() => {
     if (!hasEOD) return {};
     const rates: Record<string, Record<string, number>> = {};
@@ -71,21 +92,28 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
     return rates;
   }, [aircraft, months, heatmapData, eodByAircraftMonth, hasEOD]);
 
-  // Fleet-wide average rate
-  const avgRate = useMemo(() => {
-    if (!hasEOD) return 0;
-    const allRates: number[] = [];
-    aircraft.forEach(ac => {
-      months.forEach(month => {
-        const r = rateData[ac]?.[month];
-        if (r !== undefined && r >= 0) {
-          allRates.push(r);
-        }
-      });
+  // Monthly average rate: total findings that month / total EODs that month
+  // This is the "fleet average for the month" used as the baseline for each aircraft
+  const monthlyAvgRate = useMemo(() => {
+    if (!hasEOD) return {};
+    const avgs: Record<string, number> = {};
+    months.forEach(month => {
+      const totalFindings = totalFindingsPerMonth[month] || 0;
+      const totalEODs = totalEODPerMonth[month] || 0;
+      avgs[month] = totalEODs > 0 ? totalFindings / totalEODs : 0;
     });
-    if (allRates.length === 0) return 0;
-    return allRates.reduce((a, b) => a + b, 0) / allRates.length;
-  }, [rateData, aircraft, months, hasEOD]);
+    return avgs;
+  }, [months, totalFindingsPerMonth, totalEODPerMonth, hasEOD]);
+
+  // Overall fleet average (for display/stats purposes)
+  const overallAvgRate = useMemo(() => {
+    if (!hasEOD) return 0;
+    const validRates = months
+      .map(m => monthlyAvgRate[m])
+      .filter(r => r !== undefined && r > 0);
+    if (validRates.length === 0) return 0;
+    return validRates.reduce((a, b) => a + b, 0) / validRates.length;
+  }, [monthlyAvgRate, months, hasEOD]);
 
   const maxValue = Math.max(
     ...Object.values(heatmapData).flatMap(monthData => Object.values(monthData)),
@@ -101,10 +129,11 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
     return 'bg-green-200';
   };
 
-  const getRateColor = (rate: number) => {
+  const getRateColor = (rate: number, month: string) => {
     if (rate < 0) return 'bg-gray-100 text-gray-400';
     if (rate === 0) return 'bg-gray-50';
-    const level = getAlertLevel(rate, avgRate);
+    const avgForMonth = monthlyAvgRate[month] || 0;
+    const level = getAlertLevel(rate, avgForMonth);
     if (level === 'alert') return 'bg-red-500 text-white';
     if (level === 'watch') return 'bg-yellow-300 text-gray-900';
     return 'bg-green-200 text-gray-900';
@@ -149,6 +178,7 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
             <h2 className="text-base font-bold text-gray-900">Aircraft - Time Heat Map</h2>
             <p className="text-xs text-gray-600 mt-0.5">
               Monthly finding density ({showAll ? `All ${totalAircraft}` : `Top ${Math.min(showCount, totalAircraft)} of ${sortedAircraft.length}`} aircraft{searchTerm ? `, filtered by "${searchTerm}"` : ''}) - Click cells to view details
+              {hasEOD && viewMode === 'rate' && ' — Each aircraft compared to that month\'s fleet average'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -237,7 +267,13 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
                 </th>
                 {months.map(month => (
                   <th key={month} className="p-1.5 text-center font-medium text-gray-700 border-b-2 border-gray-200">
-                    {format(new Date(month + '-01'), 'MMM yy', { locale: enUS })}
+                    <div>{format(new Date(month + '-01'), 'MMM yy', { locale: enUS })}</div>
+                    {viewMode === 'rate' && hasEOD && (
+                      <div className="text-[9px] font-normal text-amber-600 mt-0.5"
+                           title={`Fleet avg for ${month}: ${(monthlyAvgRate[month] || 0).toFixed(3)}`}>
+                        avg {(monthlyAvgRate[month] || 0).toFixed(2)}
+                      </div>
+                    )}
                   </th>
                 ))}
                 <th className="p-1.5 text-center font-semibold text-gray-700 border-b-2 border-gray-200">
@@ -258,9 +294,10 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
                       const rate = rateData[ac]?.[month];
                       const isRateMode = viewMode === 'rate' && hasEOD;
                       const eodCount = eodByAircraftMonth[ac]?.[month] || 0;
+                      const avgForMonth = monthlyAvgRate[month] || 0;
 
                       const colorClass = isRateMode
-                        ? getRateColor(rate ?? -1)
+                        ? getRateColor(rate ?? -1, month)
                         : getColor(value);
 
                       const displayValue = isRateMode
@@ -268,7 +305,7 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
                         : (value > 0 ? value : '');
 
                       const title = isRateMode
-                        ? `${ac} - ${month}: ${value} findings / ${eodCount} EODs = Rate ${rate !== undefined && rate >= 0 ? rate.toFixed(3) : 'N/A'} (fleet avg: ${avgRate.toFixed(3)})`
+                        ? `${ac} - ${month}: ${value} findings / ${eodCount} EODs = Rate ${rate !== undefined && rate >= 0 ? rate.toFixed(3) : 'N/A'} (month fleet avg: ${avgForMonth.toFixed(3)})`
                         : `${ac} - ${month}: ${value} findings`;
 
                       return (
@@ -333,28 +370,37 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
         {viewMode === 'rate' && hasEOD ? (
           <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
             <div className="flex items-start gap-2 mb-2">
-              <span className="text-xs font-semibold text-amber-900">📊 Rate View (Findings / EOD per aircraft):</span>
-              <span className="text-xs text-amber-700">Colors based on fleet-wide average rate ({avgRate.toFixed(3)})</span>
+              <span className="text-xs font-semibold text-amber-900">📊 Rate View (Aircraft Findings / Aircraft EOD per month):</span>
             </div>
+            <p className="text-xs text-amber-800 mb-2">
+              Each aircraft&apos;s rate = <strong>that aircraft&apos;s findings ÷ that aircraft&apos;s EOD count</strong> for the given month.
+              This is compared to the <strong>fleet-wide monthly average</strong> (total findings ÷ total EODs for that same month).
+              For example: if the fleet had 100 findings and 50 EODs in August, the August avg is 2.00.
+              An aircraft with rate &gt; 2.00 is above average for that month.
+            </p>
             <div className="flex items-center gap-4 text-xs text-gray-700 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-green-200 rounded border border-green-300"></div>
-                <span><strong>Normal:</strong> ≤ fleet avg</span>
+                <span><strong>Normal:</strong> ≤ month avg</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-yellow-300 rounded border border-yellow-400"></div>
-                <span><strong>Watch:</strong> &gt; fleet avg &amp; ≤ 1.5×</span>
+                <span><strong>Watch:</strong> &gt; month avg &amp; ≤ 1.5×</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-red-500 rounded border border-red-600"></div>
-                <span><strong>Alert:</strong> &gt; 1.5× fleet avg</span>
+                <span><strong>Alert:</strong> &gt; 1.5× month avg</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-gray-100 rounded border border-gray-300"></div>
                 <span><strong>N/A:</strong> No EOD data</span>
               </div>
             </div>
-            <p className="text-xs text-amber-600 mt-2">* Value with asterisk means findings exist but no EOD data for that aircraft/month</p>
+            <div className="mt-2 flex items-center gap-4 text-xs text-amber-700">
+              <span>Overall fleet avg rate: <strong>{overallAvgRate.toFixed(3)}</strong></span>
+              <span>•</span>
+              <span>* Value with asterisk means findings exist but no EOD data for that aircraft/month</span>
+            </div>
           </div>
         ) : (
           <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
