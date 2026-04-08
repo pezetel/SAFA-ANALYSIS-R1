@@ -1,5 +1,43 @@
 # Changelog
 
+## [2.4.0] - 2026-04-08
+
+### Changed
+- **Heatmap σ column replaced with Threshold** — In both Component-Time Heatmap and ATA Chapter-Time Heat Map, the σ (sigma) column in Rate view has been removed and replaced with a **Threshold** column
+  - Threshold = Weighted Avg + (σ Multiplier × Weighted Sigma)
+  - Threshold value updates dynamically when the Sigma Control multiplier is changed from the top control bar
+  - Threshold column styled with red tones (bg-red-50, border-red-200, text-red-800) to clearly distinguish from the Avg column
+  - Tooltip hover text updated to show threshold instead of raw sigma value
+  - Legend/info boxes updated: "Normal: ≤ Threshold" and "Alert: > Threshold" replacing sigma formula references
+  - Subtitle text updated to show "Threshold: Avg + Nσ" instead of "Avg + Nσ threshold"
+- **μ symbol removed from all displays** — All occurrences of the μ (mu) symbol replaced with human-readable "Avg" or "Wt. Avg" labels across the entire codebase (heatmaps, tooltips, chart labels, alert panels, info popovers)
+- **SigmaControl redesigned as compact widget** — Removed old filter-style sigma input; replaced with a sleek inline widget featuring:
+  - "Sigma (σ) Multiplier" label with indigo icon badge
+  - Horizontal volume-bar style selector (1, 1.5, 2, 2.5, 3, 3.5, 4) with ascending bar heights
+  - Filled bars up to selected value for visual feedback
+  - Current threshold indicator (e.g. "Alert at 2σ")
+  - ℹ️ info button that reveals/hides a detailed explanation popover describing weighted average, weighted sigma, and alert logic
+- **"Watch" alert level removed entirely** — Only two levels remain: `normal` and `alert`
+  - Removed `watchMultiplier` from `DEFAULT_SIGMA` in dashboard page
+  - Removed `watchMultiplier` validation from localStorage persistence logic
+  - Removed yellow "Watch" color branch from `AircraftHeatmap` rate view (`getRateColor`)
+  - Updated Aircraft heatmap legend: removed "Watch: > month avg & ≤ 1.5×" row; Normal now shows "≤ 1.5× month avg", Alert shows "> 1.5× month avg"
+  - `SigmaSettings` type confirmed to only contain `{ multiplier: number }` — no watch-related fields
+  - `getAlertLevel()` and `getAlertLevelSigma()` return type is `'normal' | 'alert'` only
+- **Aircraft heatmap kept as monthly-average-based** — No sigma props passed; continues to use `getAlertLevel()` which compares each aircraft's rate to that month's fleet-wide average (alert threshold: > 1.5× monthly fleet avg)
+- **Component heatmap uses sigma-based thresholds** — Each component's own weighted Avg + Nσ across all months via `getAlertLevelSigma()`, controlled by SigmaControl multiplier
+- **ATA heatmap uses sigma-based thresholds** — Each ATA chapter's own weighted Avg + Nσ across all months via `getAlertLevelSigma()`, controlled by SigmaControl multiplier
+- **TrendChart uses sigma-based thresholds** — Alert reference line and dot coloring use overall weighted Avg + Nσ, responsive to SigmaControl multiplier
+- **EODAlertPanel uses sigma-based thresholds** — All alert generation (aircraft, component, ATA) uses `getAlertLevelSigma()` with the selected sigma multiplier
+
+### Removed
+- `watchMultiplier` property from all sigma settings defaults and localStorage parsing
+- "Watch" level badge rendering and yellow color mapping from all components
+- Dead code branch `if (level === 'watch')` in `AircraftHeatmap.tsx`
+- **σ (sigma) column** from Component Heatmap and ATA Heatmap rate view — replaced by computed Threshold column
+
+---
+
 ## [2.3.0] - 2025-01-28
 
 ### Added

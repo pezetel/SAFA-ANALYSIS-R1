@@ -1,7 +1,7 @@
 'use client';
 
-import { AlertItem, EODRecord, SAFARecord } from '@/lib/types';
-import { generateAlerts, getOverallMonthlyRate } from '@/lib/eodProcessor';
+import { AlertItem, EODRecord, SAFARecord, SigmaSettings } from '@/lib/types';
+import { generateAlerts, getOverallMonthlyRate, computeWeightedStats } from '@/lib/eodProcessor';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, TrendingUp, Activity, ChevronDown, ChevronUp, Plane, Cpu, BookOpen, Info, X, Download, Search, ExternalLink } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -11,23 +11,31 @@ import * as XLSX from 'xlsx';
 interface EODAlertPanelProps {
   findings: SAFARecord[];
   eodRecords: EODRecord[];
+  sigmaSettings?: SigmaSettings;
 }
+
+const DEFAULT_SIGMA: SigmaSettings = { multiplier: 2 };
 
 interface AlertDetailModal {
   alert: AlertItem;
   records: SAFARecord[];
 }
 
-export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
+export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SIGMA }: EODAlertPanelProps) {
   const [expanded, setExpanded] = useState(true);
   const [filterType, setFilterType] = useState<'all' | 'aircraft' | 'component' | 'ata'>('all');
-  const [filterLevel, setFilterLevel] = useState<'all' | 'alert' | 'watch'>('all');
   const [selectedAlert, setSelectedAlert] = useState<AlertDetailModal | null>(null);
   const [detailSearch, setDetailSearch] = useState('');
   const [detailPage, setDetailPage] = useState(1);
   const detailPageSize = 10;
 
-  const alerts = useMemo(() => generateAlerts(findings, eodRecords), [findings, eodRecords]);
+  // Use sigmaSettings.multiplier as primitive dependency so useMemo always reacts
+  const sigmaMultiplier = sigmaSettings.multiplier;
+
+  const alerts = useMemo(
+    () => generateAlerts(findings, eodRecords, { multiplier: sigmaMultiplier }),
+    [findings, eodRecords, sigmaMultiplier]
+  );
   const monthlyRate = useMemo(() => getOverallMonthlyRate(findings, eodRecords), [findings, eodRecords]);
 
   const filteredAlerts = useMemo(() => {
@@ -35,25 +43,25 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
     if (filterType !== 'all') {
       result = result.filter(a => a.type === filterType);
     }
-    if (filterLevel !== 'all') {
-      result = result.filter(a => a.level === filterLevel);
-    }
     return result;
-  }, [alerts, filterType, filterLevel]);
+  }, [alerts, filterType]);
 
-  const alertCount = alerts.filter(a => a.level === 'alert').length;
-  const watchCount = alerts.filter(a => a.level === 'watch').length;
+  const alertCount = alerts.length;
 
-  const overallAvgRate = useMemo(() => {
+  // Weighted average rate for overall display
+  const overallWeightedStats = useMemo(() => {
     const withData = monthlyRate.filter(m => m.eods > 0);
-    if (withData.length === 0) return 0;
-    return withData.reduce((sum, m) => sum + m.rate, 0) / withData.length;
+    if (withData.length === 0) return { weightedAvg: 0, weightedSigma: 0 };
+    const rates = withData.map(m => m.rate);
+    const weights = withData.map(m => m.eods);
+    return computeWeightedStats(rates, weights);
   }, [monthlyRate]);
 
   const latestMonth = monthlyRate.length > 0 ? monthlyRate[monthlyRate.length - 1] : null;
 
+  const alertThresholdVal = overallWeightedStats.weightedAvg + sigmaMultiplier * overallWeightedStats.weightedSigma;
+
   const handleAlertClick = (alert: AlertItem) => {
-    // Filter findings that match this alert
     const monthStart = startOfMonth(parseISO(alert.month + '-01'));
     const monthEnd = endOfMonth(parseISO(alert.month + '-01'));
 
@@ -62,7 +70,6 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
       return fDate >= monthStart && fDate <= monthEnd;
     });
 
-    // Further filter by alert type
     if (alert.type === 'aircraft') {
       matchedRecords = matchedRecords.filter(f => f.aircraft === alert.name);
     } else if (alert.type === 'component') {
@@ -102,14 +109,7 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
 
   const getLevelBadge = (level: string, size: 'sm' | 'md' = 'sm') => {
     const cls = size === 'md' ? 'px-3 py-1 text-sm' : 'px-2 py-0.5 text-xs';
-    switch (level) {
-      case 'alert':
-        return <span className={`inline-flex items-center gap-1 rounded-full font-bold bg-red-100 text-red-700 ${cls}`}>🔴 ALERT</span>;
-      case 'watch':
-        return <span className={`inline-flex items-center gap-1 rounded-full font-bold bg-yellow-100 text-yellow-700 ${cls}`}>🟡 WATCH</span>;
-      default:
-        return <span className={`inline-flex items-center gap-1 rounded-full font-medium bg-green-100 text-green-700 ${cls}`}>🟢 Normal</span>;
-    }
+    return <span className={`inline-flex items-center gap-1 rounded-full font-bold bg-red-100 text-red-700 ${cls}`}>ALERT</span>;
   };
 
   // Detail modal filtered records
@@ -180,13 +180,11 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
                     {alertCount} Alert{alertCount > 1 ? 's' : ''}
                   </span>
                 )}
-                {watchCount > 0 && (
-                  <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">
-                    {watchCount} Watch
-                  </span>
-                )}
+                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">
+                  Threshold: {sigmaMultiplier === 0 ? 'Above Avg' : `${sigmaMultiplier}σ`}
+                </span>
               </h2>
-              <p className="text-xs text-gray-500">Finding Rate = Findings / EOD Applications • Click any item to see findings detail</p>
+              <p className="text-xs text-gray-500">Weighted Avg + Weighted Sigma thresholds &bull; Ratio = Rate / Threshold &bull; Click any item to see findings detail</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -196,17 +194,25 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
                 <p className="text-sm font-bold text-blue-900">{eodRecords.length.toLocaleString()}</p>
               </div>
               <div className="text-center px-3 py-1 bg-amber-50 rounded-lg">
-                <p className="text-xs text-amber-600 font-medium">Overall Avg Rate</p>
-                <p className="text-sm font-bold text-amber-900">{overallAvgRate.toFixed(2)}</p>
+                <p className="text-xs text-amber-600 font-medium">Wt. Avg</p>
+                <p className="text-sm font-bold text-amber-900">{overallWeightedStats.weightedAvg.toFixed(3)}</p>
+              </div>
+              <div className="text-center px-3 py-1 bg-purple-50 rounded-lg">
+                <p className="text-xs text-purple-600 font-medium">Wt. Sigma</p>
+                <p className="text-sm font-bold text-purple-900">{overallWeightedStats.weightedSigma.toFixed(3)}</p>
+              </div>
+              <div className="text-center px-3 py-1 bg-orange-50 rounded-lg">
+                <p className="text-xs text-orange-600 font-medium">Threshold</p>
+                <p className="text-sm font-bold text-orange-900">{alertThresholdVal.toFixed(3)}</p>
               </div>
               {latestMonth && latestMonth.eods > 0 && (
                 <div className={`text-center px-3 py-1 rounded-lg ${
-                  latestMonth.rate > overallAvgRate * 1.5 ? 'bg-red-50' : latestMonth.rate > overallAvgRate ? 'bg-yellow-50' : 'bg-green-50'
+                  latestMonth.rate > alertThresholdVal ? 'bg-red-50' : 'bg-green-50'
                 }`}>
                   <p className="text-xs text-gray-600 font-medium">Latest Rate</p>
                   <p className={`text-sm font-bold ${
-                    latestMonth.rate > overallAvgRate * 1.5 ? 'text-red-700' : latestMonth.rate > overallAvgRate ? 'text-yellow-700' : 'text-green-700'
-                  }`}>{latestMonth.rate.toFixed(2)}</p>
+                    latestMonth.rate > alertThresholdVal ? 'text-red-700' : 'text-green-700'
+                  }`}>{latestMonth.rate.toFixed(3)}</p>
                 </div>
               )}
             </div>
@@ -216,57 +222,21 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
 
         {expanded && (
           <div className="border-t border-gray-200">
-            {/* Explanation Banner */}
-            <div className="mx-4 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="text-xs text-blue-800">
-                  <p className="font-semibold mb-1">How does it work?</p>
-                  <p><strong>Finding Rate</strong> = Number of Findings / Number of EOD Applications per month.</p>
-                  <p><strong>🟢 Normal:</strong> Rate ≤ Average | <strong>🟡 Watch:</strong> Average &lt; Rate ≤ 1.5× Average | <strong>🔴 Alert:</strong> Rate &gt; 1.5× Average</p>
-                  <p className="mt-1"><strong>Aircraft:</strong> Each aircraft's rate compared to that month's fleet-wide average.</p>
-                  <p><strong>Component:</strong> Each component's rate compared to its own average across active months.</p>
-                  <p><strong>ATA:</strong> Each ATA chapter's rate compared to its own average across active months.</p>
-                  <p className="mt-1 text-blue-600">Months with no EOD data are excluded from average calculations. Click any alert row to view its findings.</p>
-                </div>
-              </div>
-            </div>
-
             {/* Filters */}
             <div className="px-4 pt-3 pb-2 flex items-center gap-3 flex-wrap">
               <span className="text-xs font-medium text-gray-500">Filter:</span>
               <div className="flex gap-1">
                 {[
                   { key: 'all' as const, label: 'All' },
-                  { key: 'aircraft' as const, label: '✈️ Aircraft' },
-                  { key: 'component' as const, label: '🔧 Component' },
-                  { key: 'ata' as const, label: '📖 ATA' },
+                  { key: 'aircraft' as const, label: 'Aircraft' },
+                  { key: 'component' as const, label: 'Component' },
+                  { key: 'ata' as const, label: 'ATA' },
                 ].map(item => (
                   <button
                     key={item.key}
                     onClick={() => setFilterType(item.key)}
                     className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
                       filterType === item.key
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              <div className="h-4 w-px bg-gray-300" />
-              <div className="flex gap-1">
-                {[
-                  { key: 'all' as const, label: 'All Levels' },
-                  { key: 'alert' as const, label: '🔴 Alert Only' },
-                  { key: 'watch' as const, label: '🟡 Watch Only' },
-                ].map(item => (
-                  <button
-                    key={item.key}
-                    onClick={() => setFilterLevel(item.key)}
-                    className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
-                      filterLevel === item.key
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
@@ -284,7 +254,11 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
                 <div className="text-center py-8">
                   <Activity className="h-8 w-8 text-green-300 mx-auto mb-2" />
                   <p className="text-sm text-gray-500 font-medium">No alerts found</p>
-                  <p className="text-xs text-gray-400">All metrics are within normal range</p>
+                  <p className="text-xs text-gray-400">
+                    {sigmaMultiplier === 0
+                      ? 'All metrics are at or below weighted average'
+                      : `All metrics are within Avg + ${sigmaMultiplier} × Sigma range`}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -292,15 +266,9 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
                     <div
                       key={`${alert.type}-${alert.name}-${alert.month}-${idx}`}
                       onClick={() => handleAlertClick(alert)}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer group ${
-                        alert.level === 'alert'
-                          ? 'bg-red-50 border-red-200 hover:bg-red-100 hover:shadow-md'
-                          : 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100 hover:shadow-md'
-                      }`}
+                      className="flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer group bg-red-50 border-red-200 hover:bg-red-100 hover:shadow-md"
                     >
-                      <div className={`p-1.5 rounded-lg ${
-                        alert.level === 'alert' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'
-                      }`}>
+                      <div className="p-1.5 rounded-lg bg-red-100 text-red-600">
                         {getTypeIcon(alert.type)}
                       </div>
 
@@ -316,18 +284,19 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
                           {format(parseISO(alert.month + '-01'), 'MMMM yyyy', { locale: enUS })}
                           {' · '}
                           {alert.findings} findings / {alert.eods} EODs
+                          <span className="text-gray-400 ml-1">
+                            (avg: {alert.avgRate.toFixed(3)}, σ: {alert.sigma.toFixed(3)}, thr: {alert.threshold.toFixed(3)})
+                          </span>
                         </p>
                       </div>
 
                       <div className="flex items-center gap-3">
                         <div className="text-right flex-shrink-0">
-                          <p className={`text-lg font-bold ${
-                            alert.level === 'alert' ? 'text-red-600' : 'text-yellow-600'
-                          }`}>
-                            {alert.rate.toFixed(2)}
+                          <p className="text-lg font-bold text-red-600">
+                            {alert.rate.toFixed(3)}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {alert.ratio.toFixed(1)}× avg ({alert.avgRate.toFixed(2)})
+                            {alert.ratio.toFixed(2)}x thr ({alert.threshold.toFixed(3)})
                           </p>
                         </div>
                         <ExternalLink className="h-4 w-4 text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0" />
@@ -359,18 +328,10 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
             {/* Modal */}
             <div className="inline-block w-full max-w-6xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
               {/* Modal Header */}
-              <div className={`p-5 border-b ${
-                selectedAlert.alert.level === 'alert'
-                  ? 'bg-gradient-to-r from-red-50 to-white border-red-200'
-                  : 'bg-gradient-to-r from-yellow-50 to-white border-yellow-200'
-              }`}>
+              <div className="p-5 border-b bg-gradient-to-r from-red-50 to-white border-red-200">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-xl ${
-                      selectedAlert.alert.level === 'alert'
-                        ? 'bg-red-100 text-red-600'
-                        : 'bg-yellow-100 text-yellow-600'
-                    }`}>
+                    <div className="p-3 rounded-xl bg-red-100 text-red-600">
                       {getTypeBigIcon(selectedAlert.alert.type)}
                     </div>
                     <div>
@@ -407,7 +368,7 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
 
                 {/* Stats Row */}
                 <div className="flex items-center gap-4 mt-4">
-                  <div className="flex items-center gap-6 px-4 py-2.5 bg-white rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex items-center gap-6 px-4 py-2.5 bg-white rounded-xl border border-gray-200 shadow-sm flex-wrap">
                     <div className="text-center">
                       <p className="text-xs text-gray-500 font-medium">Findings</p>
                       <p className="text-xl font-bold text-gray-900">{selectedAlert.alert.findings}</p>
@@ -420,24 +381,30 @@ export function EODAlertPanel({ findings, eodRecords }: EODAlertPanelProps) {
                     <div className="h-8 w-px bg-gray-200" />
                     <div className="text-center">
                       <p className="text-xs text-gray-500 font-medium">Rate</p>
-                      <p className={`text-xl font-bold ${
-                        selectedAlert.alert.level === 'alert' ? 'text-red-600' : 'text-yellow-600'
-                      }`}>
+                      <p className="text-xl font-bold text-red-600">
                         {selectedAlert.alert.rate.toFixed(3)}
                       </p>
                     </div>
                     <div className="h-8 w-px bg-gray-200" />
                     <div className="text-center">
-                      <p className="text-xs text-gray-500 font-medium">Avg Rate</p>
+                      <p className="text-xs text-gray-500 font-medium">Wt. Avg</p>
                       <p className="text-xl font-bold text-blue-600">{selectedAlert.alert.avgRate.toFixed(3)}</p>
                     </div>
                     <div className="h-8 w-px bg-gray-200" />
                     <div className="text-center">
-                      <p className="text-xs text-gray-500 font-medium">Ratio</p>
-                      <p className={`text-xl font-bold ${
-                        selectedAlert.alert.level === 'alert' ? 'text-red-600' : 'text-yellow-600'
-                      }`}>
-                        {selectedAlert.alert.ratio.toFixed(1)}×
+                      <p className="text-xs text-gray-500 font-medium">Wt. Sigma</p>
+                      <p className="text-xl font-bold text-purple-600">{selectedAlert.alert.sigma.toFixed(3)}</p>
+                    </div>
+                    <div className="h-8 w-px bg-gray-200" />
+                    <div className="text-center">
+                      <p className="text-xs text-orange-500 font-medium">Threshold</p>
+                      <p className="text-xl font-bold text-orange-600">{selectedAlert.alert.threshold.toFixed(3)}</p>
+                    </div>
+                    <div className="h-8 w-px bg-gray-200" />
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 font-medium">Ratio (Rate/Thr)</p>
+                      <p className="text-xl font-bold text-red-600">
+                        {selectedAlert.alert.ratio.toFixed(2)}x
                       </p>
                     </div>
                   </div>

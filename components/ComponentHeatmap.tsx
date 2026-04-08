@@ -1,19 +1,22 @@
 'use client';
 
-import { SAFARecord, EODRecord } from '@/lib/types';
+import { SAFARecord, EODRecord, SigmaSettings } from '@/lib/types';
 import { useMemo, useState } from 'react';
 import { DetailModal } from './DetailModal';
 import { format, parseISO, startOfMonth } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { getAlertLevel } from '@/lib/eodProcessor';
+import { computeWeightedStats, getAlertLevelSigma } from '@/lib/eodProcessor';
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react';
 
 interface ComponentHeatmapProps {
   records: SAFARecord[];
   eodRecords?: EODRecord[];
+  sigmaSettings?: SigmaSettings;
 }
 
-export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps) {
+const DEFAULT_SIGMA: SigmaSettings = { multiplier: 2 };
+
+export function ComponentHeatmap({ records, eodRecords, sigmaSettings = DEFAULT_SIGMA }: ComponentHeatmapProps) {
   const [selectedRecords, setSelectedRecords] = useState<SAFARecord[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
@@ -49,7 +52,6 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
       new Set(records.map(r => format(new Date(r.date), 'yyyy-MM')))
     ).sort();
 
-    // All components sorted by total count descending
     const allComponents = Object.entries(
       records.reduce((acc, r) => {
         const component = r.component || 'OTHER';
@@ -76,7 +78,6 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
     };
   }, [records]);
 
-  // Apply search filter
   const filteredComponents = useMemo(() => {
     if (!searchTerm.trim()) return heatmapData.allComponents;
     const term = searchTerm.trim().toUpperCase();
@@ -90,7 +91,6 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
   const totalComponents = filteredComponents.length;
   const hasMore = totalComponents > showCount;
 
-  // EOD total per month
   const eodPerMonth = useMemo(() => {
     if (!hasEOD) return {};
     const map: Record<string, number> = {};
@@ -101,7 +101,6 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
     return map;
   }, [eodRecords, hasEOD]);
 
-  // Rate data
   const rateData = useMemo(() => {
     if (!hasEOD) return {};
     const rates: Record<string, Record<string, number>> = {};
@@ -116,24 +115,24 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
     return rates;
   }, [heatmapData, eodPerMonth, hasEOD]);
 
-  // Per-component average rate
-  const avgRatePerComponent = useMemo(() => {
+  const compWeightedStats = useMemo(() => {
     if (!hasEOD) return {};
-    const avgs: Record<string, number> = {};
+    const stats: Record<string, { weightedAvg: number; weightedSigma: number }> = {};
     heatmapData.allComponents.forEach(comp => {
       const rates: number[] = [];
+      const weights: number[] = [];
       heatmapData.months.forEach(month => {
-        const r = rateData[comp]?.[month];
-        if (r !== undefined && r >= 0) {
-          rates.push(r);
+        const eodCount = eodPerMonth[month] || 0;
+        if (eodCount > 0) {
+          const compFindings = heatmapData.data[comp]?.[month] || 0;
+          rates.push(compFindings / eodCount);
+          weights.push(eodCount);
         }
       });
-      avgs[comp] = rates.length > 0
-        ? rates.reduce((a, b) => a + b, 0) / rates.length
-        : 0;
+      stats[comp] = computeWeightedStats(rates, weights);
     });
-    return avgs;
-  }, [rateData, heatmapData, hasEOD]);
+    return stats;
+  }, [heatmapData, eodPerMonth, hasEOD]);
 
   const getColor = (count: number) => {
     if (!count) return 'bg-gray-50';
@@ -145,12 +144,12 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
     return 'bg-blue-200 text-gray-900';
   };
 
-  const getRateColor = (rate: number, componentAvg: number) => {
+  const getRateColor = (rate: number, comp: string) => {
     if (rate < 0) return 'bg-gray-100 text-gray-400';
     if (rate === 0) return 'bg-gray-50';
-    const level = getAlertLevel(rate, componentAvg);
+    const stats = compWeightedStats[comp] || { weightedAvg: 0, weightedSigma: 0 };
+    const level = getAlertLevelSigma(rate, stats.weightedAvg, stats.weightedSigma, sigmaSettings);
     if (level === 'alert') return 'bg-red-500 text-white';
-    if (level === 'watch') return 'bg-yellow-300 text-gray-900';
     return 'bg-green-200 text-gray-900';
   };
 
@@ -160,7 +159,6 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
 
   const handleCellClick = (component: string, month: string, count: number) => {
     if (count === 0) return;
-
     const recs = heatmapData.detailData[component]?.[month] || [];
     const monthName = format(parseISO(month + '-01'), 'MMMM yyyy', { locale: enUS });
     setSelectedRecords(recs);
@@ -176,7 +174,7 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
             <h2 className="text-lg font-bold text-gray-900">Component - Time Heatmap</h2>
             <p className="text-sm text-gray-600 mt-1">
               Monthly problem density by component ({showAll ? `All ${totalComponents}` : `Top ${Math.min(showCount, totalComponents)} of ${heatmapData.allComponents.length}`}{searchTerm ? `, filtered by "${searchTerm}"` : ''})
-              {hasEOD && viewMode === 'rate' && ' — Each component compared to its own avg rate'}
+              {hasEOD && viewMode === 'rate' && ` — Threshold: Avg + ${sigmaSettings.multiplier}σ`}
             </p>
           </div>
           {hasEOD && (
@@ -272,7 +270,14 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
                   {viewMode === 'rate' && hasEOD && (
                     <th className="h-16 align-bottom p-0">
                       <div className="flex items-end justify-center h-full pb-1">
-                        <span className="text-xs font-semibold text-amber-700">Avg Rate</span>
+                        <span className="text-xs font-semibold text-amber-700">Avg</span>
+                      </div>
+                    </th>
+                  )}
+                  {viewMode === 'rate' && hasEOD && (
+                    <th className="h-16 align-bottom p-0">
+                      <div className="flex items-end justify-center h-full pb-1">
+                        <span className="text-xs font-semibold text-red-700">Threshold</span>
                       </div>
                     </th>
                   )}
@@ -289,7 +294,8 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
                     (sum, m) => sum + (heatmapData.data[component]?.[m] || 0),
                     0
                   );
-                  const compAvg = avgRatePerComponent[component] || 0;
+                  const stats = compWeightedStats[component] || { weightedAvg: 0, weightedSigma: 0 };
+                  const threshold = stats.weightedAvg + sigmaSettings.multiplier * stats.weightedSigma;
                   return (
                     <tr key={component}>
                       <td className="pr-2 py-1 text-xs whitespace-nowrap font-medium text-gray-700 align-middle">
@@ -302,7 +308,7 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
                         const eodCount = eodPerMonth[month] || 0;
 
                         const colorClass = isRateMode
-                          ? getRateColor(rate ?? -1, compAvg)
+                          ? getRateColor(rate ?? -1, component)
                           : getColor(count);
 
                         const displayValue = isRateMode
@@ -310,7 +316,7 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
                           : (count > 0 ? count : '');
 
                         const title = isRateMode
-                          ? `${formatComponentName(component)} - ${month}: ${count} findings / ${eodCount} total EODs = Rate ${rate !== undefined && rate >= 0 ? rate.toFixed(3) : 'N/A'} (comp avg: ${compAvg.toFixed(3)})`
+                          ? `${formatComponentName(component)} - ${month}: ${count} findings / ${eodCount} total EODs = Rate ${rate !== undefined && rate >= 0 ? rate.toFixed(3) : 'N/A'} (avg: ${stats.weightedAvg.toFixed(3)}, threshold: ${threshold.toFixed(3)})`
                           : `${formatComponentName(component)} - ${format(parseISO(month + '-01'), 'MMMM yyyy', { locale: enUS })}: ${count} records`;
 
                         return (
@@ -328,7 +334,14 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
                       {viewMode === 'rate' && hasEOD && (
                         <td className="p-0.5">
                           <div className="w-full h-10 bg-amber-50 border border-amber-200 rounded flex items-center justify-center text-xs font-bold text-amber-800">
-                            {compAvg > 0 ? compAvg.toFixed(3) : '—'}
+                            {stats.weightedAvg > 0 ? stats.weightedAvg.toFixed(3) : '—'}
+                          </div>
+                        </td>
+                      )}
+                      {viewMode === 'rate' && hasEOD && (
+                        <td className="p-0.5">
+                          <div className="w-full h-10 bg-red-50 border border-red-200 rounded flex items-center justify-center text-xs font-bold text-red-800">
+                            {threshold > 0 ? threshold.toFixed(3) : '—'}
                           </div>
                         </td>
                       )}
@@ -342,7 +355,7 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
                 })}
                 {displayedComponents.length === 0 && (
                   <tr>
-                    <td colSpan={heatmapData.months.length + (viewMode === 'rate' && hasEOD ? 3 : 2)} className="text-center py-8 text-sm text-gray-400">
+                    <td colSpan={heatmapData.months.length + (viewMode === 'rate' && hasEOD ? 4 : 2)} className="text-center py-8 text-sm text-gray-400">
                       No components found{searchTerm ? ` matching "${searchTerm}"` : ''}
                     </td>
                   </tr>
@@ -352,7 +365,6 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
           </div>
         </div>
 
-        {/* Show More/Less toggle */}
         {hasMore && !showAll && (
           <div className="mt-3 flex justify-center">
             <button
@@ -379,25 +391,18 @@ export function ComponentHeatmap({ records, eodRecords }: ComponentHeatmapProps)
         {/* Color Legend */}
         {viewMode === 'rate' && hasEOD ? (
           <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <div className="flex items-start gap-2 mb-2">
-              <span className="text-xs font-semibold text-amber-900">📊 Rate View (Findings / Total EODs per month):</span>
-            </div>
+            <p className="text-xs font-semibold text-amber-900 mb-2">📊 Rate View (Findings / Total EODs per month) — Weighted Avg + Threshold</p>
             <p className="text-xs text-amber-800 mb-2">
-              Each component is compared to <strong>its own average rate</strong> across all months.
-              This way a rarely occurring component like DRAIN MAST isn't compared to a frequent one like PLACARD.
+              Each component uses EOD-weighted average across all months. Threshold = Avg + {sigmaSettings.multiplier}σ. Change σ multiplier from the control above.
             </p>
             <div className="flex items-center gap-4 text-xs text-gray-700 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-green-200 rounded border border-green-300"></div>
-                <span><strong>Normal:</strong> ≤ comp avg</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-8 h-4 bg-yellow-300 rounded border border-yellow-400"></div>
-                <span><strong>Watch:</strong> &gt; comp avg &amp; ≤ 1.5×</span>
+                <span><strong>Normal:</strong> ≤ Threshold</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-red-500 rounded border border-red-600"></div>
-                <span><strong>Alert:</strong> &gt; 1.5× comp avg</span>
+                <span><strong>Alert:</strong> &gt; Threshold</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-gray-100 rounded border border-gray-300"></div>

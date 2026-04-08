@@ -135,7 +135,6 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
     const avgForMonth = monthlyAvgRate[month] || 0;
     const level = getAlertLevel(rate, avgForMonth);
     if (level === 'alert') return 'bg-red-500 text-white';
-    if (level === 'watch') return 'bg-yellow-300 text-gray-900';
     return 'bg-green-200 text-gray-900';
   };
 
@@ -381,11 +380,7 @@ export function AircraftHeatmap({ records, eodRecords }: AircraftHeatmapProps) {
             <div className="flex items-center gap-4 text-xs text-gray-700 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-green-200 rounded border border-green-300"></div>
-                <span><strong>Normal:</strong> ≤ month avg</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-8 h-4 bg-yellow-300 rounded border border-yellow-400"></div>
-                <span><strong>Watch:</strong> &gt; month avg &amp; ≤ 1.5×</span>
+                <span><strong>Normal:</strong> ≤ 1.5× month avg</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-red-500 rounded border border-red-600"></div>

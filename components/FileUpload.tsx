@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, ClipboardList } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { processExcelData } from '@/lib/dataProcessor';
@@ -25,6 +25,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
   const [eodMessage, setEodMessage] = useState('');
   const [eodFileName, setEodFileName] = useState('');
   const [eodRecordCount, setEodRecordCount] = useState(0);
+  const [eodDragOver, setEodDragOver] = useState(false);
   const eodFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,10 +64,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
     }
   };
 
-  const handleEODFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processEODFile = useCallback(async (file: File) => {
     setEodFileName(file.name);
     setEodUploading(true);
     setEodStatus('idle');
@@ -94,6 +92,12 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
     } finally {
       setEodUploading(false);
     }
+  }, []);
+
+  const handleEODFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processEODFile(file);
   };
 
   const handleStartAnalysis = () => {
@@ -137,6 +141,35 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+  };
+
+  // EOD Drag & Drop handlers
+  const handleEODDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEodDragOver(false);
+
+    if (eodUploading) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+      processEODFile(file);
+    } else {
+      setEodStatus('error');
+      setEodMessage('Please upload a valid Excel file (.xlsx or .xls)');
+    }
+  };
+
+  const handleEODDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEodDragOver(true);
+  };
+
+  const handleEODDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEodDragOver(false);
   };
 
   return (
@@ -217,7 +250,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
         )}
       </div>
 
-      {/* EOD Data Upload (Optional) */}
+      {/* EOD Data Upload (Optional) — with drag & drop */}
       <div>
         <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
           <ClipboardList className="h-4 w-4 text-amber-600" />
@@ -229,10 +262,15 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
         </p>
         <div
           onClick={handleEODClick}
-          className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all ${
+          onDrop={handleEODDrop}
+          onDragOver={handleEODDragOver}
+          onDragLeave={handleEODDragLeave}
+          className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all ${
             eodUploading
               ? 'border-amber-300 bg-amber-50 cursor-not-allowed'
-              : 'border-gray-200 hover:border-amber-400 hover:bg-amber-50/30'
+              : eodDragOver
+                ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200 scale-[1.01]'
+                : 'border-gray-200 hover:border-amber-400 hover:bg-amber-50/30'
           }`}
         >
           <input
@@ -244,22 +282,39 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
             disabled={eodUploading}
           />
 
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex flex-col items-center gap-3">
             {eodUploading ? (
-              <Loader2 className="h-5 w-5 text-amber-600 animate-spin" />
+              <Loader2 className="h-8 w-8 text-amber-600 animate-spin" />
             ) : (
-              <div className="bg-amber-100 p-2 rounded-full">
-                <ClipboardList className="h-5 w-5 text-amber-600" />
+              <div className={`p-2.5 rounded-full transition-colors ${
+                eodDragOver ? 'bg-amber-200' : 'bg-amber-100'
+              }`}>
+                <ClipboardList className="h-7 w-7 text-amber-600" />
               </div>
             )}
-            <div className="text-left">
-              <p className="text-sm font-medium text-gray-700">
-                {eodUploading ? 'Processing EOD file...' : eodFileName || 'Click to upload EOD Excel file'}
+
+            <div>
+              <p className="text-sm font-semibold text-gray-800 mb-0.5">
+                {eodUploading
+                  ? 'Processing EOD file...'
+                  : eodDragOver
+                    ? 'Drop your EOD file here'
+                    : 'Drag and drop your EOD Excel file or click here'}
               </p>
               <p className="text-xs text-gray-400">
-                Expected columns: Event, A/C, Perf. Date
+                {eodFileName || 'Expected columns: Event, A/C, Perf. Date · XLSX or XLS format'}
               </p>
             </div>
+
+            {!eodUploading && !eodFileName && (
+              <button
+                type="button"
+                className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium text-xs"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Select EOD File
+              </button>
+            )}
           </div>
         </div>
 

@@ -1,19 +1,22 @@
 'use client';
 
-import { SAFARecord, EODRecord } from '@/lib/types';
+import { SAFARecord, EODRecord, SigmaSettings } from '@/lib/types';
 import { format, startOfMonth } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { useState, useMemo } from 'react';
 import { DetailModal } from './DetailModal';
-import { getAlertLevel } from '@/lib/eodProcessor';
+import { computeWeightedStats, getAlertLevelSigma } from '@/lib/eodProcessor';
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react';
 
 interface ATAHeatmapProps {
   records: SAFARecord[];
   eodRecords?: EODRecord[];
+  sigmaSettings?: SigmaSettings;
 }
 
-export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
+const DEFAULT_SIGMA: SigmaSettings = { multiplier: 2 };
+
+export function ATAHeatmap({ records, eodRecords, sigmaSettings = DEFAULT_SIGMA }: ATAHeatmapProps) {
   const [selectedCell, setSelectedCell] = useState<{ ata: string; month: string } | null>(null);
   const [modalRecords, setModalRecords] = useState<SAFARecord[]>([]);
   const [viewMode, setViewMode] = useState<'count' | 'rate'>('count');
@@ -23,7 +26,6 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
 
   const hasEOD = eodRecords && eodRecords.length > 0;
 
-  // ATA'yı 2 digit'e normalize et (25-22-00 → 25)
   const getATA2 = (ata: string): string => {
     if (!ata) return 'XX';
     const clean = ata.replace(/[^0-9]/g, '');
@@ -89,7 +91,6 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
     return map;
   }, [eodRecords, hasEOD]);
 
-  // Sorted by total findings descending
   const sortedATA = useMemo(() => {
     return Object.entries(heatmapData)
       .map(([ata2, data]) => [ata2, Object.values(data).reduce((a, b) => a + b, 0)] as [string, number])
@@ -111,70 +112,40 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
     return rates;
   }, [sortedATA, months, heatmapData, eodPerMonth, hasEOD]);
 
-  const avgRatePerATA = useMemo(() => {
+  const ataWeightedStats = useMemo(() => {
     if (!hasEOD) return {};
-    const avgs: Record<string, number> = {};
+    const stats: Record<string, { weightedAvg: number; weightedSigma: number }> = {};
     sortedATA.forEach(ata2 => {
       const rates: number[] = [];
+      const weights: number[] = [];
       months.forEach(month => {
-        const r = rateData[ata2]?.[month];
-        if (r !== undefined && r >= 0) {
-          rates.push(r);
+        const eodCount = eodPerMonth[month] || 0;
+        if (eodCount > 0) {
+          const ataFindings = heatmapData[ata2]?.[month] || 0;
+          rates.push(ataFindings / eodCount);
+          weights.push(eodCount);
         }
       });
-      avgs[ata2] = rates.length > 0
-        ? rates.reduce((a, b) => a + b, 0) / rates.length
-        : 0;
+      stats[ata2] = computeWeightedStats(rates, weights);
     });
-    return avgs;
-  }, [rateData, sortedATA, months, hasEOD]);
+    return stats;
+  }, [sortedATA, months, heatmapData, eodPerMonth, hasEOD]);
 
   const ataNames: Record<string, string> = {
-    '05': 'Time Limits',
-    '06': 'Dimensions',
-    '07': 'Lifting & Shoring',
-    '08': 'Leveling & Weighing',
-    '09': 'Towing & Taxiing',
-    '10': 'Parking & Mooring',
-    '11': 'Placards',
-    '12': 'Servicing',
-    '20': 'Standard Practices',
-    '21': 'Air Conditioning',
-    '22': 'Auto Flight',
-    '23': 'Communications',
-    '24': 'Electrical Power',
-    '25': 'Equipment/Furnishings',
-    '26': 'Fire Protection',
-    '27': 'Flight Controls',
-    '28': 'Fuel',
-    '29': 'Hydraulic Power',
-    '30': 'Ice & Rain Protection',
-    '31': 'Instruments',
-    '32': 'Landing Gear',
-    '33': 'Lights',
-    '34': 'Navigation',
-    '35': 'Oxygen',
-    '36': 'Pneumatic',
-    '38': 'Water/Waste',
-    '45': 'Central Maint System',
-    '49': 'Airborne APU',
-    '51': 'Structures',
-    '52': 'Doors',
-    '53': 'Fuselage',
-    '54': 'Nacelles/Pylons',
-    '55': 'Stabilizers',
-    '56': 'Windows',
-    '57': 'Wings',
-    '71': 'Power Plant',
-    '72': 'Engine',
-    '73': 'Engine Fuel & Control',
-    '74': 'Ignition',
-    '75': 'Air',
-    '76': 'Engine Controls',
-    '77': 'Engine Indicating',
-    '78': 'Exhaust',
-    '79': 'Oil',
-    '80': 'Starting',
+    '05': 'Time Limits', '06': 'Dimensions', '07': 'Lifting & Shoring',
+    '08': 'Leveling & Weighing', '09': 'Towing & Taxiing', '10': 'Parking & Mooring',
+    '11': 'Placards', '12': 'Servicing', '20': 'Standard Practices',
+    '21': 'Air Conditioning', '22': 'Auto Flight', '23': 'Communications',
+    '24': 'Electrical Power', '25': 'Equipment/Furnishings', '26': 'Fire Protection',
+    '27': 'Flight Controls', '28': 'Fuel', '29': 'Hydraulic Power',
+    '30': 'Ice & Rain Protection', '31': 'Instruments', '32': 'Landing Gear',
+    '33': 'Lights', '34': 'Navigation', '35': 'Oxygen', '36': 'Pneumatic',
+    '38': 'Water/Waste', '45': 'Central Maint System', '49': 'Airborne APU',
+    '51': 'Structures', '52': 'Doors', '53': 'Fuselage',
+    '54': 'Nacelles/Pylons', '55': 'Stabilizers', '56': 'Windows', '57': 'Wings',
+    '71': 'Power Plant', '72': 'Engine', '73': 'Engine Fuel & Control',
+    '74': 'Ignition', '75': 'Air', '76': 'Engine Controls',
+    '77': 'Engine Indicating', '78': 'Exhaust', '79': 'Oil', '80': 'Starting',
   };
 
   const getATALabel = (ata2: string): string => {
@@ -182,7 +153,6 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
     return name ? `${ata2} - ${name}` : ata2;
   };
 
-  // Apply search filter — searches both code and name
   const filteredATA = useMemo(() => {
     if (!searchTerm.trim()) return sortedATA;
     const term = searchTerm.trim().toUpperCase();
@@ -205,18 +175,17 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
     return 'bg-green-200';
   };
 
-  const getRateColor = (rate: number, ataAvg: number) => {
+  const getRateColor = (rate: number, ata2: string) => {
     if (rate < 0) return 'bg-gray-100 text-gray-400';
     if (rate === 0) return 'bg-gray-50';
-    const level = getAlertLevel(rate, ataAvg);
+    const stats = ataWeightedStats[ata2] || { weightedAvg: 0, weightedSigma: 0 };
+    const level = getAlertLevelSigma(rate, stats.weightedAvg, stats.weightedSigma, sigmaSettings);
     if (level === 'alert') return 'bg-red-500 text-white';
-    if (level === 'watch') return 'bg-yellow-300 text-gray-900';
     return 'bg-green-200 text-gray-900';
   };
 
   const handleCellClick = (ata2: string, month: string) => {
     const filtered = detailData[ata2]?.[month] || [];
-
     if (filtered.length > 0) {
       setModalRecords(filtered);
       setSelectedCell({ ata: ata2, month });
@@ -231,7 +200,7 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
             <h2 className="text-base font-bold text-gray-900">ATA Chapter - Time Heat Map</h2>
             <p className="text-xs text-gray-600 mt-0.5">
               2-digit ATA grouped ({showAll ? `All ${totalATACount}` : `Top ${Math.min(showCount, totalATACount)} of ${sortedATA.length}`}{searchTerm ? `, filtered by "${searchTerm}"` : ''})
-              {hasEOD && viewMode === 'rate' && ' — Each ATA compared to its own avg rate'}
+              {hasEOD && viewMode === 'rate' && ` — Threshold: Avg + ${sigmaSettings.multiplier}σ`}
             </p>
           </div>
           {hasEOD && (
@@ -322,8 +291,13 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
                   </th>
                 ))}
                 {viewMode === 'rate' && hasEOD && (
-                  <th className="p-1.5 text-center font-semibold text-purple-700 border-b-2 border-gray-200">
-                    Avg Rate
+                  <th className="p-1.5 text-center font-semibold text-amber-700 border-b-2 border-gray-200">
+                    Avg
+                  </th>
+                )}
+                {viewMode === 'rate' && hasEOD && (
+                  <th className="p-1.5 text-center font-semibold text-red-700 border-b-2 border-gray-200">
+                    Threshold
                   </th>
                 )}
                 <th className="p-1.5 text-center font-semibold text-gray-700 border-b-2 border-gray-200">
@@ -334,7 +308,8 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
             <tbody>
               {displayedATA.map(ata2 => {
                 const total = Object.values(heatmapData[ata2]).reduce((a, b) => a + b, 0);
-                const ataAvg = avgRatePerATA[ata2] || 0;
+                const stats = ataWeightedStats[ata2] || { weightedAvg: 0, weightedSigma: 0 };
+                const threshold = stats.weightedAvg + sigmaSettings.multiplier * stats.weightedSigma;
                 return (
                   <tr key={ata2} className="hover:bg-gray-50">
                     <td className="p-1.5 font-medium text-gray-900 border-b border-gray-100 whitespace-nowrap">
@@ -347,7 +322,7 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
                       const eodCount = eodPerMonth[month] || 0;
 
                       const colorClass = isRateMode
-                        ? getRateColor(rate ?? -1, ataAvg)
+                        ? getRateColor(rate ?? -1, ata2)
                         : getColor(value);
 
                       const displayValue = isRateMode
@@ -355,7 +330,7 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
                         : (value > 0 ? value : '');
 
                       const title = isRateMode
-                        ? `ATA ${ata2} - ${month}: ${value} findings / ${eodCount} total EODs = Rate ${rate !== undefined && rate >= 0 ? rate.toFixed(3) : 'N/A'} (ATA avg: ${ataAvg.toFixed(3)})`
+                        ? `ATA ${ata2} - ${month}: ${value} findings / ${eodCount} total EODs = Rate ${rate !== undefined && rate >= 0 ? rate.toFixed(3) : 'N/A'} (avg: ${stats.weightedAvg.toFixed(3)}, threshold: ${threshold.toFixed(3)})`
                         : `ATA ${ata2} - ${month}: ${value} findings`;
 
                       return (
@@ -377,8 +352,15 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
                     })}
                     {viewMode === 'rate' && hasEOD && (
                       <td className="p-0.5 border-b border-gray-100">
-                        <div className="w-full h-8 bg-purple-50 border border-purple-200 rounded flex items-center justify-center text-xs font-bold text-purple-800">
-                          {ataAvg > 0 ? ataAvg.toFixed(3) : '—'}
+                        <div className="w-full h-8 bg-amber-50 border border-amber-200 rounded flex items-center justify-center text-xs font-bold text-amber-800">
+                          {stats.weightedAvg > 0 ? stats.weightedAvg.toFixed(3) : '—'}
+                        </div>
+                      </td>
+                    )}
+                    {viewMode === 'rate' && hasEOD && (
+                      <td className="p-0.5 border-b border-gray-100">
+                        <div className="w-full h-8 bg-red-50 border border-red-200 rounded flex items-center justify-center text-xs font-bold text-red-800">
+                          {threshold > 0 ? threshold.toFixed(3) : '—'}
                         </div>
                       </td>
                     )}
@@ -390,7 +372,7 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
               })}
               {displayedATA.length === 0 && (
                 <tr>
-                  <td colSpan={months.length + (viewMode === 'rate' && hasEOD ? 3 : 2)} className="text-center py-8 text-sm text-gray-400">
+                  <td colSpan={months.length + (viewMode === 'rate' && hasEOD ? 4 : 2)} className="text-center py-8 text-sm text-gray-400">
                     No ATA chapters found{searchTerm ? ` matching "${searchTerm}"` : ''}
                   </td>
                 </tr>
@@ -399,7 +381,6 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
           </table>
         </div>
 
-        {/* Show More/Less toggle */}
         {hasMore && !showAll && (
           <div className="mt-3 flex justify-center">
             <button
@@ -426,25 +407,18 @@ export function ATAHeatmap({ records, eodRecords }: ATAHeatmapProps) {
         {/* Color Legend */}
         {viewMode === 'rate' && hasEOD ? (
           <div className="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-3">
-            <div className="flex items-start gap-2 mb-2">
-              <span className="text-xs font-semibold text-purple-900">📊 Rate View (Findings / Total EODs per month):</span>
-            </div>
+            <p className="text-xs font-semibold text-purple-900 mb-2">📊 Rate View (Findings / Total EODs per month) — Weighted Avg + Threshold</p>
             <p className="text-xs text-purple-800 mb-2">
-              ATA chapters are grouped by <strong>2-digit code</strong> (e.g. 25-22-00, 25-60-00 → ATA 25).
-              Each ATA is compared to <strong>its own average rate</strong> across all months.
+              ATA chapters grouped by 2-digit code. Threshold = Avg + {sigmaSettings.multiplier}σ. Change σ multiplier from the control above.
             </p>
             <div className="flex items-center gap-4 text-xs text-gray-700 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-green-200 rounded border border-green-300"></div>
-                <span><strong>Normal:</strong> ≤ ATA avg</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-8 h-4 bg-yellow-300 rounded border border-yellow-400"></div>
-                <span><strong>Watch:</strong> &gt; ATA avg &amp; ≤ 1.5×</span>
+                <span><strong>Normal:</strong> ≤ Threshold</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-red-500 rounded border border-red-600"></div>
-                <span><strong>Alert:</strong> &gt; 1.5× ATA avg</span>
+                <span><strong>Alert:</strong> &gt; Threshold</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-4 bg-gray-100 rounded border border-gray-300"></div>

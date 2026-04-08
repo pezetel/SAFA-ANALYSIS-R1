@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DashboardStats } from '@/components/DashboardStats';
 import { TrendChart } from '@/components/TrendChart';
 import { ComponentHeatmap } from '@/components/ComponentHeatmap';
@@ -13,11 +13,14 @@ import { FilterPanel } from '@/components/FilterPanel';
 import { DataTable } from '@/components/DataTable';
 import { PeriodComparison } from '@/components/PeriodComparison';
 import { EODAlertPanel } from '@/components/EODAlertPanel';
-import { SAFARecord, EODRecord, AnalysisResult } from '@/lib/types';
+import { SigmaControl } from '@/components/SigmaControl';
+import { SAFARecord, EODRecord, AnalysisResult, SigmaSettings } from '@/lib/types';
 import { ArrowLeft, Download, RefreshCw, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { exportFullReport } from '@/lib/excelExporter';
+
+const DEFAULT_SIGMA: SigmaSettings = { multiplier: 2 };
 
 export default function Dashboard() {
   const [data, setData] = useState<AnalysisResult | null>(null);
@@ -27,9 +30,27 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [sigmaSettings, setSigmaSettings] = useState<SigmaSettings>(DEFAULT_SIGMA);
 
   useEffect(() => {
+    // Load persisted sigma settings
+    try {
+      const saved = localStorage.getItem('sigmaSettings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.multiplier) {
+          setSigmaSettings({ multiplier: parsed.multiplier });
+        }
+      }
+    } catch {}
     loadData();
+  }, []);
+
+  const handleSigmaChange = useCallback((settings: SigmaSettings) => {
+    setSigmaSettings(settings);
+    try {
+      localStorage.setItem('sigmaSettings', JSON.stringify(settings));
+    } catch {}
   }, []);
 
   const loadData = () => {
@@ -52,7 +73,6 @@ export default function Dashboard() {
         date: new Date(r.date)
       }));
 
-      // Load EOD data if available
       const savedEOD = localStorage.getItem('eodData');
       if (savedEOD) {
         try {
@@ -153,7 +173,6 @@ export default function Dashboard() {
         const date = new Date(r.date);
         return date >= start && date <= end;
       });
-      // Also filter EOD records to the same date range
       filteredEOD = filteredEOD.filter(e => {
         const date = new Date(e.perfDate);
         return date >= start && date <= end;
@@ -162,7 +181,6 @@ export default function Dashboard() {
 
     if (filters.aircraft && filters.aircraft.length > 0) {
       filtered = filtered.filter(r => filters.aircraft.includes(r.aircraft));
-      // Filter EOD by aircraft too
       filteredEOD = filteredEOD.filter(e => filters.aircraft.includes(e.aircraft));
     }
 
@@ -221,6 +239,7 @@ export default function Dashboard() {
     exportFullReport({
       findings: filteredData,
       eodRecords: filteredEodRecords.length > 0 ? filteredEodRecords : undefined,
+      sigmaSettings,
     });
   };
 
@@ -374,15 +393,20 @@ export default function Dashboard() {
 
         {activeTab === 'trends' && (
           <div className="space-y-6">
-            {/* EOD Alert Panel - shown at top when EOD data exists */}
+            {/* Sigma Control — always visible when EOD data exists */}
             {hasFilteredEOD && (
-              <EODAlertPanel findings={filteredData} eodRecords={filteredEodRecords} />
+              <SigmaControl sigmaSettings={sigmaSettings} onChange={handleSigmaChange} />
             )}
 
-            <TrendChart records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} />
-            <ComponentHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} />
+            {/* EOD Alert Panel */}
+            {hasFilteredEOD && (
+              <EODAlertPanel findings={filteredData} eodRecords={filteredEodRecords} sigmaSettings={sigmaSettings} />
+            )}
+
+            <TrendChart records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
+            <ComponentHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
             <AircraftHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} />
-            <ATAHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} />
+            <ATAHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
           </div>
         )}
 

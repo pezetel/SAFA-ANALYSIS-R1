@@ -63,8 +63,14 @@ export interface AlertItem {
   month: string;
   rate: number;
   avgRate: number;
+  sigma: number;
+  threshold: number;
   findings: number;
   eods: number;
-  level: 'normal' | 'watch' | 'alert';
+  level: 'normal' | 'alert';
   ratio: number;
+}
+
+export interface SigmaSettings {
+  multiplier: number;
 }

@@ -1,34 +1,37 @@
 import * as XLSX from 'xlsx';
-import { SAFARecord, EODRecord } from './types';
+import { SAFARecord, EODRecord, SigmaSettings } from './types';
 import { format, startOfMonth } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { generateAlerts, getOverallMonthlyRate, getAlertLevel } from './eodProcessor';
+import { generateAlerts, getOverallMonthlyRate, computeWeightedStats, getAlertLevelSigma } from './eodProcessor';
 
 interface ExportOptions {
   findings: SAFARecord[];
   eodRecords?: EODRecord[];
+  sigmaSettings?: SigmaSettings;
 }
 
-export function exportFullReport({ findings, eodRecords }: ExportOptions) {
+const DEFAULT_SIGMA: SigmaSettings = { multiplier: 2 };
+
+export function exportFullReport({ findings, eodRecords, sigmaSettings = DEFAULT_SIGMA }: ExportOptions) {
   const workbook = XLSX.utils.book_new();
   const hasEOD = eodRecords && eodRecords.length > 0;
   const dateStamp = new Date().toISOString().split('T')[0];
 
   // 1. Time Series
-  addTrendSheet(workbook, findings, eodRecords);
+  addTrendSheet(workbook, findings, eodRecords, sigmaSettings);
 
   // 2. Component Heatmap
-  addComponentHeatmapSheet(workbook, findings, eodRecords);
+  addComponentHeatmapSheet(workbook, findings, eodRecords, sigmaSettings);
 
   // 3. Aircraft Heatmap
   addAircraftHeatmapSheet(workbook, findings, eodRecords);
 
   // 4. ATA Heatmap
-  addATAHeatmapSheet(workbook, findings, eodRecords);
+  addATAHeatmapSheet(workbook, findings, eodRecords, sigmaSettings);
 
   // 5. Alert Panel
   if (hasEOD) {
-    addAlertSheet(workbook, findings, eodRecords!);
+    addAlertSheet(workbook, findings, eodRecords!, sigmaSettings);
   }
 
   // 6. Raw Data
@@ -44,7 +47,7 @@ function formatCompName(name: string): string {
 // ════════════════════════════════════════════
 // Sheet 1: Time Series / Trend
 // ════════════════════════════════════════════
-function addTrendSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords?: EODRecord[]) {
+function addTrendSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords?: EODRecord[], sigmaSettings: SigmaSettings = DEFAULT_SIGMA) {
   const hasEOD = eodRecords && eodRecords.length > 0;
 
   const monthlyFindings: Record<string, number> = {};
@@ -96,22 +99,27 @@ function addTrendSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecor
   if (hasEOD) {
     const rateData = getOverallMonthlyRate(findings, eodRecords!);
     const withData = rateData.filter(m => m.eods > 0);
-    const avgRate = withData.length > 0
-      ? withData.reduce((s, m) => s + m.rate, 0) / withData.length
-      : 0;
-    rows.push(['Avg Rate (F/EOD)', parseFloat(avgRate.toFixed(4))]);
+    const rates = withData.map(m => m.rate);
+    const weights = withData.map(m => m.eods);
+    const stats = computeWeightedStats(rates, weights);
+    const alertThresh = stats.weightedAvg + sigmaSettings.multiplier * stats.weightedSigma;
+
+    rows.push(['Weighted Avg Rate', parseFloat(stats.weightedAvg.toFixed(4))]);
+    rows.push(['Weighted Sigma', parseFloat(stats.weightedSigma.toFixed(4))]);
+    rows.push([`Alert Threshold (Avg+${sigmaSettings.multiplier}σ)`, parseFloat(alertThresh.toFixed(4))]);
     rows.push(['Total EODs', Object.values(monthlyEODs).reduce((a, b) => a + b, 0)]);
+    rows.push(['Sigma Settings', `Alert: ${sigmaSettings.multiplier}σ`]);
   }
 
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-  ws['!cols'] = [{ wch: 14 }, { wch: 12 }, ...(hasEOD ? [{ wch: 10 }, { wch: 14 }] : [])];
+  ws['!cols'] = [{ wch: 30 }, { wch: 14 }, ...(hasEOD ? [{ wch: 10 }, { wch: 14 }] : [])];
   XLSX.utils.book_append_sheet(workbook, ws, 'Time Series');
 }
 
 // ════════════════════════════════════════════
 // Sheet 2: Component Heatmap (Count + Rate)
 // ════════════════════════════════════════════
-function addComponentHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords?: EODRecord[]) {
+function addComponentHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords?: EODRecord[], sigmaSettings: SigmaSettings = DEFAULT_SIGMA) {
   const hasEOD = eodRecords && eodRecords.length > 0;
 
   const months = Array.from(new Set(
@@ -138,16 +146,20 @@ function addComponentHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[
     .sort((a, b) => b.total - a.total)
     .map(c => c.comp);
 
-  // Avg rates per component (heatmap style: all months, rate>=0 included)
-  const compAvgRates: Record<string, number> = {};
+  // Weighted stats per component
+  const compWeightedStats: Record<string, { weightedAvg: number; weightedSigma: number }> = {};
   if (hasEOD) {
     sortedComps.forEach(comp => {
       const rates: number[] = [];
+      const weights: number[] = [];
       months.forEach(month => {
         const eods = eodPerMonth[month] || 0;
-        if (eods > 0) rates.push((compMonthData[comp]?.[month] || 0) / eods);
+        if (eods > 0) {
+          rates.push((compMonthData[comp]?.[month] || 0) / eods);
+          weights.push(eods);
+        }
       });
-      compAvgRates[comp] = rates.length > 0 ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
+      compWeightedStats[comp] = computeWeightedStats(rates, weights);
     });
   }
 
@@ -173,43 +185,45 @@ function addComponentHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[
 
   // Rate sheet
   if (hasEOD) {
-    const rateHeader = ['Component', ...monthLabels, 'Avg Rate', 'Alert Level'];
+    const rateHeader = ['Component', ...monthLabels, 'Wt. Avg', 'Wt. σ', 'Alert Threshold', 'Alert Level'];
 
     // EOD totals row
     const eodRow: any[] = ['EOD Total'];
     months.forEach(month => { eodRow.push(eodPerMonth[month] || 0); });
-    eodRow.push('', '');
+    eodRow.push('', '', '', '');
 
     const rateRows = sortedComps.map(comp => {
       const row: any[] = [formatCompName(comp)];
-      let hasAlert = false;
-      let hasWatch = false;
+      let maxLevel: 'normal' | 'alert' = 'normal';
+      const stats = compWeightedStats[comp] || { weightedAvg: 0, weightedSigma: 0 };
       months.forEach(month => {
         const fc = compMonthData[comp]?.[month] || 0;
         const eods = eodPerMonth[month] || 0;
         if (eods > 0) {
           const rate = fc / eods;
           row.push(parseFloat(rate.toFixed(4)));
-          const level = getAlertLevel(rate, compAvgRates[comp] || 0);
-          if (level === 'alert') hasAlert = true;
-          if (level === 'watch') hasWatch = true;
+          const level = getAlertLevelSigma(rate, stats.weightedAvg, stats.weightedSigma, sigmaSettings);
+          if (level === 'alert') maxLevel = 'alert';
         } else {
           row.push(fc > 0 ? `${fc}*` : '');
         }
       });
-      row.push(parseFloat((compAvgRates[comp] || 0).toFixed(4)));
-      row.push(hasAlert ? '🔴 ALERT' : hasWatch ? '🟡 WATCH' : '🟢 Normal');
+      row.push(parseFloat(stats.weightedAvg.toFixed(4)));
+      row.push(parseFloat(stats.weightedSigma.toFixed(4)));
+      row.push(parseFloat((stats.weightedAvg + sigmaSettings.multiplier * stats.weightedSigma).toFixed(4)));
+      row.push(maxLevel === 'alert' ? '🔴 ALERT' : '🟢 Normal');
       return row;
     });
 
     const wsRate = XLSX.utils.aoa_to_sheet([rateHeader, ...rateRows, [], eodRow]);
-    wsRate['!cols'] = [{ wch: 24 }, ...months.map(() => ({ wch: 10 })), { wch: 12 }, { wch: 14 }];
+    wsRate['!cols'] = [{ wch: 24 }, ...months.map(() => ({ wch: 10 })), { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }];
     XLSX.utils.book_append_sheet(workbook, wsRate, 'Component (Rate)');
   }
 }
 
 // ════════════════════════════════════════════
 // Sheet 3: Aircraft Heatmap (Count + Rate)
+// Aircraft stays the same: fleet avg per month baseline
 // ════════════════════════════════════════════
 function addAircraftHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords?: EODRecord[]) {
   const hasEOD = eodRecords && eodRecords.length > 0;
@@ -241,7 +255,7 @@ function addAircraftHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[]
     });
   }
 
-  // Fleet monthly avg (matching AircraftHeatmap)
+  // Fleet monthly avg (matching AircraftHeatmap — stays the same)
   const monthlyFleetAvg: Record<string, number> = {};
   if (hasEOD) {
     months.forEach(month => {
@@ -276,7 +290,7 @@ function addAircraftHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[]
   wsCount['!cols'] = [{ wch: 14 }, ...months.map(() => ({ wch: 10 })), { wch: 8 }];
   XLSX.utils.book_append_sheet(workbook, wsCount, 'Aircraft (Count)');
 
-  // Rate sheet
+  // Rate sheet — fleet avg per month baseline (unchanged)
   if (hasEOD) {
     const rateHeader = ['Aircraft', ...monthLabels, 'Max Alert'];
 
@@ -289,21 +303,23 @@ function addAircraftHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[]
 
     const rateRows = sortedAC.map(ac => {
       const row: any[] = [ac];
-      let maxLevel: 'normal' | 'watch' | 'alert' = 'normal';
+      let maxLevel: 'normal' | 'alert' = 'normal';
       months.forEach(month => {
         const fc = acMonthData[ac]?.[month] || 0;
         const eodCount = acMonthEOD[ac]?.[month] || 0;
         if (eodCount > 0) {
           const rate = fc / eodCount;
           row.push(parseFloat(rate.toFixed(4)));
-          const level = getAlertLevel(rate, monthlyFleetAvg[month] || 0);
-          if (level === 'alert') maxLevel = 'alert';
-          else if (level === 'watch' && maxLevel !== 'alert') maxLevel = 'watch';
+          const avgForMonth = monthlyFleetAvg[month] || 0;
+          // Aircraft uses legacy getAlertLevel (fleet avg per month)
+          if (avgForMonth > 0) {
+            if (rate > avgForMonth * 1.5) maxLevel = 'alert';
+          }
         } else {
           row.push(fc > 0 ? `${fc}*` : '');
         }
       });
-      row.push(maxLevel === 'alert' ? '🔴 ALERT' : maxLevel === 'watch' ? '🟡 WATCH' : '🟢 Normal');
+      row.push(maxLevel === 'alert' ? '🔴 ALERT' : '🟢 Normal');
       return row;
     });
 
@@ -316,7 +332,7 @@ function addAircraftHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[]
 // ════════════════════════════════════════════
 // Sheet 4: ATA Heatmap (Count + Rate)
 // ════════════════════════════════════════════
-function addATAHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords?: EODRecord[]) {
+function addATAHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords?: EODRecord[], sigmaSettings: SigmaSettings = DEFAULT_SIGMA) {
   const hasEOD = eodRecords && eodRecords.length > 0;
 
   const months = Array.from(new Set(
@@ -361,16 +377,20 @@ function addATAHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eod
     .sort((a, b) => b.total - a.total)
     .map(c => c.ata);
 
-  // Avg rates per ATA (heatmap style)
-  const ataAvgRates: Record<string, number> = {};
+  // Weighted stats per ATA
+  const ataWeightedStats: Record<string, { weightedAvg: number; weightedSigma: number }> = {};
   if (hasEOD) {
     sortedATA.forEach(ata => {
       const rates: number[] = [];
+      const weights: number[] = [];
       months.forEach(month => {
         const eods = eodPerMonth[month] || 0;
-        if (eods > 0) rates.push((ataMonthData[ata]?.[month] || 0) / eods);
+        if (eods > 0) {
+          rates.push((ataMonthData[ata]?.[month] || 0) / eods);
+          weights.push(eods);
+        }
       });
-      ataAvgRates[ata] = rates.length > 0 ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
+      ataWeightedStats[ata] = computeWeightedStats(rates, weights);
     });
   }
 
@@ -396,37 +416,38 @@ function addATAHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eod
 
   // Rate sheet
   if (hasEOD) {
-    const rateHeader = ['ATA', 'Name', ...monthLabels, 'Avg Rate', 'Alert Level'];
+    const rateHeader = ['ATA', 'Name', ...monthLabels, 'Wt. Avg', 'Wt. σ', 'Alert Threshold', 'Alert Level'];
 
     // EOD totals row
     const eodRow: any[] = ['', 'EOD Total'];
     months.forEach(month => { eodRow.push(eodPerMonth[month] || 0); });
-    eodRow.push('', '');
+    eodRow.push('', '', '', '');
 
     const rateRows = sortedATA.map(ata => {
       const row: any[] = [ata, ataNames[ata] || ''];
-      let hasAlert = false;
-      let hasWatch = false;
+      let maxLevel: 'normal' | 'alert' = 'normal';
+      const stats = ataWeightedStats[ata] || { weightedAvg: 0, weightedSigma: 0 };
       months.forEach(month => {
         const fc = ataMonthData[ata]?.[month] || 0;
         const eods = eodPerMonth[month] || 0;
         if (eods > 0) {
           const rate = fc / eods;
           row.push(parseFloat(rate.toFixed(4)));
-          const level = getAlertLevel(rate, ataAvgRates[ata] || 0);
-          if (level === 'alert') hasAlert = true;
-          if (level === 'watch') hasWatch = true;
+          const level = getAlertLevelSigma(rate, stats.weightedAvg, stats.weightedSigma, sigmaSettings);
+          if (level === 'alert') maxLevel = 'alert';
         } else {
           row.push(fc > 0 ? `${fc}*` : '');
         }
       });
-      row.push(parseFloat((ataAvgRates[ata] || 0).toFixed(4)));
-      row.push(hasAlert ? '🔴 ALERT' : hasWatch ? '🟡 WATCH' : '🟢 Normal');
+      row.push(parseFloat(stats.weightedAvg.toFixed(4)));
+      row.push(parseFloat(stats.weightedSigma.toFixed(4)));
+      row.push(parseFloat((stats.weightedAvg + sigmaSettings.multiplier * stats.weightedSigma).toFixed(4)));
+      row.push(maxLevel === 'alert' ? '🔴 ALERT' : '🟢 Normal');
       return row;
     });
 
     const wsRate = XLSX.utils.aoa_to_sheet([rateHeader, ...rateRows, [], eodRow]);
-    wsRate['!cols'] = [{ wch: 6 }, { wch: 22 }, ...months.map(() => ({ wch: 10 })), { wch: 12 }, { wch: 14 }];
+    wsRate['!cols'] = [{ wch: 6 }, { wch: 22 }, ...months.map(() => ({ wch: 10 })), { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }];
     XLSX.utils.book_append_sheet(workbook, wsRate, 'ATA (Rate)');
   }
 }
@@ -434,12 +455,12 @@ function addATAHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eod
 // ════════════════════════════════════════════
 // Sheet 5: Alert Panel
 // ════════════════════════════════════════════
-function addAlertSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords: EODRecord[]) {
-  const alerts = generateAlerts(findings, eodRecords);
+function addAlertSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords: EODRecord[], sigmaSettings: SigmaSettings = DEFAULT_SIGMA) {
+  const alerts = generateAlerts(findings, eodRecords, sigmaSettings);
 
-  const header = ['Level', 'Type', 'Name', 'Month', 'Findings', 'EODs', 'Rate', 'Avg Rate', 'Ratio'];
+  const header = ['Level', 'Type', 'Name', 'Month', 'Findings', 'EODs', 'Rate', 'Wt. Avg', 'Wt. σ', 'Alert Thresh', 'Ratio'];
   const rows: any[][] = alerts.map(a => [
-    a.level === 'alert' ? '🔴 ALERT' : '🟡 WATCH',
+    '🔴 ALERT',
     a.type.charAt(0).toUpperCase() + a.type.slice(1),
     a.name.replace(/_/g, ' '),
     format(new Date(a.month + '-01'), 'MMM yyyy', { locale: enUS }),
@@ -447,28 +468,29 @@ function addAlertSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecor
     a.eods,
     parseFloat(a.rate.toFixed(4)),
     parseFloat(a.avgRate.toFixed(4)),
+    parseFloat(a.sigma.toFixed(4)),
+    parseFloat(a.threshold.toFixed(4)),
     a.ratio.toFixed(2) + '×',
   ]);
 
   // Summary
-  const alertCount = alerts.filter(a => a.level === 'alert').length;
-  const watchCount = alerts.filter(a => a.level === 'watch').length;
+  const alertCount = alerts.length;
   const acAlerts = alerts.filter(a => a.type === 'aircraft');
   const compAlerts = alerts.filter(a => a.type === 'component');
   const ataAlerts = alerts.filter(a => a.type === 'ata');
 
   rows.push([]);
   rows.push(['Summary']);
+  rows.push(['Sigma Settings', `Alert: ${sigmaSettings.multiplier}σ`]);
   rows.push(['Total Alerts', alertCount]);
-  rows.push(['Total Watch', watchCount]);
-  rows.push(['Aircraft', `${acAlerts.filter(a => a.level === 'alert').length} alert`, '', `${acAlerts.filter(a => a.level === 'watch').length} watch`]);
-  rows.push(['Component', `${compAlerts.filter(a => a.level === 'alert').length} alert`, '', `${compAlerts.filter(a => a.level === 'watch').length} watch`]);
-  rows.push(['ATA', `${ataAlerts.filter(a => a.level === 'alert').length} alert`, '', `${ataAlerts.filter(a => a.level === 'watch').length} watch`]);
+  rows.push(['Aircraft', `${acAlerts.length} alert`]);
+  rows.push(['Component', `${compAlerts.length} alert`]);
+  rows.push(['ATA', `${ataAlerts.length} alert`]);
 
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
   ws['!cols'] = [
     { wch: 12 }, { wch: 12 }, { wch: 24 }, { wch: 12 },
-    { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 8 },
+    { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 8 },
   ];
   XLSX.utils.book_append_sheet(workbook, ws, 'Alerts');
 }

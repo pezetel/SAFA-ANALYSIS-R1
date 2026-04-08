@@ -1,7 +1,7 @@
 'use client';
 
-import { SAFARecord, EODRecord } from '@/lib/types';
-import { getOverallMonthlyRate } from '@/lib/eodProcessor';
+import { SAFARecord, EODRecord, SigmaSettings } from '@/lib/types';
+import { getOverallMonthlyRate, computeWeightedStats } from '@/lib/eodProcessor';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Line, ComposedChart, ReferenceLine } from 'recharts';
 import { format, parseISO, startOfMonth } from 'date-fns';
 import { enUS } from 'date-fns/locale';
@@ -10,9 +10,12 @@ import { useMemo, useState } from 'react';
 interface TrendChartProps {
   records: SAFARecord[];
   eodRecords?: EODRecord[];
+  sigmaSettings?: SigmaSettings;
 }
 
-export function TrendChart({ records, eodRecords }: TrendChartProps) {
+const DEFAULT_SIGMA: SigmaSettings = { multiplier: 2 };
+
+export function TrendChart({ records, eodRecords, sigmaSettings = DEFAULT_SIGMA }: TrendChartProps) {
   const [showRate, setShowRate] = useState(true);
   const hasEOD = eodRecords && eodRecords.length > 0;
 
@@ -33,11 +36,14 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
     return getOverallMonthlyRate(records, eodRecords!);
   }, [records, eodRecords, hasEOD]);
 
-  const avgRate = useMemo(() => {
-    if (!eodRateData) return 0;
+  // Weighted average & weighted sigma for the overall rate
+  const weightedStats = useMemo(() => {
+    if (!eodRateData) return { weightedAvg: 0, weightedSigma: 0 };
     const withData = eodRateData.filter(m => m.eods > 0);
-    if (withData.length === 0) return 0;
-    return withData.reduce((sum, m) => sum + m.rate, 0) / withData.length;
+    if (withData.length === 0) return { weightedAvg: 0, weightedSigma: 0 };
+    const rates = withData.map(m => m.rate);
+    const weights = withData.map(m => m.eods);
+    return computeWeightedStats(rates, weights);
   }, [eodRateData]);
 
   const chartData = useMemo(() => {
@@ -67,6 +73,8 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
 
   const n = values.length;
 
+  const alertThreshold = weightedStats.weightedAvg + sigmaSettings.multiplier * weightedStats.weightedSigma;
+
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || payload.length === 0) return null;
@@ -91,11 +99,13 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
                 <span className="w-2 h-2 rounded-full bg-red-500" />
                 <span className="text-gray-600">Rate:</span>
                 <span className={`font-bold ${
-                  data?.rate > avgRate * 1.5 ? 'text-red-600' : data?.rate > avgRate ? 'text-yellow-600' : 'text-green-600'
+                  data?.rate > alertThreshold ? 'text-red-600' : 'text-green-600'
                 }`}>{data?.rate?.toFixed(3) || '0'}</span>
               </p>
               <hr className="border-gray-100" />
-              <p className="text-gray-400">Avg Rate: {avgRate.toFixed(3)}</p>
+              <p className="text-gray-400">Wt. Avg: {weightedStats.weightedAvg.toFixed(3)}</p>
+              <p className="text-gray-400">Wt. Sigma: {weightedStats.weightedSigma.toFixed(3)}</p>
+              <p className="text-red-600">Alert ({sigmaSettings.multiplier}σ): {alertThreshold.toFixed(3)}</p>
             </>
           )}
         </div>
@@ -103,10 +113,9 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
     );
   };
 
-  // Custom label for Avg Rate — sits just right of the plot area, between chart and outer edge
+  // Custom label for Weighted Avg
   const AvgRateLabel = (props: any) => {
     const { viewBox } = props;
-    // Position: right edge of plot area + small gap
     const x = viewBox.x + viewBox.width + 4;
     const y = viewBox.y;
     return (
@@ -114,27 +123,27 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
         <rect
           x={x}
           y={y - 8}
-          width={50}
+          width={54}
           height={16}
           rx={3}
-          fill="#fef2f2"
-          stroke="#fca5a5"
+          fill="#f0fdf4"
+          stroke="#86efac"
           strokeWidth={0.5}
         />
         <text
           x={x + 4}
           y={y + 3}
-          fill="#dc2626"
+          fill="#16a34a"
           fontSize={8}
           fontWeight={700}
         >
-          Avg {avgRate.toFixed(2)}
+          Avg {weightedStats.weightedAvg.toFixed(2)}
         </text>
       </g>
     );
   };
 
-  // Custom label for Alert 1.5x — same positioning logic
+  // Custom label for Alert threshold
   const AlertLabel = (props: any) => {
     const { viewBox } = props;
     const x = viewBox.x + viewBox.width + 4;
@@ -144,7 +153,7 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
         <rect
           x={x}
           y={y - 8}
-          width={50}
+          width={54}
           height={16}
           rx={3}
           fill="#fef2f2"
@@ -160,7 +169,7 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
           fontWeight={600}
           opacity={0.8}
         >
-          1.5× Avg
+          {sigmaSettings.multiplier}σ {alertThreshold.toFixed(2)}
         </text>
       </g>
     );
@@ -173,7 +182,7 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
           <h2 className="text-base font-bold text-gray-900">Time Series Analysis</h2>
           <p className="text-xs text-gray-600 mt-0.5">
             Monthly finding counts
-            {hasEOD && ' with EOD-based finding rate'}
+            {hasEOD && ` with EOD-based finding rate — Weighted Avg + ${sigmaSettings.multiplier}σ alert threshold`}
           </p>
         </div>
         {hasEOD && (
@@ -195,7 +204,7 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           {hasEOD && showRate ? (
-            <ComposedChart data={chartData} margin={{ top: 8, right: 60, left: 0, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 64, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -228,22 +237,24 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
                 wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
                 iconType="circle"
               />
+              {/* Weighted Average reference line */}
               <ReferenceLine
                 yAxisId="right"
-                y={avgRate}
-                stroke="#ef4444"
+                y={weightedStats.weightedAvg}
+                stroke="#16a34a"
                 strokeDasharray="5 5"
                 strokeWidth={2}
                 label={<AvgRateLabel />}
               />
-              {avgRate > 0 && (
+              {/* Alert threshold reference line */}
+              {weightedStats.weightedSigma > 0 && (
                 <ReferenceLine
                   yAxisId="right"
-                  y={avgRate * 1.5}
+                  y={alertThreshold}
                   stroke="#ef4444"
                   strokeDasharray="2 4"
-                  strokeWidth={1}
-                  strokeOpacity={0.5}
+                  strokeWidth={1.5}
+                  strokeOpacity={0.6}
                   label={<AlertLabel />}
                 />
               )}
@@ -267,15 +278,14 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
                 name="Finding Rate (F/EOD)"
                 dot={(props: any) => {
                   const { cx, cy, payload } = props;
-                  const isAlert = payload.rate > avgRate * 1.5;
-                  const isWatch = payload.rate > avgRate && !isAlert;
+                  const isAlert = payload.rate > alertThreshold;
                   return (
                     <circle
                       key={`dot-${cx}-${cy}`}
                       cx={cx}
                       cy={cy}
-                      r={isAlert ? 6 : isWatch ? 5 : 4}
-                      fill={isAlert ? '#ef4444' : isWatch ? '#f59e0b' : '#22c55e'}
+                      r={isAlert ? 6 : 4}
+                      fill={isAlert ? '#ef4444' : '#22c55e'}
                       stroke="#fff"
                       strokeWidth={2}
                     />
@@ -354,9 +364,17 @@ export function TrendChart({ records, eodRecords }: TrendChartProps) {
         </div>
         {hasEOD && (
           <div className="text-center p-2 bg-amber-50 rounded-lg">
-            <p className="text-xs text-amber-700 font-medium">Avg Rate (F/EOD)</p>
+            <p className="text-xs text-amber-700 font-medium">Wt. Avg (F/EOD)</p>
             <p className="text-lg font-bold text-amber-900">
-              {avgRate.toFixed(3)}
+              {weightedStats.weightedAvg.toFixed(3)}
+            </p>
+          </div>
+        )}
+        {hasEOD && (
+          <div className="text-center p-2 bg-red-50 rounded-lg">
+            <p className="text-xs text-red-700 font-medium">Alert ({sigmaSettings.multiplier}σ)</p>
+            <p className="text-lg font-bold text-red-900">
+              {alertThreshold.toFixed(3)}
             </p>
           </div>
         )}
