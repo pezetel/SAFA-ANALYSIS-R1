@@ -1,6 +1,7 @@
 'use client';
 
 import { SAFARecord } from '@/lib/types';
+import { getATADescription } from '@/lib/ataLookup';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, Sector } from 'recharts';
 import { useState } from 'react';
 import { DetailModal } from './DetailModal';
@@ -26,6 +27,7 @@ export function ATADistribution({ records }: ATADistributionProps) {
     .slice(0, 8)
     .map(([ata, count]) => ({
       name: ata,
+      description: getATADescription(ata),
       value: count,
       percentage: ((count / records.length) * 100).toFixed(1),
     }));
@@ -52,6 +54,25 @@ export function ATADistribution({ records }: ATADistributionProps) {
         />
       </g>
     );
+  };
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-2.5 max-w-[200px]">
+          <p className="font-semibold text-gray-900 text-xs">ATA {data.name}</p>
+          {data.description && (
+            <p className="text-[10px] text-gray-400 mt-0.5 leading-tight truncate">{data.description}</p>
+          )}
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="text-[11px] text-gray-600">{data.value} findings</span>
+            <span className="text-[11px] font-semibold text-blue-600">{data.percentage}%</span>
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -85,36 +106,36 @@ export function ATADistribution({ records }: ATADistributionProps) {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                }}
-              />
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="mt-6 space-y-2">
-          {chartData.slice(0, 5).map((item, index) => (
+        <div className="mt-6 space-y-0.5">
+          {chartData.map((item, index) => (
             <button
               key={item.name}
               onClick={() => handleATAClick(item.name)}
-              className="w-full flex items-center justify-between text-sm p-2 rounded-lg hover:bg-gray-50 transition-colors group"
+              className="w-full flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-gray-50 transition-colors group"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <div
-                  className="w-3 h-3 rounded-full"
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: COLORS[index % COLORS.length] }}
                 />
-                <span className="font-medium text-gray-700 group-hover:text-blue-600">{item.name}</span>
+                <span className="text-xs font-semibold text-gray-700 group-hover:text-blue-600 transition-colors">
+                  {item.name}
+                </span>
+                {item.description && (
+                  <span className="text-[10px] text-gray-400 truncate max-w-[150px]">
+                    {item.description}
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-gray-600">{item.value} findings</span>
-                <span className="font-semibold text-gray-900">{item.percentage}%</span>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                <span className="text-[11px] text-gray-400">{item.value}</span>
+                <span className="text-xs font-bold text-gray-800 min-w-[36px] text-right">{item.percentage}%</span>
               </div>
             </button>
           ))}
@@ -125,7 +146,7 @@ export function ATADistribution({ records }: ATADistributionProps) {
         <DetailModal
           isOpen={!!selectedATA}
           onClose={() => setSelectedATA(null)}
-          title={`ATA ${selectedATA} - Detailed Findings`}
+          title={`ATA ${selectedATA} – ${getATADescription(selectedATA) || 'Detailed Findings'}`}
           records={modalRecords}
         />
       )}

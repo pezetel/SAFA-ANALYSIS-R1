@@ -12,6 +12,8 @@ interface ProblemTypeChartProps {
 const COLORS: Record<string, string> = {
   MISSING: '#ef4444',
   DAMAGED: '#f59e0b',
+  PAINT_DAMAGE: '#f97316',
+  DENT: '#fb923c',
   LOOSE: '#eab308',
   INOPERATIVE: '#8b5cf6',
   CLEANLINESS: '#06b6d4',
@@ -44,6 +46,26 @@ export function ProblemTypeChart({ records }: ProblemTypeChartProps) {
     setSelectedType(type);
   };
 
+  // Custom tick renderer that always shows the label
+  const renderCustomTick = (props: any) => {
+    const { x, y, payload } = props;
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text
+          x={0}
+          y={0}
+          dy={10}
+          textAnchor="end"
+          fill="#6b7280"
+          fontSize={9}
+          transform="rotate(-30)"
+        >
+          {payload.value}
+        </text>
+      </g>
+    );
+  };
+
   return (
     <>
       <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -52,23 +74,21 @@ export function ProblemTypeChart({ records }: ProblemTypeChartProps) {
           <p className="text-xs text-gray-600 mt-0.5">Analysis by finding type (Click to view details)</p>
         </div>
 
-        <div className="h-64">
+        <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
+            <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="type" 
-                stroke="#6b7280"
-                style={{ fontSize: '10px', cursor: 'pointer' }}
-                angle={-15}
-                textAnchor="end"
-                height={60}
+              <XAxis
+                dataKey="type"
+                tick={renderCustomTick}
+                interval={0}
+                height={70}
               />
-              <YAxis 
+              <YAxis
                 stroke="#6b7280"
                 style={{ fontSize: '11px' }}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
                   backgroundColor: '#fff',
                   border: '1px solid #e5e7eb',
@@ -81,15 +101,15 @@ export function ProblemTypeChart({ records }: ProblemTypeChartProps) {
                   'Count'
                 ]}
               />
-              <Bar 
-                dataKey="count" 
+              <Bar
+                dataKey="count"
                 radius={[6, 6, 0, 0]}
                 onClick={(data) => handleTypeClick(data.originalType)}
                 style={{ cursor: 'pointer' }}
               >
                 {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
+                  <Cell
+                    key={`cell-${index}`}
                     fill={COLORS[entry.originalType] || '#6b7280'}
                     className="hover:opacity-80 transition-opacity"
                   />

@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.5.0] - 2025-01-29
+
+### Added
+- **ATA Description Lookup** — Imported all 5120 ATA chapter descriptions from `ATA CH.xlsx` into a static JSON lookup table (`lib/ataDescriptions.json`)
+- **`lib/ataLookup.ts` helper module** — Provides `getATADescription()` and `formatATAWithDescription()` functions with intelligent fallback (exact match → `XX-YY-00` → `XX-00-00` parent)
+- **ATA descriptions in Overview list** — Each ATA code in the ATADistribution list now shows its description inline (e.g. `25-22-00  CABIN EQUIPMENT`)
+- **ATA descriptions in Tooltip** — Hovering over pie chart slices shows ATA code + description + findings count
+- **ATA descriptions in Detail Modal** — Modal title includes the ATA description (e.g. "ATA 25-22-00 – CABIN EQUIPMENT")
+
+### Changed
+- **ATADistribution list layout compacted** — ATA code and description displayed on a single line instead of stacked two-line layout
+- **Smaller typography for descriptions** — Description text uses `10px` font size to prevent list from becoming too tall
+- **Tooltip resized** — Max width reduced to 200px with smaller font sizes (`10px`–`11px`) for a cleaner look
+- **List spacing tightened** — Row padding reduced from `p-2.5` to `py-1.5 px-2`, gap between items reduced from `space-y-1` to `space-y-0.5`
+- **Color dots shrunk** — From `w-3 h-3` to `w-2.5 h-2.5` to match the more compact layout
+- **Long descriptions truncated** — `truncate` with `max-w-[150px]` prevents overflow on narrow screens
+
+### Fixed
+- **Problem Type Distribution X-axis labels disappearing** — Recharts default `interval="preserveEnd"` was hiding labels when space was tight; fixed by setting `interval={0}` to force all labels visible
+- **Custom tick renderer for Problem Type chart** — Replaced default XAxis tick with a custom SVG text renderer that rotates labels 30° at 9px font size, preventing overlap
+- **Problem Type chart height increased** — `h-64` → `h-72` and XAxis `height={70}` to give rotated labels more room
+- **Added missing PAINT_DAMAGE and DENT colors** — `COLORS` map in ProblemTypeChart now includes `PAINT_DAMAGE: '#f97316'` and `DENT: '#fb923c'` so these types no longer fall back to gray
+
+---
+
 ## [2.4.0] - 2026-04-08
 
 ### Changed
