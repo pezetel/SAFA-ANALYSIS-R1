@@ -1,12 +1,12 @@
 # ✈️ SAFA Trend Analysis Platform
 
-Comprehensive trend analysis and reporting system for aircraft SAFA (Safety Assessment of Foreign Aircraft) findings with EOD-based alert monitoring.
+Comprehensive trend analysis and reporting system for aircraft SAFA (Safety Assessment of Foreign Aircraft) findings with EOD-based alert monitoring and sigma-based statistical thresholds.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14.2.3-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.3.0-orange)
+![Version](https://img.shields.io/badge/version-2.5.0-orange)
 
 ## 🎯 Features
 
@@ -19,28 +19,36 @@ Comprehensive trend analysis and reporting system for aircraft SAFA (Safety Asse
 
 ### 📊 Dashboard & Visualization
 - **Statistics Cards**: Total findings, aircraft count, ATA chapters, analysis period
-- **ATA Distribution**: Pie chart showing system category distribution
-- **Problem Type Chart**: Bar chart of problem types (Missing, Damaged, etc.)
+- **ATA Distribution**: Pie chart showing system category distribution with ATA chapter descriptions
+- **Problem Type Chart**: Bar chart of problem types (Missing, Damaged, etc.) with rotated labels for readability
 - **All Findings by Component**: Full component listing with finding type breakdown as color-coded tags
-- **Time Series Chart**: Monthly finding count trends with EOD-based finding rate overlay
+- **Time Series Chart**: Monthly finding count trends with EOD-based finding rate overlay and sigma-based alert threshold line
 - **Aircraft Heatmap**: Aircraft × Time density map with rate view (F/EOD)
-- **ATA Heatmap**: ATA Chapter × Time density map with rate view (F/EOD)
-- **Component Heatmap**: Component × Time density map with rate view (F/EOD)
+- **ATA Heatmap**: ATA Chapter × Time density map with rate view (F/EOD) and threshold column
+- **Component Heatmap**: Component × Time density map with rate view (F/EOD) and threshold column
 
 ### 🚨 General Alert View
-- **3-level alert system**: 🟢 Normal, 🟡 Watch (> avg), 🔴 Alert (> 1.5× avg)
+- **2-level alert system**: 🟢 Normal, 🔴 Alert (rate exceeds threshold)
+- **Sigma-based thresholds**: Alert threshold = Weighted Avg + (σ Multiplier × Weighted Sigma)
 - **Three alert categories**:
-  - **Aircraft**: Each aircraft's rate compared to that month's fleet-wide average
-  - **Component**: Each component's rate compared to its own average across all active months
-  - **ATA**: Each ATA chapter's rate compared to its own average across all active months
+  - **Aircraft**: Each aircraft's rate compared to that month's fleet-wide weighted average + Nσ
+  - **Component**: Each component's rate compared to its own weighted average + Nσ across all active months
+  - **ATA**: Each ATA chapter's rate compared to its own weighted average + Nσ across all active months
 - **Alert averages match heatmaps exactly** — same calculation logic used everywhere
-- **Clickable alert items** — click any alert/watch row to open detail modal with:
+- **Clickable alert items** — click any alert row to open detail modal with:
   - Stats header: Findings, EODs, Rate, Avg Rate, Ratio
   - Searchable findings table with pagination
   - Excel export per alert item
 - **Filter by type**: All, Aircraft, Component, ATA
-- **Filter by level**: All, Alert Only, Watch Only
 - Months with no EOD data excluded from average calculations
+
+### 🎛️ Sigma Control
+- **Compact widget** with visual volume-bar style selector
+- Adjustable σ multiplier: 0, 1, 1.5, 2, 2.5, 3, 3.5, 4
+- Filled bars up to selected value for visual feedback
+- Current threshold indicator (e.g. "Alert at 2σ")
+- ℹ️ info button with detailed explanation popover describing weighted average, weighted sigma, and alert logic
+- Controls alert sensitivity across all heatmaps, trend chart, and alert panel simultaneously
 
 ### 🔍 Interactive Detail View
 - Click on any chart, list item, or heatmap cell to view details
@@ -78,12 +86,12 @@ Click **"Full Report"** button to export all data as a comprehensive multi-sheet
 |-------|--------|
 | **Time Series** | Monthly findings, EODs, rate + summary (total, avg, highest, lowest, avg rate) |
 | **Component (Count)** | Component × Month count heatmap + Total column |
-| **Component (Rate)** | Rate values + Avg Rate + Alert Level column (🔴/🟡/🟢) |
+| **Component (Rate)** | Rate values + Avg Rate + Alert Level column (🔴/🟢) |
 | **Aircraft (Count)** | Aircraft × Month count heatmap + Total column |
 | **Aircraft (Rate)** | Fleet Avg row + rate values + Max Alert column |
 | **ATA (Count)** | ATA × Month count with chapter names + Total column |
 | **ATA (Rate)** | Rate values + Avg Rate + Alert Level + EOD Total row |
-| **Alerts** | All alert/watch items with level, type, name, month, findings, EODs, rate, avg, ratio + summary |
+| **Alerts** | All alert items with level, type, name, month, findings, EODs, rate, avg, ratio + summary |
 | **Raw Data** | All filtered finding records |
 
 #### Raw Data Export
@@ -192,16 +200,19 @@ Upload an EOD Excel file to enable rate-based analysis and alerts:
 #### Overview Tab
 - Click on **charts and lists** to view details
 - See all components with their finding type breakdown
+- ATA distribution pie chart shows ATA descriptions on hover and in lists
 - Analyze distribution by problem type
 
 #### Trend Analysis Tab
-- **General Alert View** at the top — click any alert item to see findings detail
+- **Sigma Control** at the top — adjust σ multiplier to control alert sensitivity
+- **General Alert View** below — click any alert item to see findings detail
 - **Quick Date Range** buttons for fast period selection
-- Track changes over time with the monthly trend chart (with rate overlay when EOD loaded)
+- Track changes over time with the monthly trend chart (with rate overlay and sigma threshold line when EOD loaded)
 - Toggle **Count / Rate (F/EOD)** on all heatmaps
+- Heatmaps show **Threshold** column in rate view (Avg + Nσ)
 - Click **heatmap cells** to view details for that combination
 - Search and paginate through all heatmaps
-- All rates and averages update when filters change
+- All rates, averages, and thresholds update when filters or sigma multiplier change
 
 #### Period Analysis Tab
 - Use quick select buttons or enter custom date ranges
@@ -304,20 +315,32 @@ The system automatically recognizes and groups the following components:
 Rate = Number of Findings / Number of EOD Applications (per month)
 ```
 
+### Weighted Average & Weighted Sigma
+```
+Weighted Avg = Σ(EODs_i × Rate_i) / Σ(EODs_i)
+Weighted Sigma = √[ Σ(EODs_i × (Rate_i − Weighted Avg)²) / Σ(EODs_i) ]
+```
+Months with more EOD applications carry more weight in the average and sigma calculations.
+
+### Alert Threshold
+```
+Threshold = Weighted Avg + (σ Multiplier × Weighted Sigma)
+```
+The σ multiplier is adjustable via the Sigma Control widget (default: 2).
+
 ### Alert Levels
 | Level | Condition |
-|-------|-----------|
-| 🟢 **Normal** | Rate ≤ Average |
-| 🟡 **Watch** | Average < Rate ≤ 1.5× Average |
-| 🔴 **Alert** | Rate > 1.5× Average |
+|-------|----------|
+| 🟢 **Normal** | Rate ≤ Threshold |
+| 🔴 **Alert** | Rate > Threshold |
 
 ### Average Calculation by Category
 
-| Category | Average Baseline | Matches |
-|----------|-----------------|----------|
-| **Aircraft** | Fleet-wide monthly avg = `totalFindings ÷ totalEODs` for that month | AircraftHeatmap |
-| **Component** | Per-component own avg across all months where EOD exists (rate=0 included if no findings) | ComponentHeatmap |
-| **ATA** | Per-ATA own avg across all months where EOD exists (rate=0 included if no findings) | ATAHeatmap |
+| Category | Threshold Baseline | Matches |
+|----------|-------------------|----------|
+| **Aircraft** | Fleet-wide weighted avg + Nσ across all months | AircraftHeatmap |
+| **Component** | Per-component own weighted avg + Nσ across all months where EOD exists | ComponentHeatmap |
+| **ATA** | Per-ATA own weighted avg + Nσ across all months where EOD exists | ATAHeatmap |
 
 > Months with no EOD data are excluded from average calculations (not counted as zero).
 
@@ -348,21 +371,24 @@ safa-trend-analysis/
 ├── components/
 │   ├── FileUpload.tsx       # Excel upload (SAFA + EOD)
 │   ├── DashboardStats.tsx   # Statistics cards
-│   ├── TrendChart.tsx       # Time series chart with rate overlay
+│   ├── TrendChart.tsx       # Time series chart with rate overlay & sigma threshold
 │   ├── AircraftHeatmap.tsx  # Aircraft heatmap with rate toggle
-│   ├── ATAHeatmap.tsx       # ATA chapter heatmap with rate toggle
-│   ├── ComponentHeatmap.tsx # Component heatmap with rate toggle
+│   ├── ATAHeatmap.tsx       # ATA chapter heatmap with rate toggle & threshold column
+│   ├── ComponentHeatmap.tsx # Component heatmap with rate toggle & threshold column
 │   ├── EODAlertPanel.tsx    # General Alert View with detail modal
-│   ├── ATADistribution.tsx  # Pie chart
-│   ├── ProblemTypeChart.tsx # Bar chart
+│   ├── SigmaControl.tsx     # Sigma multiplier widget with visual bar selector
+│   ├── ATADistribution.tsx  # Pie chart with ATA descriptions
+│   ├── ProblemTypeChart.tsx # Bar chart with rotated labels
 │   ├── TopProblems.tsx      # All findings by component
 │   ├── PeriodComparison.tsx # Period comparison analysis
 │   ├── FilterPanel.tsx      # Filtering UI with quick date buttons
 │   ├── DataTable.tsx        # Data table with sorting
 │   └── DetailModal.tsx      # Modal for record details
 ├── lib/
+│   ├── ataDescriptions.json # 5120 ATA chapter descriptions lookup
+│   ├── ataLookup.ts         # ATA description helper (getATADescription, formatATAWithDescription)
 │   ├── dataProcessor.ts     # Data cleaning & processing
-│   ├── eodProcessor.ts      # EOD processing, rates & alert generation
+│   ├── eodProcessor.ts      # EOD processing, weighted stats, rates & alert generation
 │   ├── excelExporter.ts     # Full report multi-sheet Excel export
 │   ├── types.ts             # TypeScript types
 │   └── version.ts           # App version
