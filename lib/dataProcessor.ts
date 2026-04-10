@@ -91,10 +91,38 @@ export function processExcelData(rawData: any[]): SAFARecord[] {
   return records;
 }
 
+/**
+ * Normalize aircraft registration to a consistent format.
+ * Must match the normalizeAircraftReg logic in eodProcessor.ts so that
+ * SAFA records and EOD records use identical aircraft keys.
+ *
+ * Rules:
+ *  - 3-letter code (e.g. "SEK") → "TC-SEK"
+ *  - 5-letter without dash (e.g. "TCSEK") → "TC-SEK"
+ *  - Already "TC-XXX" → kept as-is
+ *  - Everything else → trimmed & uppercased
+ */
 function normalizeAircraft(value: any): string {
   if (!value) return 'UNKNOWN';
-  const str = String(value).trim().toUpperCase();
-  return str || 'UNKNOWN';
+  let str = String(value).trim().toUpperCase();
+  if (!str) return 'UNKNOWN';
+
+  // 3-letter code like "SEK" → "TC-SEK"
+  if (/^[A-Z]{3}$/.test(str)) {
+    return 'TC-' + str;
+  }
+
+  // Already in TC-XXX format
+  if (/^TC-[A-Z]{3}$/.test(str)) {
+    return str;
+  }
+
+  // 5-letter without dash like "TCSEK" → "TC-SEK"
+  if (/^TC[A-Z]{3}$/.test(str)) {
+    return str.slice(0, 2) + '-' + str.slice(2);
+  }
+
+  return str;
 }
 
 function normalizeATA(value: any): string {
