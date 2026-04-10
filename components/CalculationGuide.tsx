@@ -61,7 +61,7 @@ export function CalculationGuide() {
             <BookOpen className="h-6 w-6 text-indigo-600" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Hesaplama Kılavuzu</h2>
+            <h2 className="text-lg font-bold text-gray-900">Alert Level Mantığı</h2>
             <p className="text-xs text-gray-500 mt-0.5">
               Trend analizinde kullanılan Weighted Average, Weighted Sigma ve Alert Threshold hesaplamalarının detaylı açıklaması
             </p>
