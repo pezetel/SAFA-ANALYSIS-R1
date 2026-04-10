@@ -236,7 +236,7 @@ export function AircraftPeriodTracker({
           <div className="flex items-start gap-2">
             <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
             <div>
-              <strong>How it works:</strong> Each period{"'"} Fleet Weighted Avg and {sigmaSettings.multiplier}{"\u03c3"} threshold are calculated independently.
+              <strong>How it works:</strong> Each period{"'"} Fleet Weighted Avg and {sigmaSettings.multiplier}{"σ"} threshold are calculated independently.
               Aircraft marked <span className="font-bold text-red-700">BOTH ALERT</span> exceeded the threshold in both periods — these are persistent problem aircraft. Consider restricting them from specific stations.
             </div>
           </div>
@@ -251,8 +251,8 @@ export function AircraftPeriodTracker({
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div><p className="text-[10px] text-gray-500">Fleet Avg</p><p className="text-sm font-bold text-blue-700">{p1Stats.stats.weightedAvg.toFixed(3)}</p></div>
-              <div><p className="text-[10px] text-gray-500">Fleet \u03c3</p><p className="text-sm font-bold text-blue-700">{p1Stats.stats.weightedSigma.toFixed(3)}</p></div>
-              <div><p className="text-[10px] text-gray-500">Threshold ({sigmaSettings.multiplier}\u03c3)</p><p className="text-sm font-bold text-red-600">{p1Threshold.toFixed(3)}</p></div>
+              <div><p className="text-[10px] text-gray-500">Fleet σ</p><p className="text-sm font-bold text-blue-700">{p1Stats.stats.weightedSigma.toFixed(3)}</p></div>
+              <div><p className="text-[10px] text-gray-500">Threshold ({sigmaSettings.multiplier}σ)</p><p className="text-sm font-bold text-red-600">{p1Threshold.toFixed(3)}</p></div>
             </div>
           </div>
           <div className="border border-purple-200 rounded-lg p-3 bg-purple-50/50">
@@ -262,8 +262,8 @@ export function AircraftPeriodTracker({
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div><p className="text-[10px] text-gray-500">Fleet Avg</p><p className="text-sm font-bold text-purple-700">{p2Stats.stats.weightedAvg.toFixed(3)}</p></div>
-              <div><p className="text-[10px] text-gray-500">Fleet \u03c3</p><p className="text-sm font-bold text-purple-700">{p2Stats.stats.weightedSigma.toFixed(3)}</p></div>
-              <div><p className="text-[10px] text-gray-500">Threshold ({sigmaSettings.multiplier}\u03c3)</p><p className="text-sm font-bold text-red-600">{p2Threshold.toFixed(3)}</p></div>
+              <div><p className="text-[10px] text-gray-500">Fleet σ</p><p className="text-sm font-bold text-purple-700">{p2Stats.stats.weightedSigma.toFixed(3)}</p></div>
+              <div><p className="text-[10px] text-gray-500">Threshold ({sigmaSettings.multiplier}σ)</p><p className="text-sm font-bold text-red-600">{p2Threshold.toFixed(3)}</p></div>
             </div>
           </div>
         </div>
@@ -420,7 +420,7 @@ export function AircraftPeriodTracker({
                           {d.rateChange > 0 ? '+' : ''}{d.rateChange.toFixed(2)}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-gray-400">\u2014</span>
+                        <span className="text-[10px] text-gray-400">—</span>
                       )}
                     </div>
 
@@ -492,7 +492,7 @@ export function AircraftPeriodTracker({
                   {bothAlertCount} aircraft above threshold in BOTH periods
                 </p>
                 <p className="text-xs text-red-700 mb-2">
-                  These aircraft consistently exceed the fleet average + {sigmaSettings.multiplier}{"\u03c3"} threshold.
+                  These aircraft consistently exceed the fleet average + {sigmaSettings.multiplier}{"σ"} threshold.
                   Consider restricting them from specific stations.
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -504,7 +504,7 @@ export function AircraftPeriodTracker({
                     >
                       <Plane className="h-3 w-3" />
                       {d.aircraft}
-                      <span className="text-red-500 font-normal">({d.p1Rate.toFixed(2)} {"\u2192"} {d.p2Rate.toFixed(2)})</span>
+                      <span className="text-red-500 font-normal">({d.p1Rate.toFixed(2)} {"→"} {d.p2Rate.toFixed(2)})</span>
                     </button>
                   ))}
                 </div>

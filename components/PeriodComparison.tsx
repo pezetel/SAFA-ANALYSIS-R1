@@ -513,9 +513,13 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
 
     const problemTypeData = buildProblemTypeData(period1Records, period2Records);
 
+    // EOD counts per period
+    const p1EODCount = hasEOD ? eodRecords!.filter(e => { const d = new Date(e.perfDate); return d >= p1Start && d <= p1End; }).length : 0;
+    const p2EODCount = hasEOD ? eodRecords!.filter(e => { const d = new Date(e.perfDate); return d >= p2Start && d <= p2End; }).length : 0;
+
     return {
-      period1: { total: period1Records.length, records: period1Records, dateRange: `${period1Start} - ${period1End}` },
-      period2: { total: period2Records.length, records: period2Records, dateRange: `${period2Start} - ${period2End}` },
+      period1: { total: period1Records.length, records: period1Records, dateRange: `${period1Start} - ${period1End}`, eodCount: p1EODCount },
+      period2: { total: period2Records.length, records: period2Records, dateRange: `${period2Start} - ${period2End}`, eodCount: p2EODCount },
       totalChange: period2Records.length - period1Records.length,
       totalChangePercent: period1Records.length > 0 ? ((period2Records.length - period1Records.length) / period1Records.length) * 100 : 0,
       componentComparison: componentComparison.slice(0, 10),
@@ -523,7 +527,7 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
       decreased: componentComparison.filter(c => c.change < 0).slice(0, 5),
       problemTypeData,
     };
-  }, [records, period1Start, period1End, period2Start, period2End]);
+  }, [records, eodRecords, hasEOD, period1Start, period1End, period2Start, period2End]);
 
   // ── Aircraft comparison data ──
   const aircraftComparisonData = useMemo(() => {
@@ -907,12 +911,18 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
                   <h3 className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500" /> Period 1 Total</h3>
                   <p className="text-3xl font-bold text-blue-600">{periodComparisonData.period1.total}</p>
                   <p className="text-xs text-gray-500 mt-1">findings</p>
+                  {periodComparisonData.period1.eodCount > 0 && (
+                    <p className="text-xs text-amber-600 mt-1">{periodComparisonData.period1.eodCount} EOD applications</p>
+                  )}
                   <p className="text-xs text-blue-600 mt-2">{periodComparisonData.period1.dateRange}</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h3 className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-purple-500" /> Period 2 Total</h3>
                   <p className="text-3xl font-bold text-purple-600">{periodComparisonData.period2.total}</p>
                   <p className="text-xs text-gray-500 mt-1">findings</p>
+                  {periodComparisonData.period2.eodCount > 0 && (
+                    <p className="text-xs text-amber-600 mt-1">{periodComparisonData.period2.eodCount} EOD applications</p>
+                  )}
                   <p className="text-xs text-purple-600 mt-2">{periodComparisonData.period2.dateRange}</p>
                 </div>
                 <div className={`bg-white rounded-xl border border-gray-200 p-6 ${periodComparisonData.totalChange > 0 ? 'border-red-200 bg-red-50' : periodComparisonData.totalChange < 0 ? 'border-green-200 bg-green-50' : ''}`}>
