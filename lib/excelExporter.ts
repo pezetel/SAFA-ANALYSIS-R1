@@ -23,8 +23,8 @@ export function exportFullReport({ findings, eodRecords, sigmaSettings = DEFAULT
   // 2. Component Heatmap
   addComponentHeatmapSheet(workbook, findings, eodRecords, sigmaSettings);
 
-  // 3. Aircraft Heatmap
-  addAircraftHeatmapSheet(workbook, findings, eodRecords);
+  // 3. Aircraft Analysis (Period-based Fleet Weighted Avg + Nσ)
+  addAircraftHeatmapSheet(workbook, findings, eodRecords, sigmaSettings);
 
   // 4. ATA Heatmap
   addATAHeatmapSheet(workbook, findings, eodRecords, sigmaSettings);
@@ -106,9 +106,9 @@ function addTrendSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecor
 
     rows.push(['Weighted Avg Rate', parseFloat(stats.weightedAvg.toFixed(4))]);
     rows.push(['Weighted Sigma', parseFloat(stats.weightedSigma.toFixed(4))]);
-    rows.push([`Alert Threshold (Avg+${sigmaSettings.multiplier}σ)`, parseFloat(alertThresh.toFixed(4))]);
+    rows.push([`Alert Threshold (Avg+${sigmaSettings.multiplier}\u03c3)`, parseFloat(alertThresh.toFixed(4))]);
     rows.push(['Total EODs', Object.values(monthlyEODs).reduce((a, b) => a + b, 0)]);
-    rows.push(['Sigma Settings', `Alert: ${sigmaSettings.multiplier}σ`]);
+    rows.push(['Sigma Settings', `Alert: ${sigmaSettings.multiplier}\u03c3`]);
   }
 
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
@@ -185,7 +185,7 @@ function addComponentHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[
 
   // Rate sheet
   if (hasEOD) {
-    const rateHeader = ['Component', ...monthLabels, 'Wt. Avg', 'Wt. σ', 'Alert Threshold', 'Alert Level'];
+    const rateHeader = ['Component', ...monthLabels, 'Wt. Avg', 'Wt. \u03c3', 'Alert Threshold', 'Alert Level'];
 
     // EOD totals row
     const eodRow: any[] = ['EOD Total'];
@@ -211,7 +211,7 @@ function addComponentHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[
       row.push(parseFloat(stats.weightedAvg.toFixed(4)));
       row.push(parseFloat(stats.weightedSigma.toFixed(4)));
       row.push(parseFloat((stats.weightedAvg + sigmaSettings.multiplier * stats.weightedSigma).toFixed(4)));
-      row.push(maxLevel === 'alert' ? '🔴 ALERT' : '🟢 Normal');
+      row.push(maxLevel === 'alert' ? '\ud83d\udd34 ALERT' : '\ud83d\udfe2 Normal');
       return row;
     });
 
@@ -222,16 +222,20 @@ function addComponentHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[
 }
 
 // ════════════════════════════════════════════
-// Sheet 3: Aircraft Heatmap (Count + Rate)
-// Aircraft stays the same: fleet avg per month baseline
+// Sheet 3: Aircraft Analysis
+// Period-based: Fleet Weighted Avg + N\u03c3
+// Each aircraft's Period Rate = Total Findings / Total EODs across entire period
+// Fleet Weighted Avg & Sigma computed across all aircraft, weighted by total EODs
+// Threshold = Fleet Avg + N\u03c3 * Fleet Sigma
 // ════════════════════════════════════════════
-function addAircraftHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords?: EODRecord[]) {
+function addAircraftHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords?: EODRecord[], sigmaSettings: SigmaSettings = DEFAULT_SIGMA) {
   const hasEOD = eodRecords && eodRecords.length > 0;
 
   const months = Array.from(new Set(
     findings.map(f => format(startOfMonth(new Date(f.date)), 'yyyy-MM'))
   )).sort();
 
+  // Monthly finding counts per aircraft (for the count sheet)
   const acMonthData: Record<string, Record<string, number>> = {};
   findings.forEach(f => {
     const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
@@ -239,40 +243,55 @@ function addAircraftHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[]
     acMonthData[f.aircraft][month] = (acMonthData[f.aircraft][month] || 0) + 1;
   });
 
-  const acMonthEOD: Record<string, Record<string, number>> = {};
-  const totalEODPerMonth: Record<string, number> = {};
-  const totalFindingsPerMonth: Record<string, number> = {};
+  // Total findings per aircraft across entire period
+  const acTotalFindings: Record<string, number> = {};
+  findings.forEach(f => {
+    acTotalFindings[f.aircraft] = (acTotalFindings[f.aircraft] || 0) + 1;
+  });
+
+  // Total EODs per aircraft across entire period
+  const acTotalEOD: Record<string, number> = {};
   if (hasEOD) {
     eodRecords!.forEach(e => {
-      const month = format(startOfMonth(new Date(e.perfDate)), 'yyyy-MM');
-      if (!acMonthEOD[e.aircraft]) acMonthEOD[e.aircraft] = {};
-      acMonthEOD[e.aircraft][month] = (acMonthEOD[e.aircraft][month] || 0) + 1;
-      totalEODPerMonth[month] = (totalEODPerMonth[month] || 0) + 1;
-    });
-    findings.forEach(f => {
-      const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
-      totalFindingsPerMonth[month] = (totalFindingsPerMonth[month] || 0) + 1;
+      acTotalEOD[e.aircraft] = (acTotalEOD[e.aircraft] || 0) + 1;
     });
   }
 
-  // Fleet monthly avg (matching AircraftHeatmap — stays the same)
-  const monthlyFleetAvg: Record<string, number> = {};
+  // All aircraft that have either findings or EOD
+  const allAircraft = Array.from(new Set([
+    ...Object.keys(acTotalFindings),
+    ...Object.keys(acTotalEOD),
+  ])).sort();
+
+  // Period rate per aircraft
+  const acPeriodRate: Record<string, number> = {};
+  const fleetRates: number[] = [];
+  const fleetWeights: number[] = [];
+
   if (hasEOD) {
-    months.forEach(month => {
-      const tf = totalFindingsPerMonth[month] || 0;
-      const te = totalEODPerMonth[month] || 0;
-      monthlyFleetAvg[month] = te > 0 ? tf / te : 0;
+    allAircraft.forEach(ac => {
+      const eods = acTotalEOD[ac] || 0;
+      if (eods > 0) {
+        const acFindings = acTotalFindings[ac] || 0;
+        const rate = acFindings / eods;
+        acPeriodRate[ac] = rate;
+        fleetRates.push(rate);
+        fleetWeights.push(eods);
+      }
     });
   }
 
-  const sortedAC = Object.entries(acMonthData)
-    .map(([ac, data]) => ({ ac, total: Object.values(data).reduce((a, b) => a + b, 0) }))
-    .sort((a, b) => b.total - a.total)
-    .map(c => c.ac);
+  const fleetStats = computeWeightedStats(fleetRates, fleetWeights);
+  const fleetThreshold = fleetStats.weightedAvg + sigmaSettings.multiplier * fleetStats.weightedSigma;
+
+  // Sort by total findings desc
+  const sortedAC = [...allAircraft]
+    .filter(ac => (acTotalFindings[ac] || 0) > 0 || (acTotalEOD[ac] || 0) > 0)
+    .sort((a, b) => (acTotalFindings[b] || 0) - (acTotalFindings[a] || 0));
 
   const monthLabels = months.map(m => format(new Date(m + '-01'), 'MMM yy', { locale: enUS }));
 
-  // Count sheet
+  // Count sheet (monthly breakdown — unchanged)
   const countHeader = ['Aircraft', ...monthLabels, 'Total'];
   const countRows = sortedAC.map(ac => {
     const row: any[] = [ac];
@@ -290,41 +309,87 @@ function addAircraftHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[]
   wsCount['!cols'] = [{ wch: 14 }, ...months.map(() => ({ wch: 10 })), { wch: 8 }];
   XLSX.utils.book_append_sheet(workbook, wsCount, 'Aircraft (Count)');
 
-  // Rate sheet — fleet avg per month baseline (unchanged)
+  // Rate sheet — Period-based Fleet Weighted Avg + N\u03c3
   if (hasEOD) {
-    const rateHeader = ['Aircraft', ...monthLabels, 'Max Alert'];
-
-    // Fleet avg row
-    const fleetAvgRow: any[] = ['Fleet Avg'];
-    months.forEach(month => {
-      fleetAvgRow.push(parseFloat((monthlyFleetAvg[month] || 0).toFixed(4)));
-    });
-    fleetAvgRow.push('');
+    const rateHeader = [
+      'Aircraft',
+      'Total Findings',
+      'Total EODs',
+      'Period Rate',
+      'Fleet Wt. Avg',
+      `Fleet Wt. \u03c3`,
+      `Threshold (Avg+${sigmaSettings.multiplier}\u03c3)`,
+      'Deviation',
+      'Status',
+    ];
 
     const rateRows = sortedAC.map(ac => {
-      const row: any[] = [ac];
-      let maxLevel: 'normal' | 'alert' = 'normal';
-      months.forEach(month => {
-        const fc = acMonthData[ac]?.[month] || 0;
-        const eodCount = acMonthEOD[ac]?.[month] || 0;
-        if (eodCount > 0) {
-          const rate = fc / eodCount;
-          row.push(parseFloat(rate.toFixed(4)));
-          const avgForMonth = monthlyFleetAvg[month] || 0;
-          // Aircraft uses legacy getAlertLevel (fleet avg per month)
-          if (avgForMonth > 0) {
-            if (rate > avgForMonth * 1.5) maxLevel = 'alert';
-          }
-        } else {
-          row.push(fc > 0 ? `${fc}*` : '');
-        }
-      });
-      row.push(maxLevel === 'alert' ? '🔴 ALERT' : '🟢 Normal');
-      return row;
+      const totalF = acTotalFindings[ac] || 0;
+      const totalE = acTotalEOD[ac] || 0;
+      const rate = acPeriodRate[ac];
+
+      if (totalE === 0 || rate === undefined) {
+        return [
+          ac,
+          totalF,
+          0,
+          'N/A',
+          '',
+          '',
+          '',
+          '',
+          'N/A (No EOD)',
+        ];
+      }
+
+      const isAlert = rate > fleetThreshold;
+      const deviation = rate - fleetThreshold;
+
+      return [
+        ac,
+        totalF,
+        totalE,
+        parseFloat(rate.toFixed(4)),
+        parseFloat(fleetStats.weightedAvg.toFixed(4)),
+        parseFloat(fleetStats.weightedSigma.toFixed(4)),
+        parseFloat(fleetThreshold.toFixed(4)),
+        parseFloat(deviation.toFixed(4)),
+        isAlert ? '\ud83d\udd34 ALERT' : '\ud83d\udfe2 Normal',
+      ];
     });
 
-    const wsRate = XLSX.utils.aoa_to_sheet([rateHeader, fleetAvgRow, ...rateRows]);
-    wsRate['!cols'] = [{ wch: 14 }, ...months.map(() => ({ wch: 10 })), { wch: 14 }];
+    // Summary rows at bottom
+    const totalAircraftWithEOD = allAircraft.filter(ac => (acTotalEOD[ac] || 0) > 0).length;
+    const alertCount = sortedAC.filter(ac => {
+      const rate = acPeriodRate[ac];
+      return rate !== undefined && rate > fleetThreshold;
+    }).length;
+
+    const summaryRows: any[][] = [
+      [],
+      ['Summary'],
+      ['Analysis Type', 'Period-based Fleet Weighted Avg + N\u03c3'],
+      ['Sigma Settings', `${sigmaSettings.multiplier}\u03c3`],
+      ['Fleet Weighted Avg', parseFloat(fleetStats.weightedAvg.toFixed(4))],
+      ['Fleet Weighted \u03c3', parseFloat(fleetStats.weightedSigma.toFixed(4))],
+      [`Threshold (Avg+${sigmaSettings.multiplier}\u03c3)`, parseFloat(fleetThreshold.toFixed(4))],
+      ['Total Aircraft', allAircraft.length],
+      ['Aircraft with EOD', totalAircraftWithEOD],
+      ['Aircraft in Alert', `${alertCount} / ${totalAircraftWithEOD}`],
+    ];
+
+    const wsRate = XLSX.utils.aoa_to_sheet([rateHeader, ...rateRows, ...summaryRows]);
+    wsRate['!cols'] = [
+      { wch: 14 },  // Aircraft
+      { wch: 14 },  // Total Findings
+      { wch: 12 },  // Total EODs
+      { wch: 12 },  // Period Rate
+      { wch: 14 },  // Fleet Wt. Avg
+      { wch: 12 },  // Fleet Wt. \u03c3
+      { wch: 18 },  // Threshold
+      { wch: 12 },  // Deviation
+      { wch: 14 },  // Status
+    ];
     XLSX.utils.book_append_sheet(workbook, wsRate, 'Aircraft (Rate)');
   }
 }
@@ -416,7 +481,7 @@ function addATAHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eod
 
   // Rate sheet
   if (hasEOD) {
-    const rateHeader = ['ATA', 'Name', ...monthLabels, 'Wt. Avg', 'Wt. σ', 'Alert Threshold', 'Alert Level'];
+    const rateHeader = ['ATA', 'Name', ...monthLabels, 'Wt. Avg', 'Wt. \u03c3', 'Alert Threshold', 'Alert Level'];
 
     // EOD totals row
     const eodRow: any[] = ['', 'EOD Total'];
@@ -442,7 +507,7 @@ function addATAHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eod
       row.push(parseFloat(stats.weightedAvg.toFixed(4)));
       row.push(parseFloat(stats.weightedSigma.toFixed(4)));
       row.push(parseFloat((stats.weightedAvg + sigmaSettings.multiplier * stats.weightedSigma).toFixed(4)));
-      row.push(maxLevel === 'alert' ? '🔴 ALERT' : '🟢 Normal');
+      row.push(maxLevel === 'alert' ? '\ud83d\udd34 ALERT' : '\ud83d\udfe2 Normal');
       return row;
     });
 
@@ -458,9 +523,9 @@ function addATAHeatmapSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eod
 function addAlertSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecords: EODRecord[], sigmaSettings: SigmaSettings = DEFAULT_SIGMA) {
   const alerts = generateAlerts(findings, eodRecords, sigmaSettings);
 
-  const header = ['Level', 'Type', 'Name', 'Month', 'Findings', 'EODs', 'Rate', 'Wt. Avg', 'Wt. σ', 'Alert Thresh', 'Ratio'];
+  const header = ['Level', 'Type', 'Name', 'Month', 'Findings', 'EODs', 'Rate', 'Wt. Avg', 'Wt. \u03c3', 'Alert Thresh', 'Ratio'];
   const rows: any[][] = alerts.map(a => [
-    '🔴 ALERT',
+    '\ud83d\udd34 ALERT',
     a.type.charAt(0).toUpperCase() + a.type.slice(1),
     a.name.replace(/_/g, ' '),
     format(new Date(a.month + '-01'), 'MMM yyyy', { locale: enUS }),
@@ -470,7 +535,7 @@ function addAlertSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecor
     parseFloat(a.avgRate.toFixed(4)),
     parseFloat(a.sigma.toFixed(4)),
     parseFloat(a.threshold.toFixed(4)),
-    a.ratio.toFixed(2) + '×',
+    a.ratio.toFixed(2) + '\u00d7',
   ]);
 
   // Summary
@@ -481,11 +546,11 @@ function addAlertSheet(workbook: XLSX.WorkBook, findings: SAFARecord[], eodRecor
 
   rows.push([]);
   rows.push(['Summary']);
-  rows.push(['Sigma Settings', `Alert: ${sigmaSettings.multiplier}σ`]);
+  rows.push(['Sigma Settings', `Alert: ${sigmaSettings.multiplier}\u03c3`]);
   rows.push(['Total Alerts', alertCount]);
-  rows.push(['Aircraft', `${acAlerts.length} alert`]);
-  rows.push(['Component', `${compAlerts.length} alert`]);
-  rows.push(['ATA', `${ataAlerts.length} alert`]);
+  rows.push(['Aircraft', `${acAlerts.length} alert(s) — Period-based Fleet Wt. Avg + ${sigmaSettings.multiplier}\u03c3`]);
+  rows.push(['Component', `${compAlerts.length} alert(s) — Per-component Wt. Avg + ${sigmaSettings.multiplier}\u03c3`]);
+  rows.push(['ATA', `${ataAlerts.length} alert(s) — Per-ATA Wt. Avg + ${sigmaSettings.multiplier}\u03c3`]);
 
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
   ws['!cols'] = [

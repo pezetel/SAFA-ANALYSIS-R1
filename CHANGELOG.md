@@ -2,27 +2,47 @@
 
 ## [2.6.0] - 2025-01-30
 
-### Fixed — General Alert View & Heatmap Consistency
-- **Aircraft alerts now match AircraftHeatmap exactly** — `generateAlerts()` aircraft section rewritten to use the same `rate > monthlyFleetAvg × 1.5` logic as `AircraftHeatmap.tsx` and `getAlertLevel()`. Previously it was incorrectly using fleet-wide weighted avg + Nσ (a single threshold for all months), which did not match the heatmap.
-- **Each month now has its own fleet avg & threshold for aircraft** — Fleet avg = totalFindings / totalEODs calculated per month. Threshold = fleetAvg × 1.5 per month. Previously all months shared the same weighted avg/sigma values, causing aircraft alert rows to display identical avg/threshold regardless of month.
-- **Aircraft alerts no longer use sigma** — `sigma: 0` is set for aircraft alert items since the AircraftHeatmap never used sigma-based thresholds. The sigma slider now correctly only affects Component and ATA alerts.
-- **Aircraft rate calculation matches heatmap** — Aircraft rate = aircraftFindings / aircraftEODs (per aircraft per month), matching AircraftHeatmap. Component and ATA rate = findings / totalFleetEODs (per month), matching their respective heatmaps.
+### Changed — Aircraft Analysis: Period-Based Fleet Weighted Avg + Nσ
+- **Aircraft analysis completely reworked** — Replaced the old "1.5× monthly fleet average" fixed rule with a proper **Period-Based Fleet Weighted Avg + Nσ** approach, matching Component and ATA methodology
+- **Period Rate per aircraft** — Each aircraft now has a single Period Rate = Total Findings / Total EODs across the entire analysis period (not monthly)
+- **Fleet Weighted Average & Sigma** — Computed across all aircraft, weighted by each aircraft's total EOD count. Aircraft with more EODs carry more weight in fleet statistics
+- **Sigma slider now affects Aircraft Analysis** — Previously Aircraft was excluded from sigma control; now Threshold = Fleet Wt. Avg + Nσ × Fleet Wt. Sigma, responsive to the sigma multiplier slider
+- **Deviation column** — Aircraft (Rate) view shows deviation from threshold for each aircraft (rate - threshold)
+- **Fleet summary cards** — Aircraft Period Analysis header now shows Fleet Wt. Avg, Fleet Wt. σ, Threshold, and Aircraft in Alert count
 
-### Changed — EODAlertPanel UI Overhaul
-- **Removed misleading header stats** — The static "Wt. Avg", "Wt. Sigma", and "Threshold" boxes in the General Alert View header were removed. These showed a single overall fleet weighted sigma that didn't correspond to any specific alert type (not aircraft, not component, not ATA) and never changed when sigma slider was adjusted.
-- **Replaced with Alerts by Type breakdown** — Header now shows alert counts per type using Lucide icons (Plane, Cpu, BookOpen) instead of broken unicode emoji escapes.
-- **Added info banner** — Blue info box explains that each alert type uses a different threshold method: Aircraft = 1.5× monthly fleet avg (no sigma), Component = own weighted avg + Nσ, ATA = own weighted avg + Nσ.
-- **Alert method badge on each row** — Each alert item now displays a small badge showing its threshold method ("1.5x fleet avg" for aircraft, "Avg + 2σ" for component/ATA).
-- **Aircraft rows show month-specific values** — Aircraft alert rows display `(fleet avg: X.XX, thr: X.XX)` with values specific to that month. Previously showed the same global weighted avg for every month.
-- **Component/ATA rows show own stats** — Display `(own avg: X.XX, σ: X.XX, thr: X.XX)` clarifying these are per-item weighted values.
-- **Detail modal labels updated** — Aircraft detail shows "Month Fleet Avg" and "Thr (1.5x avg)". Component/ATA detail shows "Own Wt. Avg", "Own Wt. σ", and "Thr (Avg+Nσ)". Aircraft detail hides the σ stat entirely since it's not used.
-- **Subtitle updated** — Now reads: `Aircraft: 1.5× monthly fleet avg · Component: Own Avg + Nσ · ATA: Own Avg + Nσ`
+### Changed — Trend Analysis Tab Layout
+- **Aircraft Period Analysis moved before Component Heatmap** — Order is now: Sigma Control → Alert Panel → Time Series → Aircraft Period Analysis → Component Heatmap → ATA Heatmap
 
-### Fixed — Unicode Rendering
-- **Fixed broken emoji rendering** — Replaced all `\u2708\uFE0F`, `\uD83D\uDD27`, `\uD83D\uDCD6` unicode escape sequences with Lucide React icon components (`<Plane />`, `<Cpu />`, `<BookOpen />`). These escapes were rendering as literal text like `\u2708\uFE0F81` instead of emoji in the Alerts by Type box and filter buttons.
+### Changed — Excel Full Report Export
+- **Aircraft (Rate) sheet completely rewritten** — Now exports period-based data matching the dashboard:
+  - Columns: Aircraft, Total Findings, Total EODs, Period Rate, Fleet Wt. Avg, Fleet Wt. σ, Threshold (Avg+Nσ), Deviation, Status
+  - Summary block at bottom: Analysis Type, Sigma Settings, Fleet stats, Alert count
+  - Removed old monthly fleet avg columns and 1.5× fixed threshold logic
+- **Alerts sheet updated** — Aircraft alert description now reads "Period-based Fleet Wt. Avg + Nσ" instead of generic label
+- **Alert summary improved** — Each alert type (Aircraft, Component, ATA) now shows its threshold method in the summary section
 
-### Added
-- **Comparison page** (`/comparison`) — Static analysis page comparing user's 2025/1 SAFA JC calculations (Avg + 1σ unweighted) against the platform's aircraft alert method (1.5× fleet avg). Includes sortable table with all 76 aircraft, filter buttons (All/Alert/Normal/Diff), methodology explanation, and key insights.
+### Changed — Hesaplama Kılavuzu (Calculation Guide)
+- **Section 4 (Aircraft) completely rewritten** — Updated from old "1.5× filo ortalaması" to new "Filo Geneli Weighted Avg + Nσ" methodology with:
+  - New period-based rate formula explanation
+  - Fleet Weighted Average & Sigma calculation steps
+  - Full worked example with 6 aircraft showing Period Rate, Fleet Avg, Sigma, Threshold, and Deviation
+  - σ sensitivity table showing how TC-SEK alert status changes at 1σ/2σ/3σ/4σ
+- **Section 5 (Comparison Table) updated** — Aircraft column now shows:
+  - σ slider effect: ✅ Var (was ❌ Yok)
+  - Rate time period: "Dönem bazlı (tek rate)" row added
+  - Threshold: "Fleet Avg + σ çarpanı × Fleet Sigma" (was "1.5× filo avg")
+  - Sigma usage: ✅ Fleet Weighted Sigma (was ❌ Kullanmaz)
+- **Section 6 (Sigma) updated** — Now states sigma slider affects all three analyses including Aircraft
+
+### Added — Overview Dashboard
+- **Stat card descriptions** — Each overview stat card now shows a small subtitle:
+  - Total Records → "Total number of findings"
+  - Aircraft Count → "Aircraft with at least 1 finding"
+  - ATA Codes → "Unique ATA chapters found"
+  - Analysis Period → "Date range of the data"
+
+### Fixed
+- **Turkish character encoding** — Fixed `K\u0131lavuzu` unicode escape in dashboard tab rendering as literal `\u` text; now displays proper Turkish "Kılavuzu" character
 
 ---
 
