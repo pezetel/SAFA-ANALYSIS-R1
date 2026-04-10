@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.6.0] - 2025-01-30
+## [2.6.0] - 2026-04-10
 
 ### Changed — Aircraft Analysis: Period-Based Fleet Weighted Avg + Nσ
 - **Aircraft analysis completely reworked** — Replaced the old "1.5× monthly fleet average" fixed rule with a proper **Period-Based Fleet Weighted Avg + Nσ** approach, matching Component and ATA methodology
@@ -43,6 +43,28 @@
 
 ### Fixed
 - **Turkish character encoding** — Fixed `K\u0131lavuzu` unicode escape in dashboard tab rendering as literal `\u` text; now displays proper Turkish "Kılavuzu" character
+
+### Added — Aircraft Period Tracker (Period Analysis)
+- **New component: `AircraftPeriodTracker`** — Added to Period Analysis > Period vs Period tab, visible when EOD data is loaded
+- **Paired horizontal bar chart** — Each aircraft shows two bars (P1 rate / P2 rate) with threshold markers, making it easy to see at a glance which aircraft exceed the threshold in each period
+- **4 status categories** with clickable filter cards:
+  - **Both Alert** (red) — Aircraft above threshold in both periods → "Restrict from station"
+  - **P1 Only** (amber) — Alert in Period 1 but improved in Period 2
+  - **P2 Only** (purple) — New alert appearing in Period 2
+  - **Normal** (green) — Below threshold in both periods
+- **Per-period fleet stats** — Each period's Fleet Weighted Avg, Fleet σ, and Threshold (Avg + Nσ) calculated independently and displayed in blue/purple info cards
+- **Rate change indicator** — Shows trend arrow (↑/↓) and numeric change between P1 and P2 rates for each aircraft
+- **Both Alert callout box** — Red highlighted section at bottom listing all persistent problem aircraft with clickable buttons showing rate transition (e.g. "TC-SEK (3.50 → 4.20)")
+- **Search bar** — Filter aircraft by registration
+- **Click to detail** — Click any aircraft row to open the detail modal with all findings from both periods
+- **Sigma-aware** — Uses the global sigma multiplier setting from Trend Analysis
+
+### Changed — Period Analysis: EOD Data Integration
+- **EOD records now passed to PeriodComparison** — Dashboard passes `eodRecords` and `sigmaSettings` props to the Period Analysis tab
+- **EOD application count on summary cards** — Period 1 Total and Period 2 Total cards now show "X EOD applications" in amber text below the findings count (only visible when EOD data is loaded)
+
+### Fixed
+- **Unicode escape rendering** — Fixed `\u03c3`, `\u2192`, `\u2014` literal escapes in AircraftPeriodTracker displaying as raw text instead of σ, →, — characters
 
 ---
 
