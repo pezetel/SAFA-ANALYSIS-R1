@@ -14,6 +14,7 @@ import { DataTable } from '@/components/DataTable';
 import { PeriodComparison } from '@/components/PeriodComparison';
 import { EODAlertPanel } from '@/components/EODAlertPanel';
 import { SigmaControl } from '@/components/SigmaControl';
+import { CalculationGuide } from '@/components/CalculationGuide';
 import { SAFARecord, EODRecord, AnalysisResult, SigmaSettings } from '@/lib/types';
 import { ArrowLeft, Download, RefreshCw, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
@@ -326,10 +327,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex gap-4 mt-4 border-b">
+          <div className="flex gap-4 mt-4 border-b overflow-x-auto">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`pb-2 px-1 border-b-2 transition-colors ${
+              className={`pb-2 px-1 border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'overview'
                   ? 'border-blue-600 text-blue-600 font-semibold'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -339,7 +340,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setActiveTab('trends')}
-              className={`pb-2 px-1 border-b-2 transition-colors ${
+              className={`pb-2 px-1 border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'trends'
                   ? 'border-blue-600 text-blue-600 font-semibold'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -349,7 +350,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setActiveTab('period')}
-              className={`pb-2 px-1 border-b-2 transition-colors ${
+              className={`pb-2 px-1 border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'period'
                   ? 'border-blue-600 text-blue-600 font-semibold'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -359,7 +360,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setActiveTab('details')}
-              className={`pb-2 px-1 border-b-2 transition-colors ${
+              className={`pb-2 px-1 border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'details'
                   ? 'border-blue-600 text-blue-600 font-semibold'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -367,12 +368,26 @@ export default function Dashboard() {
             >
               Detailed Data
             </button>
+            <button
+              onClick={() => setActiveTab('guide')}
+              className={`pb-2 px-1 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'guide'
+                  ? 'border-indigo-600 text-indigo-600 font-semibold'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+              </svg>
+              Hesaplama Kılavuzu
+            </button>
           </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab !== 'period' && (
+        {activeTab !== 'period' && activeTab !== 'guide' && (
           <div className="mb-6">
             <FilterPanel data={data} onFilter={handleFilter} />
           </div>
@@ -416,6 +431,10 @@ export default function Dashboard() {
 
         {activeTab === 'details' && (
           <DataTable records={filteredData} />
+        )}
+
+        {activeTab === 'guide' && (
+          <CalculationGuide />
         )}
       </div>
     </div>
