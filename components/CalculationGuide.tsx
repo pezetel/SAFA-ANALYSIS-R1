@@ -319,231 +319,176 @@ export function CalculationGuide() {
         </div>
       </Section>
 
-      {/* SECTION 4: Aircraft Heatmap */}
+      {/* SECTION 4: Aircraft Analysis — Filo Geneli Weighted Avg + Nσ */}
       <Section
         id="aircraft"
         icon={<Plane className="h-4 w-4" />}
-        title="4. Aircraft Heatmap — Hesaplama (Farklı Mantık!)"
+        title="4. Aircraft Analysis — Hesaplama (Filo Geneli Weighted Avg + Nσ)"
         color="red"
       >
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-900 mb-3">
-          <strong>⚠️ DİKKAT — Diğerlerinden tamamen farklı çalışır!</strong>
-          <br />• Weighted Average / Weighted Sigma <strong>kullanmaz</strong>
-          <br />• Sigma çarpanı slider'ından <strong>etkilenmez</strong>
-          <br />• Her hücreyi <strong>o ayın filo ortalamasıyla</strong> karşılaştırır
-          <br />• Sabit kural: Rate {'>'} 1.5 × o ayın filo ortalaması → 🔴 ALERT
+          <strong>ℹ️ Aircraft Analizi — Dönem Bazlı Filo Karşılaştırması</strong>
+          <br />• Her uçağın <strong>tüm dönem boyunca</strong> toplam finding / toplam EOD oranı hesaplanır (Period Rate)
+          <br />• Filo genelinde tüm uçakların rate'leri üzerinden <strong>Fleet Weighted Avg</strong> ve <strong>Fleet Weighted Sigma</strong> hesaplanır
+          <br />• Ağırlık olarak her uçağın <strong>toplam EOD sayısı</strong> kullanılır
+          <br />• Sigma çarpanı slider'ından <strong>etkilenir</strong> (Component ve ATA ile aynı mantık)
+          <br />• Threshold = Fleet Weighted Avg + Nσ × Fleet Weighted Sigma
         </div>
 
-        <p className="font-semibold">Rate Formülü (Diğerlerinden Farklı!):</p>
+        <p className="font-semibold">Rate Formülü:</p>
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 font-mono text-xs">
-          Uçak Rate = O uçağın o aydaki finding sayısı / <strong>O uçağın o aydaki kendi EOD sayısı</strong>
+          Uçak Period Rate = O uçağın <strong>tüm dönemdeki toplam finding</strong> sayısı / <strong>O uçağın tüm dönemdeki toplam EOD</strong> sayısı
         </div>
-        <p className="text-xs text-gray-500 mt-1">⚡ Component ve ATA'da payda "toplam EOD" idi, burada "o uçağın kendi EOD'si" (genellikle ayda 1).</p>
+        <p className="text-xs text-gray-500 mt-1">⚡ Component ve ATA'da rate aylık hesaplanır, burada tüm dönem tek rate'e indirgenir.</p>
 
-        <p className="font-semibold mt-3">Filo Aylık Ortalama:</p>
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 font-mono text-xs">
-          Filo Avg = O aydaki toplam finding / O aydaki toplam EOD
+        <p className="font-semibold mt-3">Fleet Weighted Average & Sigma:</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 font-mono text-xs space-y-1">
+          <p><span className="text-green-700 font-bold">Fleet Wt. Avg</span> = Σ(uçak_rate_i × uçak_EOD_i) / Σ(uçak_EOD_i)</p>
+          <p><span className="text-purple-700 font-bold">Fleet Wt. Sigma</span> = √[ Σ(uçak_EOD_i × (uçak_rate_i − Fleet Avg)²) / Σ(uçak_EOD_i) ]</p>
+          <p><span className="text-red-700 font-bold">Threshold</span> = Fleet Wt. Avg + σ çarpanı × Fleet Wt. Sigma</p>
         </div>
+        <p className="text-xs text-gray-500 mt-1">Çok EOD yapılmış uçaklar filo istatistiğinde daha fazla ağırlık taşır.</p>
 
-        {/* ============ 6 UÇAK × 6 AY TAM ÖRNEK ============ */}
-        <p className="font-semibold mt-4">6 Aylık Tam Örnek — 6 Uçak (her uçağa ayda 1 EOD)</p>
+        {/* ============ 6 UÇAK TAM ÖRNEK ============ */}
+        <p className="font-semibold mt-4">6 Aylık Tam Örnek — 6 Uçak</p>
         <p className="text-xs text-gray-500 mb-2">
-          TC-LNA ve TC-SEK bazı aylarda EOD uygulanmamış (boş hücre). EOD olmayan ayda rate hesaplanamaz → gri (N/A).
+          Her uçağın tüm dönem boyunca toplam finding ve EOD sayıları. TC-LNA ve TC-SEK bazı aylarda EOD uygulanmamış.
         </p>
 
-        {/* Finding Tablosu */}
-        <p className="font-semibold text-xs text-gray-600 mb-1">📋 Finding Sayıları:</p>
+        {/* Dönem Toplamları Tablosu */}
+        <p className="font-semibold text-xs text-gray-600 mb-1">📋 Dönem Toplamları (Finding / EOD / Period Rate):</p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse">
             <thead>
               <tr className="bg-red-50">
                 <th className="border border-red-200 p-2 text-left">Uçak</th>
-                <th className="border border-red-200 p-2 text-center">Ocak</th>
-                <th className="border border-red-200 p-2 text-center">Şubat</th>
-                <th className="border border-red-200 p-2 text-center">Mart</th>
-                <th className="border border-red-200 p-2 text-center">Nisan</th>
-                <th className="border border-red-200 p-2 text-center">Mayıs</th>
-                <th className="border border-red-200 p-2 text-center">Haziran</th>
-                <th className="border border-red-200 p-2 text-center font-bold">Toplam</th>
+                <th className="border border-red-200 p-2 text-center">Toplam Finding</th>
+                <th className="border border-red-200 p-2 text-center">Toplam EOD</th>
+                <th className="border border-red-200 p-2 text-center">Period Rate</th>
               </tr>
             </thead>
             <tbody>
-              <tr><td className="border border-gray-200 p-2 font-medium">TC-SOH</td><td className="border border-gray-200 p-2 text-center">2</td><td className="border border-gray-200 p-2 text-center">0</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">3</td><td className="border border-gray-200 p-2 text-center">5</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center font-bold">12</td></tr>
-              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-JHA</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">3</td><td className="border border-gray-200 p-2 text-center">0</td><td className="border border-gray-200 p-2 text-center">2</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">4</td><td className="border border-gray-200 p-2 text-center font-bold">11</td></tr>
-              <tr><td className="border border-gray-200 p-2 font-medium">TC-LNA</td><td className="border border-gray-200 p-2 text-center">0</td><td className="border border-gray-200 p-2 text-center bg-gray-100 text-gray-400 italic">EOD yok</td><td className="border border-gray-200 p-2 text-center">2</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center bg-gray-100 text-gray-400 italic">EOD yok</td><td className="border border-gray-200 p-2 text-center">3</td><td className="border border-gray-200 p-2 text-center font-bold">6</td></tr>
-              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-SEK</td><td className="border border-gray-200 p-2 text-center">4</td><td className="border border-gray-200 p-2 text-center">2</td><td className="border border-gray-200 p-2 text-center bg-gray-100 text-gray-400 italic">EOD yok</td><td className="border border-gray-200 p-2 text-center bg-gray-100 text-gray-400 italic">EOD yok</td><td className="border border-gray-200 p-2 text-center">7</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center font-bold">14</td></tr>
-              <tr><td className="border border-gray-200 p-2 font-medium">TC-APU</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">3</td><td className="border border-gray-200 p-2 text-center">0</td><td className="border border-gray-200 p-2 text-center">2</td><td className="border border-gray-200 p-2 text-center">0</td><td className="border border-gray-200 p-2 text-center font-bold">7</td></tr>
-              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-MNR</td><td className="border border-gray-200 p-2 text-center">0</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">0</td><td className="border border-gray-200 p-2 text-center">2</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">2</td><td className="border border-gray-200 p-2 text-center font-bold">6</td></tr>
+              <tr><td className="border border-gray-200 p-2 font-medium">TC-SOH</td><td className="border border-gray-200 p-2 text-center">12</td><td className="border border-gray-200 p-2 text-center">6</td><td className="border border-gray-200 p-2 text-center font-mono">12/6 = <strong>2.000</strong></td></tr>
+              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-JHA</td><td className="border border-gray-200 p-2 text-center">11</td><td className="border border-gray-200 p-2 text-center">6</td><td className="border border-gray-200 p-2 text-center font-mono">11/6 = <strong>1.833</strong></td></tr>
+              <tr><td className="border border-gray-200 p-2 font-medium">TC-LNA</td><td className="border border-gray-200 p-2 text-center">6</td><td className="border border-gray-200 p-2 text-center">4</td><td className="border border-gray-200 p-2 text-center font-mono">6/4 = <strong>1.500</strong></td></tr>
+              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-SEK</td><td className="border border-gray-200 p-2 text-center">14</td><td className="border border-gray-200 p-2 text-center">4</td><td className="border border-gray-200 p-2 text-center font-mono">14/4 = <strong>3.500</strong></td></tr>
+              <tr><td className="border border-gray-200 p-2 font-medium">TC-APU</td><td className="border border-gray-200 p-2 text-center">7</td><td className="border border-gray-200 p-2 text-center">6</td><td className="border border-gray-200 p-2 text-center font-mono">7/6 = <strong>1.167</strong></td></tr>
+              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-MNR</td><td className="border border-gray-200 p-2 text-center">6</td><td className="border border-gray-200 p-2 text-center">6</td><td className="border border-gray-200 p-2 text-center font-mono">6/6 = <strong>1.000</strong></td></tr>
             </tbody>
           </table>
         </div>
 
-        {/* EOD Tablosu */}
-        <p className="font-semibold text-xs text-gray-600 mt-4 mb-1">📋 EOD Sayıları (her uçağa ayda 1 EOD, bazı aylar uygulanmamış):</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-blue-50">
-                <th className="border border-blue-200 p-2 text-left">Uçak</th>
-                <th className="border border-blue-200 p-2 text-center">Ocak</th>
-                <th className="border border-blue-200 p-2 text-center">Şubat</th>
-                <th className="border border-blue-200 p-2 text-center">Mart</th>
-                <th className="border border-blue-200 p-2 text-center">Nisan</th>
-                <th className="border border-blue-200 p-2 text-center">Mayıs</th>
-                <th className="border border-blue-200 p-2 text-center">Haziran</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td className="border border-gray-200 p-2 font-medium">TC-SOH</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td></tr>
-              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-JHA</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td></tr>
-              <tr><td className="border border-gray-200 p-2 font-medium">TC-LNA</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center bg-red-50 text-red-400 font-bold">0</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center bg-red-50 text-red-400 font-bold">0</td><td className="border border-gray-200 p-2 text-center">1</td></tr>
-              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-SEK</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center bg-red-50 text-red-400 font-bold">0</td><td className="border border-gray-200 p-2 text-center bg-red-50 text-red-400 font-bold">0</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td></tr>
-              <tr><td className="border border-gray-200 p-2 font-medium">TC-APU</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td></tr>
-              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-MNR</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td><td className="border border-gray-200 p-2 text-center">1</td></tr>
-              <tr className="bg-blue-50 font-bold"><td className="border border-blue-200 p-2">TOPLAM EOD</td><td className="border border-blue-200 p-2 text-center">6</td><td className="border border-blue-200 p-2 text-center">5</td><td className="border border-blue-200 p-2 text-center">5</td><td className="border border-blue-200 p-2 text-center">5</td><td className="border border-blue-200 p-2 text-center">5</td><td className="border border-blue-200 p-2 text-center">6</td></tr>
-            </tbody>
-          </table>
+        <p className="font-semibold mt-4">Adım 1: Fleet Weighted Average</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 font-mono text-xs space-y-1">
+          <p>Toplam Ağırlık (toplam EOD) = 6 + 6 + 4 + 4 + 6 + 6 = <strong>32</strong></p>
+          <p className="pt-1">Fleet Wt. Avg = Σ(rate_i × EOD_i) / 32</p>
+          <p>= (2.000×6 + 1.833×6 + 1.500×4 + 3.500×4 + 1.167×6 + 1.000×6) / 32</p>
+          <p>= (12.000 + 10.998 + 6.000 + 14.000 + 7.002 + 6.000) / 32</p>
+          <p>= 56.000 / 32</p>
+          <p className="text-green-700 font-bold">= 1.750</p>
+          <p className="text-gray-500 pt-1">(Not: Bu aynı zamanda toplam finding / toplam EOD = 56/32 = 1.750'dir)</p>
         </div>
 
-        {/* Filo Avg Tablosu */}
-        <p className="font-semibold text-xs text-gray-600 mt-4 mb-1">📊 Filo Aylık Ortalama ve Eşik Hesabı:</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-orange-50">
-                <th className="border border-orange-200 p-2 text-left">Ay</th>
-                <th className="border border-orange-200 p-2 text-center">Toplam Finding</th>
-                <th className="border border-orange-200 p-2 text-center">Toplam EOD</th>
-                <th className="border border-orange-200 p-2 text-center">Filo Avg</th>
-                <th className="border border-orange-200 p-2 text-center">1.5× Filo Avg</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td className="border border-gray-200 p-2">Ocak</td><td className="border border-gray-200 p-2 text-center">2+1+0+4+1+0 = 8</td><td className="border border-gray-200 p-2 text-center">6</td><td className="border border-gray-200 p-2 text-center font-mono">8/6 = 1.333</td><td className="border border-gray-200 p-2 text-center font-mono">2.000</td></tr>
-              <tr className="bg-gray-50"><td className="border border-gray-200 p-2">Şubat</td><td className="border border-gray-200 p-2 text-center">0+3+0+2+1+1 = 7</td><td className="border border-gray-200 p-2 text-center">5</td><td className="border border-gray-200 p-2 text-center font-mono">7/5 = 1.400</td><td className="border border-gray-200 p-2 text-center font-mono">2.100</td></tr>
-              <tr><td className="border border-gray-200 p-2">Mart</td><td className="border border-gray-200 p-2 text-center">1+0+2+0+3+0 = 6</td><td className="border border-gray-200 p-2 text-center">5</td><td className="border border-gray-200 p-2 text-center font-mono">6/5 = 1.200</td><td className="border border-gray-200 p-2 text-center font-mono">1.800</td></tr>
-              <tr className="bg-gray-50"><td className="border border-gray-200 p-2">Nisan</td><td className="border border-gray-200 p-2 text-center">3+2+1+0+0+2 = 8</td><td className="border border-gray-200 p-2 text-center">5</td><td className="border border-gray-200 p-2 text-center font-mono">8/5 = 1.600</td><td className="border border-gray-200 p-2 text-center font-mono">2.400</td></tr>
-              <tr><td className="border border-gray-200 p-2">Mayıs</td><td className="border border-gray-200 p-2 text-center">5+1+0+7+2+1 = 16</td><td className="border border-gray-200 p-2 text-center">5</td><td className="border border-gray-200 p-2 text-center font-mono">16/5 = 3.200</td><td className="border border-gray-200 p-2 text-center font-mono">4.800</td></tr>
-              <tr className="bg-gray-50"><td className="border border-gray-200 p-2">Haziran</td><td className="border border-gray-200 p-2 text-center">1+4+3+1+0+2 = 11</td><td className="border border-gray-200 p-2 text-center">6</td><td className="border border-gray-200 p-2 text-center font-mono">11/6 = 1.833</td><td className="border border-gray-200 p-2 text-center font-mono">2.750</td></tr>
-            </tbody>
-          </table>
+        <p className="font-semibold mt-4">Adım 2: Fleet Weighted Sigma</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 font-mono text-xs space-y-1">
+          <p>TC-SOH: 6 × (2.000 − 1.750)² = 6 × 0.0625 = 0.375</p>
+          <p>TC-JHA: 6 × (1.833 − 1.750)² = 6 × 0.00689 = 0.041</p>
+          <p>TC-LNA: 4 × (1.500 − 1.750)² = 4 × 0.0625 = 0.250</p>
+          <p>TC-SEK: 4 × (3.500 − 1.750)² = 4 × 3.0625 = 12.250</p>
+          <p>TC-APU: 6 × (1.167 − 1.750)² = 6 × 0.33989 = 2.039</p>
+          <p>TC-MNR: 6 × (1.000 − 1.750)² = 6 × 0.5625 = 3.375</p>
+          <p className="pt-1">Toplam = 18.330</p>
+          <p>Varyans = 18.330 / 32 = 0.5728</p>
+          <p className="text-purple-700 font-bold">Fleet Sigma = √0.5728 = 0.757</p>
         </div>
 
-        {/* Rate & Sonuç Tablosu */}
-        <p className="font-semibold text-xs text-gray-600 mt-4 mb-1">📊 Her Uçağın Aylık Rate'i ve Alarm Durumu:</p>
-        <p className="text-xs text-gray-500 mb-2">Rate = Finding / EOD (her uçağın kendi EOD'si = 1). EOD yoksa rate hesaplanamaz → N/A (gri).</p>
+        <p className="font-semibold mt-4">Adım 3: Threshold (kullanıcı 2σ seçtiyse)</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 font-mono text-xs">
+          <p className="text-red-700 font-bold">Threshold = 1.750 + 2 × 0.757 = 3.264</p>
+        </div>
+
+        <p className="font-semibold mt-4">Adım 4: Sonuçlar</p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse">
             <thead>
               <tr className="bg-red-50">
                 <th className="border border-red-200 p-2 text-left">Uçak</th>
-                <th className="border border-red-200 p-2 text-center">Ocak<br/><span className="font-normal text-gray-500">eşik: 2.000</span></th>
-                <th className="border border-red-200 p-2 text-center">Şubat<br/><span className="font-normal text-gray-500">eşik: 2.100</span></th>
-                <th className="border border-red-200 p-2 text-center">Mart<br/><span className="font-normal text-gray-500">eşik: 1.800</span></th>
-                <th className="border border-red-200 p-2 text-center">Nisan<br/><span className="font-normal text-gray-500">eşik: 2.400</span></th>
-                <th className="border border-red-200 p-2 text-center">Mayıs<br/><span className="font-normal text-gray-500">eşik: 4.800</span></th>
-                <th className="border border-red-200 p-2 text-center">Haziran<br/><span className="font-normal text-gray-500">eşik: 2.750</span></th>
+                <th className="border border-red-200 p-2 text-center">Period Rate</th>
+                <th className="border border-red-200 p-2 text-center">Fleet Avg</th>
+                <th className="border border-red-200 p-2 text-center">Threshold (2σ)</th>
+                <th className="border border-red-200 p-2 text-center">Deviation</th>
+                <th className="border border-red-200 p-2 text-center">Durum</th>
               </tr>
             </thead>
             <tbody>
-              {/* TC-SOH */}
-              <tr>
-                <td className="border border-gray-200 p-2 font-medium">TC-SOH</td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">2/1=2.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">0/1=0.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-red-100 text-red-700 font-mono font-bold">3/1=3.0 🔴</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-red-100 text-red-700 font-mono font-bold">5/1=5.0 🔴</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-              </tr>
-              {/* TC-JHA */}
-              <tr className="bg-gray-50">
-                <td className="border border-gray-200 p-2 font-medium">TC-JHA</td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-red-100 text-red-700 font-mono font-bold">3/1=3.0 🔴</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">0/1=0.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">2/1=2.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-red-100 text-red-700 font-mono font-bold">4/1=4.0 🔴</div></td>
-              </tr>
-              {/* TC-LNA */}
-              <tr>
-                <td className="border border-gray-200 p-2 font-medium">TC-LNA</td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">0/1=0.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-gray-200 text-gray-500 italic">N/A</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-red-100 text-red-700 font-mono font-bold">2/1=2.0 🔴</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-gray-200 text-gray-500 italic">N/A</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-red-100 text-red-700 font-mono font-bold">3/1=3.0 🔴</div></td>
-              </tr>
-              {/* TC-SEK */}
-              <tr className="bg-gray-50">
-                <td className="border border-gray-200 p-2 font-medium">TC-SEK</td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-red-100 text-red-700 font-mono font-bold">4/1=4.0 🔴</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">2/1=2.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-gray-200 text-gray-500 italic">N/A</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-gray-200 text-gray-500 italic">N/A</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-red-100 text-red-700 font-mono font-bold">7/1=7.0 🔴</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-              </tr>
-              {/* TC-APU */}
-              <tr>
-                <td className="border border-gray-200 p-2 font-medium">TC-APU</td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-red-100 text-red-700 font-mono font-bold">3/1=3.0 🔴</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">0/1=0.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">2/1=2.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">0/1=0.0 ✅</div></td>
-              </tr>
-              {/* TC-MNR */}
-              <tr className="bg-gray-50">
-                <td className="border border-gray-200 p-2 font-medium">TC-MNR</td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">0/1=0.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">0/1=0.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">2/1=2.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">1/1=1.0 ✅</div></td>
-                <td className="border border-gray-200 p-1.5 text-center"><div className="rounded px-1 py-0.5 bg-green-100 text-green-800 font-mono">2/1=2.0 ✅</div></td>
-              </tr>
+              <tr><td className="border border-gray-200 p-2 font-medium">TC-SOH</td><td className="border border-gray-200 p-2 text-center font-mono">2.000</td><td className="border border-gray-200 p-2 text-center font-mono">1.750</td><td className="border border-gray-200 p-2 text-center font-mono">3.264</td><td className="border border-gray-200 p-2 text-center font-mono text-green-600">-1.264</td><td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">✅ Normal</span></td></tr>
+              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-JHA</td><td className="border border-gray-200 p-2 text-center font-mono">1.833</td><td className="border border-gray-200 p-2 text-center font-mono">1.750</td><td className="border border-gray-200 p-2 text-center font-mono">3.264</td><td className="border border-gray-200 p-2 text-center font-mono text-green-600">-1.431</td><td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">✅ Normal</span></td></tr>
+              <tr><td className="border border-gray-200 p-2 font-medium">TC-LNA</td><td className="border border-gray-200 p-2 text-center font-mono">1.500</td><td className="border border-gray-200 p-2 text-center font-mono">1.750</td><td className="border border-gray-200 p-2 text-center font-mono">3.264</td><td className="border border-gray-200 p-2 text-center font-mono text-green-600">-1.764</td><td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">✅ Normal</span></td></tr>
+              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium font-bold">TC-SEK</td><td className="border border-gray-200 p-2 text-center font-mono font-bold text-red-600">3.500</td><td className="border border-gray-200 p-2 text-center font-mono">1.750</td><td className="border border-gray-200 p-2 text-center font-mono">3.264</td><td className="border border-gray-200 p-2 text-center font-mono text-red-600 font-bold">+0.236</td><td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">🔴 ALERT</span></td></tr>
+              <tr><td className="border border-gray-200 p-2 font-medium">TC-APU</td><td className="border border-gray-200 p-2 text-center font-mono">1.167</td><td className="border border-gray-200 p-2 text-center font-mono">1.750</td><td className="border border-gray-200 p-2 text-center font-mono">3.264</td><td className="border border-gray-200 p-2 text-center font-mono text-green-600">-2.097</td><td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">✅ Normal</span></td></tr>
+              <tr className="bg-gray-50"><td className="border border-gray-200 p-2 font-medium">TC-MNR</td><td className="border border-gray-200 p-2 text-center font-mono">1.000</td><td className="border border-gray-200 p-2 text-center font-mono">1.750</td><td className="border border-gray-200 p-2 text-center font-mono">3.264</td><td className="border border-gray-200 p-2 text-center font-mono text-green-600">-2.264</td><td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">✅ Normal</span></td></tr>
             </tbody>
           </table>
         </div>
 
-        {/* Detaylı açıklama örnekleri */}
         <div className="mt-4 space-y-3">
           <p className="font-semibold text-xs text-gray-900">🔍 Örneklerin Açıklaması:</p>
           
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs space-y-1">
-            <p><strong>TC-SOH — Nisan:</strong> 3 finding / 1 EOD = rate <strong>3.000</strong></p>
-            <p>Nisan filo avg = 1.600 → 1.5 × 1.600 = <strong>2.400</strong></p>
-            <p className="text-red-700 font-bold">3.000 {'>'} 2.400 → 🔴 ALERT</p>
-          </div>
-
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs space-y-1">
-            <p><strong>TC-SEK — Mayıs:</strong> 7 finding / 1 EOD = rate <strong>7.000</strong></p>
-            <p>Mayıs filo avg = 3.200 → 1.5 × 3.200 = <strong>4.800</strong></p>
-            <p className="text-red-700 font-bold">7.000 {'>'} 4.800 → 🔴 ALERT</p>
+            <p><strong>TC-SEK:</strong> 14 finding / 4 EOD = Period Rate <strong>3.500</strong></p>
+            <p>Fleet Weighted Avg = 1.750, Fleet Sigma = 0.757</p>
+            <p>Threshold (2σ) = 1.750 + 2 × 0.757 = <strong>3.264</strong></p>
+            <p className="text-red-700 font-bold">3.500 {'>'} 3.264 → 🔴 ALERT</p>
           </div>
 
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs space-y-1">
-            <p><strong>TC-SOH — Ocak:</strong> 2 finding / 1 EOD = rate <strong>2.000</strong></p>
-            <p>Ocak filo avg = 1.333 → 1.5 × 1.333 = <strong>2.000</strong></p>
-            <p className="text-green-700 font-bold">2.000 ≤ 2.000 → ✅ Normal (eşit olduğunda alarm çalmaz, sadece aştığında)</p>
+            <p><strong>TC-SOH:</strong> 12 finding / 6 EOD = Period Rate <strong>2.000</strong></p>
+            <p>Threshold (2σ) = <strong>3.264</strong></p>
+            <p className="text-green-700 font-bold">2.000 ≤ 3.264 → ✅ Normal</p>
           </div>
 
-          <div className="bg-gray-100 border border-gray-300 rounded-lg p-3 text-xs space-y-1">
-            <p><strong>TC-LNA — Şubat:</strong> EOD uygulanmamış (EOD = 0)</p>
-            <p className="text-gray-600 font-bold">Rate hesaplanamaz → N/A (gri hücre)</p>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs space-y-1">
+            <p><strong>TC-MNR:</strong> 6 finding / 6 EOD = Period Rate <strong>1.000</strong></p>
+            <p>Threshold (2σ) = <strong>3.264</strong></p>
+            <p className="text-green-700 font-bold">1.000 ≤ 3.264 → ✅ Normal — filonun en düşük rate'li uçağı</p>
           </div>
         </div>
 
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-800 mt-3">
+          <strong>Farklı σ seçiminde TC-SEK için Threshold nasıl değişir?</strong>
+          <div className="mt-2 grid grid-cols-4 gap-2 text-center">
+            <div className="bg-white rounded p-2 border border-red-100">
+              <div className="font-bold">1σ</div>
+              <div className="font-mono">1.750 + 0.757 = <strong>2.507</strong></div>
+              <div className="text-red-600 font-bold mt-1">🔴 ALERT</div>
+            </div>
+            <div className="bg-white rounded p-2 border border-red-100">
+              <div className="font-bold">2σ</div>
+              <div className="font-mono">1.750 + 1.514 = <strong>3.264</strong></div>
+              <div className="text-red-600 font-bold mt-1">🔴 ALERT</div>
+            </div>
+            <div className="bg-white rounded p-2 border border-red-100">
+              <div className="font-bold">3σ</div>
+              <div className="font-mono">1.750 + 2.271 = <strong>4.021</strong></div>
+              <div className="text-green-600 font-bold mt-1">✅ Normal</div>
+            </div>
+            <div className="bg-white rounded p-2 border border-red-100">
+              <div className="font-bold">4σ</div>
+              <div className="font-mono">1.750 + 3.028 = <strong>4.778</strong></div>
+              <div className="text-green-600 font-bold mt-1">✅ Normal</div>
+            </div>
+          </div>
+          <p className="mt-2 text-red-600">→ 1σ ve 2σ'da TC-SEK alarm verir. 3σ'da ise 3.500 {'<'} 4.021 → normal kalır.</p>
+        </div>
+
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 mt-3">
-          <strong>💡 Özet:</strong>
-          <br />• Her uçağa ayda 1 EOD uygulandığında, finding sayısı direkt rate olur (örn: 5 finding = rate 5.000)
-          <br />• EOD uygulanmayan ay → rate hesaplanamaz → gri (N/A) hücre
-          <br />• Eşik her ay değişir çünkü filo ortalaması her ay farklı
-          <br />• Sigma slider Aircraft Heatmap'i etkilemez — sabit 1.5× kuralı geçerlidir
+          <strong>💡 Özet — Aircraft Analizi:</strong>
+          <br />• Her uçağın <strong>tüm dönem boyunca</strong> tek bir Period Rate'i hesaplanır (toplam finding / toplam EOD)
+          <br />• Filo genelindeki tüm uçakların rate'lerinden <strong>Fleet Weighted Avg</strong> ve <strong>Fleet Weighted Sigma</strong> elde edilir
+          <br />• Ağırlık = uçağın toplam EOD'si → çok uçuş yapan uçaklar istatistikte daha ağır basar
+          <br />• Threshold = Fleet Avg + Nσ × Fleet Sigma → <strong>Sigma slider etkili</strong>
+          <br />• EOD'si olmayan uçaklar → rate hesaplanamaz → N/A
+          <br />• Component ve ATA'dan farkı: aylık değil dönem bazlı, payda filo EOD'si değil uçağın kendi EOD'si
         </div>
       </Section>
 
@@ -561,45 +506,51 @@ export function CalculationGuide() {
                 <th className="border border-green-200 p-2 text-left">Özellik</th>
                 <th className="border border-green-200 p-2 text-center">🔧 Component Heatmap</th>
                 <th className="border border-green-200 p-2 text-center">📖 ATA Heatmap</th>
-                <th className="border border-green-200 p-2 text-center">✈️ Aircraft Heatmap</th>
+                <th className="border border-green-200 p-2 text-center">✈️ Aircraft Analysis</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td className="border border-gray-200 p-2 font-semibold bg-gray-50">Rate payı</td>
-                <td className="border border-gray-200 p-2 text-center">Component findings</td>
-                <td className="border border-gray-200 p-2 text-center">ATA findings</td>
-                <td className="border border-gray-200 p-2 text-center">Uçak findings</td>
+                <td className="border border-gray-200 p-2 text-center">Component findings (aylık)</td>
+                <td className="border border-gray-200 p-2 text-center">ATA findings (aylık)</td>
+                <td className="border border-gray-200 p-2 text-center">Uçak findings (tüm dönem)</td>
               </tr>
               <tr>
                 <td className="border border-gray-200 p-2 font-semibold bg-gray-50">Rate paydası</td>
-                <td className="border border-gray-200 p-2 text-center font-bold text-amber-700">Toplam EOD (~78-85)</td>
-                <td className="border border-gray-200 p-2 text-center font-bold text-purple-700">Toplam EOD (~78-85)</td>
-                <td className="border border-gray-200 p-2 text-center font-bold text-red-700">Uçağın kendi EOD'si (genelde 1)</td>
+                <td className="border border-gray-200 p-2 text-center font-bold text-amber-700">Toplam EOD (aylık, ~78-85)</td>
+                <td className="border border-gray-200 p-2 text-center font-bold text-purple-700">Toplam EOD (aylık, ~78-85)</td>
+                <td className="border border-gray-200 p-2 text-center font-bold text-red-700">Uçağın kendi toplam EOD'si (tüm dönem)</td>
+              </tr>
+              <tr>
+                <td className="border border-gray-200 p-2 font-semibold bg-gray-50">Rate zaman dilimi</td>
+                <td className="border border-gray-200 p-2 text-center">Aylık (her ay ayrı rate)</td>
+                <td className="border border-gray-200 p-2 text-center">Aylık (her ay ayrı rate)</td>
+                <td className="border border-gray-200 p-2 text-center">Dönem bazlı (tek rate)</td>
               </tr>
               <tr>
                 <td className="border border-gray-200 p-2 font-semibold bg-gray-50">Ortalama tipi</td>
-                <td className="border border-gray-200 p-2 text-center">Kendi Weighted Avg</td>
-                <td className="border border-gray-200 p-2 text-center">Kendi Weighted Avg</td>
-                <td className="border border-gray-200 p-2 text-center">O ayın filo ortalaması</td>
+                <td className="border border-gray-200 p-2 text-center">Kendi Weighted Avg (aylar üzerinden)</td>
+                <td className="border border-gray-200 p-2 text-center">Kendi Weighted Avg (aylar üzerinden)</td>
+                <td className="border border-gray-200 p-2 text-center">Fleet Weighted Avg (uçaklar üzerinden)</td>
               </tr>
               <tr>
                 <td className="border border-gray-200 p-2 font-semibold bg-gray-50">Sigma kullanımı</td>
                 <td className="border border-gray-200 p-2 text-center">✅ Kendi Weighted Sigma</td>
                 <td className="border border-gray-200 p-2 text-center">✅ Kendi Weighted Sigma</td>
-                <td className="border border-gray-200 p-2 text-center">❌ Kullanmaz</td>
+                <td className="border border-gray-200 p-2 text-center">✅ Fleet Weighted Sigma</td>
               </tr>
               <tr>
                 <td className="border border-gray-200 p-2 font-semibold bg-gray-50">Threshold</td>
                 <td className="border border-gray-200 p-2 text-center">Avg + σ çarpanı × Sigma</td>
                 <td className="border border-gray-200 p-2 text-center">Avg + σ çarpanı × Sigma</td>
-                <td className="border border-gray-200 p-2 text-center">1.5 × filo avg (sabit)</td>
+                <td className="border border-gray-200 p-2 text-center">Fleet Avg + σ çarpanı × Fleet Sigma</td>
               </tr>
               <tr>
                 <td className="border border-gray-200 p-2 font-semibold bg-gray-50">σ slider etkisi</td>
                 <td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">✅ Var</span></td>
                 <td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">✅ Var</span></td>
-                <td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-bold">❌ Yok</span></td>
+                <td className="border border-gray-200 p-2 text-center"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">✅ Var</span></td>
               </tr>
               <tr>
                 <td className="border border-gray-200 p-2 font-semibold bg-gray-50">Karşılaştırma</td>
@@ -638,8 +589,8 @@ export function CalculationGuide() {
               <span className="font-bold text-xs text-red-900">Aircraft</span>
             </div>
             <p className="text-xs text-red-800">
-              "TC-SOH bu ay filodaki diğer uçakların ortalamasından çok mu yüksek?"
-              sorusunu yanıtlar. Sigma kullanmaz, sabit 1.5× çarpan.
+              "TC-SEK tüm dönem boyunca filo ortalamasına göre istatistiksel olarak anlamlı şekilde yüksek mi?"
+              sorusunu yanıtlar. Filo geneli weighted avg + Nσ ile kontrol eder.
             </p>
           </div>
         </div>
@@ -654,8 +605,7 @@ export function CalculationGuide() {
       >
         <p>
           Trend Analysis sekmesindeki <strong>Sigma kontrol paneli</strong> ile alarm eşiğinin hassasiyetini ayarlarsınız.
-          Bu ayar <strong>Component Heatmap</strong>, <strong>ATA Heatmap</strong> ve <strong>General Alert Panel</strong>'i etkiler.
-          Aircraft Heatmap'i <strong>etkilemez</strong> (sabit 1.5× kuralı kullanır).
+          Bu ayar <strong>Component Heatmap</strong>, <strong>ATA Heatmap</strong>, <strong>Aircraft Analysis</strong> ve <strong>General Alert Panel</strong>'i etkiler.
         </p>
 
         <div className="overflow-x-auto mt-3">
@@ -685,6 +635,7 @@ export function CalculationGuide() {
           <strong>💡 Öneri:</strong> Genel kullanım için <strong>2σ</strong> önerilir.
           Eğer çok fazla alarm görüyorsanız 2.5σ veya 3σ'ya çıkabilirsiniz.
           Tüm riskleri görmek istiyorsanız 1σ veya 1.5σ'ya düşürebilirsiniz.
+          Sigma ayarı tüm analizleri (Component, ATA, Aircraft ve General Alert) eş zamanlı etkiler.
         </div>
       </Section>
     </div>
