@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertItem, EODRecord, SAFARecord, SigmaSettings } from '@/lib/types';
-import { generateAlerts, getOverallMonthlyRate } from '@/lib/eodProcessor';
+import { generateAlerts, getOverallMonthlyRate, computeAircraftFleetStats } from '@/lib/eodProcessor';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, Activity, ChevronDown, ChevronUp, Plane, Cpu, BookOpen, Info, X, Download, Search, ExternalLink } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -37,6 +37,13 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
   );
   const monthlyRate = useMemo(() => getOverallMonthlyRate(findings, eodRecords), [findings, eodRecords]);
 
+  // Compute fleet stats for aircraft info display
+  const fleetStats = useMemo(
+    () => computeAircraftFleetStats(findings, eodRecords),
+    [findings, eodRecords]
+  );
+  const fleetThreshold = fleetStats.fleetWeightedAvg + sigmaMultiplier * fleetStats.fleetWeightedSigma;
+
   const filteredAlerts = useMemo(() => {
     let result = alerts;
     if (filterType !== 'all') {
@@ -53,21 +60,36 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
 
   const latestMonth = monthlyRate.length > 0 ? monthlyRate[monthlyRate.length - 1] : null;
 
-  const handleAlertClick = (alert: AlertItem) => {
-    const monthStart = startOfMonth(parseISO(alert.month + '-01'));
-    const monthEnd = endOfMonth(parseISO(alert.month + '-01'));
+  // Determine period label
+  const periodLabel = useMemo(() => {
+    if (findings.length === 0) return '';
+    const dates = findings.map(r => new Date(r.date).getTime());
+    const minDate = new Date(Math.min(...dates));
+    const maxDate = new Date(Math.max(...dates));
+    return `${format(minDate, 'MMM yyyy', { locale: enUS })} – ${format(maxDate, 'MMM yyyy', { locale: enUS })}`;
+  }, [findings]);
 
-    let matchedRecords = findings.filter(f => {
-      const fDate = new Date(f.date);
-      return fDate >= monthStart && fDate <= monthEnd;
-    });
+  const handleAlertClick = (alert: AlertItem) => {
+    let matchedRecords: SAFARecord[];
 
     if (alert.type === 'aircraft') {
-      matchedRecords = matchedRecords.filter(f => f.aircraft === alert.name);
-    } else if (alert.type === 'component') {
-      matchedRecords = matchedRecords.filter(f => f.component === alert.name);
-    } else if (alert.type === 'ata') {
-      matchedRecords = matchedRecords.filter(f => f.ata.substring(0, 2) === alert.name);
+      // Aircraft alerts are period-level, so match all findings for that aircraft
+      matchedRecords = findings.filter(f => f.aircraft === alert.name);
+    } else {
+      // Component and ATA alerts are per-month
+      const monthStart = startOfMonth(parseISO(alert.month + '-01'));
+      const monthEnd = endOfMonth(parseISO(alert.month + '-01'));
+
+      matchedRecords = findings.filter(f => {
+        const fDate = new Date(f.date);
+        return fDate >= monthStart && fDate <= monthEnd;
+      });
+
+      if (alert.type === 'component') {
+        matchedRecords = matchedRecords.filter(f => f.component === alert.name);
+      } else if (alert.type === 'ata') {
+        matchedRecords = matchedRecords.filter(f => f.ata.substring(0, 2) === alert.name);
+      }
     }
 
     setSelectedAlert({ alert, records: matchedRecords });
@@ -106,7 +128,7 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
 
   const getAlertMethodLabel = (type: string) => {
     switch (type) {
-      case 'aircraft': return '1.5x fleet avg';
+      case 'aircraft': return `Fleet Avg + ${sigmaMultiplier}\u03c3`;
       case 'component': return `Avg + ${sigmaMultiplier}\u03c3`;
       case 'ata': return `Avg + ${sigmaMultiplier}\u03c3`;
       default: return '';
@@ -116,7 +138,7 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
   const getAlertMethodDescription = (type: string) => {
     switch (type) {
       case 'aircraft':
-        return "Aircraft rate (F/EOD per aircraft) compared to that month's fleet avg x 1.5. No sigma used.";
+        return `Aircraft period rate (total findings / total EODs across entire period) compared to fleet-wide weighted avg + ${sigmaMultiplier}\u03c3. Each aircraft weighted by its total EODs.`;
       case 'component':
         return `Component rate (F/total EOD) compared to its own weighted avg + ${sigmaMultiplier}\u03c3 across all months.`;
       case 'ata':
@@ -168,7 +190,7 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
     worksheet['!cols'] = [
       { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 22 }, { wch: 60 }
     ];
-    const fileName = `alert-${a.type}-${a.name.replace(/[^a-zA-Z0-9]/g, '_')}-${a.month}.xlsx`;
+    const fileName = `alert-${a.type}-${a.name.replace(/[^a-zA-Z0-9]/g, '_')}-${a.type === 'aircraft' ? 'period' : a.month}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
 
@@ -196,7 +218,7 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
                 )}
               </h2>
               <p className="text-xs text-gray-500">
-                Aircraft: 1.5× monthly fleet avg · Component: Own Avg + {sigmaMultiplier}σ · ATA: Own Avg + {sigmaMultiplier}σ · Click any item for details
+                Aircraft: Fleet Wt. Avg + {sigmaMultiplier}σ (period-based) · Component: Own Avg + {sigmaMultiplier}σ · ATA: Own Avg + {sigmaMultiplier}σ · Click any item for details
               </p>
             </div>
           </div>
@@ -241,7 +263,7 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
                   <div>
                     <p className="font-bold text-blue-900 mb-1">Each alert type uses a different threshold method (matching its heatmap):</p>
                     <ul className="space-y-0.5">
-                      <li><strong>Aircraft:</strong> Each aircraft&apos;s rate (findings/aircraft EODs) vs <strong>that month&apos;s fleet avg × 1.5</strong>. No sigma. Each month has a different fleet avg &amp; threshold.</li>
+                      <li><strong>Aircraft (Period-Based):</strong> Each aircraft&apos;s period rate (total findings / total EODs across entire period) vs <strong>fleet-wide weighted avg + {sigmaMultiplier}σ</strong>. Fleet avg: <strong>{fleetStats.fleetWeightedAvg.toFixed(3)}</strong>, σ: <strong>{fleetStats.fleetWeightedSigma.toFixed(3)}</strong>, threshold: <strong>{fleetThreshold.toFixed(3)}</strong>. One alert per aircraft (not per month).</li>
                       <li><strong>Component:</strong> Each component&apos;s rate (findings/total EODs) vs its <strong>own weighted avg + {sigmaMultiplier}σ</strong> across all months.</li>
                       <li><strong>ATA:</strong> Each ATA chapter&apos;s rate (findings/total EODs) vs its <strong>own weighted avg + {sigmaMultiplier}σ</strong> across all months.</li>
                     </ul>
@@ -312,17 +334,24 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
                           </span>
                         </div>
                         <p className="text-xs text-gray-600 mt-0.5">
-                          {format(parseISO(alert.month + '-01'), 'MMMM yyyy', { locale: enUS })}
-                          {' · '}
-                          {alert.findings} findings / {alert.eods} EODs
                           {alert.type === 'aircraft' ? (
-                            <span className="text-gray-400 ml-1">
-                              (fleet avg: {alert.avgRate.toFixed(3)}, thr: {alert.threshold.toFixed(3)})
-                            </span>
+                            <>
+                              Full Period ({periodLabel})
+                              {' · '}
+                              {alert.findings} findings / {alert.eods} EODs
+                              <span className="text-gray-400 ml-1">
+                                (fleet wt. avg: {alert.avgRate.toFixed(3)}, σ: {alert.sigma.toFixed(3)}, thr: {alert.threshold.toFixed(3)})
+                              </span>
+                            </>
                           ) : (
-                            <span className="text-gray-400 ml-1">
-                              (own avg: {alert.avgRate.toFixed(3)}, σ: {alert.sigma.toFixed(3)}, thr: {alert.threshold.toFixed(3)})
-                            </span>
+                            <>
+                              {format(parseISO(alert.month + '-01'), 'MMMM yyyy', { locale: enUS })}
+                              {' · '}
+                              {alert.findings} findings / {alert.eods} EODs
+                              <span className="text-gray-400 ml-1">
+                                (own avg: {alert.avgRate.toFixed(3)}, σ: {alert.sigma.toFixed(3)}, thr: {alert.threshold.toFixed(3)})
+                              </span>
+                            </>
                           )}
                         </p>
                       </div>
@@ -382,7 +411,10 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
                         </span>
                       </div>
                       <p className="text-sm text-gray-600">
-                        {format(parseISO(selectedAlert.alert.month + '-01'), 'MMMM yyyy', { locale: enUS })}
+                        {selectedAlert.alert.type === 'aircraft'
+                          ? `Full Period (${periodLabel})`
+                          : format(parseISO(selectedAlert.alert.month + '-01'), 'MMMM yyyy', { locale: enUS })
+                        }
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
                         {getAlertMethodDescription(selectedAlert.alert.type)}
@@ -415,12 +447,16 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
                     </div>
                     <div className="h-8 w-px bg-gray-200" />
                     <div className="text-center">
-                      <p className="text-xs text-gray-500 font-medium">EODs</p>
+                      <p className="text-xs text-gray-500 font-medium">
+                        {selectedAlert.alert.type === 'aircraft' ? 'Total EODs' : 'EODs'}
+                      </p>
                       <p className="text-xl font-bold text-gray-900">{selectedAlert.alert.eods}</p>
                     </div>
                     <div className="h-8 w-px bg-gray-200" />
                     <div className="text-center">
-                      <p className="text-xs text-gray-500 font-medium">Rate</p>
+                      <p className="text-xs text-gray-500 font-medium">
+                        {selectedAlert.alert.type === 'aircraft' ? 'Period Rate' : 'Rate'}
+                      </p>
                       <p className="text-xl font-bold text-red-600">
                         {selectedAlert.alert.rate.toFixed(3)}
                       </p>
@@ -428,25 +464,21 @@ export function EODAlertPanel({ findings, eodRecords, sigmaSettings = DEFAULT_SI
                     <div className="h-8 w-px bg-gray-200" />
                     <div className="text-center">
                       <p className="text-xs text-gray-500 font-medium">
-                        {selectedAlert.alert.type === 'aircraft' ? 'Month Fleet Avg' : 'Own Wt. Avg'}
+                        {selectedAlert.alert.type === 'aircraft' ? 'Fleet Wt. Avg' : 'Own Wt. Avg'}
                       </p>
                       <p className="text-xl font-bold text-blue-600">{selectedAlert.alert.avgRate.toFixed(3)}</p>
                     </div>
-                    {selectedAlert.alert.type !== 'aircraft' && (
-                      <>
-                        <div className="h-8 w-px bg-gray-200" />
-                        <div className="text-center">
-                          <p className="text-xs text-gray-500 font-medium">Own Wt. σ</p>
-                          <p className="text-xl font-bold text-purple-600">{selectedAlert.alert.sigma.toFixed(3)}</p>
-                        </div>
-                      </>
-                    )}
+                    <div className="h-8 w-px bg-gray-200" />
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 font-medium">
+                        {selectedAlert.alert.type === 'aircraft' ? 'Fleet Wt. σ' : 'Own Wt. σ'}
+                      </p>
+                      <p className="text-xl font-bold text-purple-600">{selectedAlert.alert.sigma.toFixed(3)}</p>
+                    </div>
                     <div className="h-8 w-px bg-gray-200" />
                     <div className="text-center">
                       <p className="text-xs text-orange-500 font-medium">
-                        {selectedAlert.alert.type === 'aircraft'
-                          ? 'Thr (1.5x avg)'
-                          : `Thr (Avg+${sigmaMultiplier}σ)`}
+                        Thr (Avg+{sigmaMultiplier}σ)
                       </p>
                       <p className="text-xl font-bold text-orange-600">{selectedAlert.alert.threshold.toFixed(3)}</p>
                     </div>

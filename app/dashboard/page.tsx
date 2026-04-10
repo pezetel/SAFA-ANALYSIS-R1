@@ -294,7 +294,7 @@ export default function Dashboard() {
                 <h1 className="text-xl font-bold text-gray-900">Analysis Dashboard</h1>
                 <p className="text-sm text-gray-600">
                   Total {data.records.length} records analyzed
-                  {hasEOD && <span className="text-amber-600 ml-2">• {allEodRecords.length} EOD records loaded</span>}
+                  {hasEOD && <span className="text-amber-600 ml-2">&bull; {allEodRecords.length} EOD records loaded</span>}
                   {hasEOD && filteredEodRecords.length !== allEodRecords.length && (
                     <span className="text-blue-600 ml-1">(filtered: {filteredEodRecords.length})</span>
                   )}
@@ -380,7 +380,7 @@ export default function Dashboard() {
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
-              Hesaplama Kılavuzu
+              Hesaplama K\u0131lavuzu
             </button>
           </div>
         </div>
@@ -420,7 +420,7 @@ export default function Dashboard() {
 
             <TrendChart records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
             <ComponentHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
-            <AircraftHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} />
+            <AircraftHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
             <ATAHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
           </div>
         )}
