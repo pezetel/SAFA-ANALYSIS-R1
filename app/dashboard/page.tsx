@@ -426,7 +426,7 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'period' && (
-          <PeriodComparison records={data.records} />
+          <PeriodComparison records={data.records} eodRecords={allEodRecords} sigmaSettings={sigmaSettings} />
         )}
 
         {activeTab === 'details' && (

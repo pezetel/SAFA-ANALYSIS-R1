@@ -1,6 +1,7 @@
 'use client';
 
-import { SAFARecord } from '@/lib/types';
+import { SAFARecord, EODRecord, SigmaSettings } from '@/lib/types';
+import { AircraftPeriodTracker } from './AircraftPeriodTracker';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, Plane, Search, X, ChevronDown, Calendar, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
@@ -8,6 +9,8 @@ import { DetailModal } from './DetailModal';
 
 interface PeriodComparisonProps {
   records: SAFARecord[];
+  eodRecords?: EODRecord[];
+  sigmaSettings?: SigmaSettings;
 }
 
 const AIRCRAFT_TYPES: Record<string, string[]> = {
@@ -361,7 +364,10 @@ function buildProblemTypeData(records1: SAFARecord[], records2: SAFARecord[]) {
   })).sort((a, b) => (b.count1 + b.count2) - (a.count1 + a.count2));
 }
 
-export function PeriodComparison({ records }: PeriodComparisonProps) {
+const DEFAULT_SIGMA_PC: SigmaSettings = { multiplier: 2 };
+
+export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_SIGMA_PC }: PeriodComparisonProps) {
+  const hasEOD = eodRecords && eodRecords.length > 0;
   const [comparisonMode, setComparisonMode] = useState<'period' | 'aircraft' | 'fleet'>('period');
 
   // Period comparison state
@@ -922,6 +928,28 @@ export function PeriodComparison({ records }: PeriodComparisonProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Aircraft Period Tracker */}
+              {hasEOD && (() => {
+                const p1S = parseInputDate(period1Start);
+                const p1E = parseInputDate(period1End);
+                const p2S = parseInputDate(period2Start);
+                const p2E = parseInputDate(period2End);
+                if (!p1S || !p1E || !p2S || !p2E) return null;
+                return (
+                  <AircraftPeriodTracker
+                    records={records}
+                    eodRecords={eodRecords!}
+                    period1Start={p1S}
+                    period1End={p1E}
+                    period2Start={p2S}
+                    period2End={p2E}
+                    period1Label={`P1 (${period1Start} - ${period1End})`}
+                    period2Label={`P2 (${period2Start} - ${period2End})`}
+                    sigmaSettings={sigmaSettings}
+                  />
+                );
+              })()}
 
               {/* Problem Type Comparison for Period mode */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
