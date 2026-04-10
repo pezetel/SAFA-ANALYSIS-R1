@@ -419,8 +419,8 @@ export default function Dashboard() {
             )}
 
             <TrendChart records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
-            <ComponentHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
             <AircraftHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
+            <ComponentHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
             <ATAHeatmap records={filteredData} eodRecords={hasFilteredEOD ? filteredEodRecords : undefined} sigmaSettings={sigmaSettings} />
           </div>
         )}
