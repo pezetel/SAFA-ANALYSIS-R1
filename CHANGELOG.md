@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.6.0] - 2025-01-30
+
+### Fixed — General Alert View & Heatmap Consistency
+- **Aircraft alerts now match AircraftHeatmap exactly** — `generateAlerts()` aircraft section rewritten to use the same `rate > monthlyFleetAvg × 1.5` logic as `AircraftHeatmap.tsx` and `getAlertLevel()`. Previously it was incorrectly using fleet-wide weighted avg + Nσ (a single threshold for all months), which did not match the heatmap.
+- **Each month now has its own fleet avg & threshold for aircraft** — Fleet avg = totalFindings / totalEODs calculated per month. Threshold = fleetAvg × 1.5 per month. Previously all months shared the same weighted avg/sigma values, causing aircraft alert rows to display identical avg/threshold regardless of month.
+- **Aircraft alerts no longer use sigma** — `sigma: 0` is set for aircraft alert items since the AircraftHeatmap never used sigma-based thresholds. The sigma slider now correctly only affects Component and ATA alerts.
+- **Aircraft rate calculation matches heatmap** — Aircraft rate = aircraftFindings / aircraftEODs (per aircraft per month), matching AircraftHeatmap. Component and ATA rate = findings / totalFleetEODs (per month), matching their respective heatmaps.
+
+### Changed — EODAlertPanel UI Overhaul
+- **Removed misleading header stats** — The static "Wt. Avg", "Wt. Sigma", and "Threshold" boxes in the General Alert View header were removed. These showed a single overall fleet weighted sigma that didn't correspond to any specific alert type (not aircraft, not component, not ATA) and never changed when sigma slider was adjusted.
+- **Replaced with Alerts by Type breakdown** — Header now shows alert counts per type using Lucide icons (Plane, Cpu, BookOpen) instead of broken unicode emoji escapes.
+- **Added info banner** — Blue info box explains that each alert type uses a different threshold method: Aircraft = 1.5× monthly fleet avg (no sigma), Component = own weighted avg + Nσ, ATA = own weighted avg + Nσ.
+- **Alert method badge on each row** — Each alert item now displays a small badge showing its threshold method ("1.5x fleet avg" for aircraft, "Avg + 2σ" for component/ATA).
+- **Aircraft rows show month-specific values** — Aircraft alert rows display `(fleet avg: X.XX, thr: X.XX)` with values specific to that month. Previously showed the same global weighted avg for every month.
+- **Component/ATA rows show own stats** — Display `(own avg: X.XX, σ: X.XX, thr: X.XX)` clarifying these are per-item weighted values.
+- **Detail modal labels updated** — Aircraft detail shows "Month Fleet Avg" and "Thr (1.5x avg)". Component/ATA detail shows "Own Wt. Avg", "Own Wt. σ", and "Thr (Avg+Nσ)". Aircraft detail hides the σ stat entirely since it's not used.
+- **Subtitle updated** — Now reads: `Aircraft: 1.5× monthly fleet avg · Component: Own Avg + Nσ · ATA: Own Avg + Nσ`
+
+### Fixed — Unicode Rendering
+- **Fixed broken emoji rendering** — Replaced all `\u2708\uFE0F`, `\uD83D\uDD27`, `\uD83D\uDCD6` unicode escape sequences with Lucide React icon components (`<Plane />`, `<Cpu />`, `<BookOpen />`). These escapes were rendering as literal text like `\u2708\uFE0F81` instead of emoji in the Alerts by Type box and filter buttons.
+
+### Added
+- **Comparison page** (`/comparison`) — Static analysis page comparing user's 2025/1 SAFA JC calculations (Avg + 1σ unweighted) against the platform's aircraft alert method (1.5× fleet avg). Includes sortable table with all 76 aircraft, filter buttons (All/Alert/Normal/Diff), methodology explanation, and key insights.
+
+---
+
 ## [2.5.0] - 2025-01-29
 
 ### Added

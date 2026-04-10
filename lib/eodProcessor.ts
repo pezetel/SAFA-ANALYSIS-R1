@@ -152,7 +152,7 @@ export function calculateFindingRate(
 
 /**
  * Computes weighted average and weighted standard deviation.
- * Weight for each month = EOD count for that month.
+ * Weight for each data point = EOD count.
  * weightedAvg = Sum(rate_i * w_i) / Sum(w_i)
  * weightedSigma = sqrt( Sum(w_i * (rate_i - weightedAvg)^2) / Sum(w_i) )
  */
@@ -173,6 +173,10 @@ export function computeWeightedStats(
   return { weightedAvg, weightedSigma };
 }
 
+/**
+ * Sigma-based alert level for Component and ATA heatmaps.
+ * Alert when rate > weightedAvg + multiplier * weightedSigma.
+ */
 export function getAlertLevelSigma(
   rate: number,
   weightedAvg: number,
@@ -186,8 +190,10 @@ export function getAlertLevelSigma(
 }
 
 /**
- * Aircraft heatmap alert level — monthly average based (no sigma).
- * Only 'normal' and 'alert' levels. Alert when rate > 1.5× monthly fleet avg.
+ * Aircraft heatmap alert level — NO sigma.
+ * Uses simple 1.5x monthly fleet average as threshold.
+ * Each aircraft's rate for a given month is compared to that month's fleet avg.
+ * Alert when rate > monthlyFleetAvg * 1.5.
  */
 export function getAlertLevel(
   rate: number,
@@ -198,6 +204,21 @@ export function getAlertLevel(
   return 'normal';
 }
 
+/**
+ * Generate alerts by collecting alert cells directly from heatmap logic.
+ *
+ * - Aircraft: rate > monthlyFleetAvg x 1.5 (NO sigma, matches AircraftHeatmap)
+ *   Each month has its own fleet avg = totalFindings/totalEODs for that month.
+ *   Each aircraft rate = acFindings/acEODs for that month.
+ *
+ * - Component: rate > per-component weightedAvg + N x sigma (matches ComponentHeatmap)
+ *   rate = compFindings / totalEODs for that month.
+ *   Each component has its own weighted avg & sigma across all months.
+ *
+ * - ATA: rate > per-ATA weightedAvg + N x sigma (matches ATAHeatmap)
+ *   rate = ataFindings / totalEODs for that month.
+ *   Each ATA chapter has its own weighted avg & sigma across all months.
+ */
 export function generateAlerts(
   findings: SAFARecord[],
   eodRecords: EODRecord[],
@@ -206,18 +227,25 @@ export function generateAlerts(
 ): AlertItem[] {
   const alerts: AlertItem[] = [];
 
-  // Build total EOD per month
+  // Build total EOD per month (fleet-wide)
   const totalEODPerMonth: Record<string, number> = {};
   eodRecords.forEach(e => {
     const month = format(startOfMonth(new Date(e.perfDate)), 'yyyy-MM');
     totalEODPerMonth[month] = (totalEODPerMonth[month] || 0) + 1;
   });
 
+  // Build total findings per month (fleet-wide)
+  const totalFindingsPerMonth: Record<string, number> = {};
+  findings.forEach(f => {
+    const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
+    totalFindingsPerMonth[month] = (totalFindingsPerMonth[month] || 0) + 1;
+  });
+
   const findingMonths = Array.from(new Set(
     findings.map(f => format(startOfMonth(new Date(f.date)), 'yyyy-MM'))
   )).sort();
 
-  // ── Aircraft Alerts ──
+  // ── Aircraft Alerts (matches AircraftHeatmap — NO sigma, 1.5x monthly fleet avg) ──
   const aircraftMonthFindings: Record<string, Record<string, number>> = {};
   findings.forEach(f => {
     const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
@@ -225,6 +253,7 @@ export function generateAlerts(
     aircraftMonthFindings[f.aircraft][month] = (aircraftMonthFindings[f.aircraft][month] || 0) + 1;
   });
 
+  // EOD per aircraft per month
   const aircraftMonthEOD: Record<string, Record<string, number>> = {};
   eodRecords.forEach(e => {
     const month = format(startOfMonth(new Date(e.perfDate)), 'yyyy-MM');
@@ -232,52 +261,50 @@ export function generateAlerts(
     aircraftMonthEOD[e.aircraft][month] = (aircraftMonthEOD[e.aircraft][month] || 0) + 1;
   });
 
-  const totalFindingsPerMonth: Record<string, number> = {};
-  findings.forEach(f => {
-    const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
-    totalFindingsPerMonth[month] = (totalFindingsPerMonth[month] || 0) + 1;
-  });
-
-  // Fleet-wide monthly rates + weights for aircraft alerts
-  const fleetRates: number[] = [];
-  const fleetWeights: number[] = [];
+  // Monthly fleet avg rate = totalFindings / totalEODs for that month
+  const monthlyFleetAvg: Record<string, number> = {};
   findingMonths.forEach(month => {
     const tf = totalFindingsPerMonth[month] || 0;
     const te = totalEODPerMonth[month] || 0;
-    if (te > 0) {
-      fleetRates.push(tf / te);
-      fleetWeights.push(te);
-    }
+    monthlyFleetAvg[month] = te > 0 ? tf / te : 0;
   });
-  const fleetStats = computeWeightedStats(fleetRates, fleetWeights);
-  const fleetThreshold = fleetStats.weightedAvg + sigmaSettings.multiplier * fleetStats.weightedSigma;
 
-  Object.keys(aircraftMonthFindings).forEach(ac => {
-    Object.keys(aircraftMonthFindings[ac]).forEach(month => {
-      const findingCount = aircraftMonthFindings[ac][month];
+  // For each aircraft x month: rate = acFindings/acEODs, alert if rate > monthFleetAvg x 1.5
+  const allAircraft = Array.from(new Set([
+    ...Object.keys(aircraftMonthFindings),
+    ...Object.keys(aircraftMonthEOD),
+  ]));
+
+  allAircraft.forEach(ac => {
+    const acMonths = Object.keys(aircraftMonthFindings[ac] || {});
+    acMonths.forEach(month => {
+      const findingCount = aircraftMonthFindings[ac]?.[month] || 0;
       const eodCount = aircraftMonthEOD[ac]?.[month] || 0;
       if (eodCount < minEODThreshold) return;
+
       const rate = findingCount / eodCount;
-      const level = getAlertLevelSigma(rate, fleetStats.weightedAvg, fleetStats.weightedSigma, sigmaSettings);
-      if (level !== 'normal') {
+      const fleetAvg = monthlyFleetAvg[month] || 0;
+      const threshold = fleetAvg * 1.5;
+
+      if (fleetAvg > 0 && rate > threshold) {
         alerts.push({
           type: 'aircraft',
           name: ac,
           month,
           rate,
-          avgRate: fleetStats.weightedAvg,
-          sigma: fleetStats.weightedSigma,
-          threshold: fleetThreshold,
+          avgRate: fleetAvg,
+          sigma: 0, // Aircraft doesn't use sigma
+          threshold,
           findings: findingCount,
           eods: eodCount,
-          level,
-          ratio: fleetThreshold > 0 ? rate / fleetThreshold : 0,
+          level: 'alert',
+          ratio: threshold > 0 ? rate / threshold : 0,
         });
       }
     });
   });
 
-  // ── Component Alerts ──
+  // ── Component Alerts (matches ComponentHeatmap — per-component weighted avg + Nσ) ──
   const componentMonthFindings: Record<string, Record<string, number>> = {};
   findings.forEach(f => {
     const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
@@ -285,6 +312,7 @@ export function generateAlerts(
     componentMonthFindings[f.component][month] = (componentMonthFindings[f.component][month] || 0) + 1;
   });
 
+  // Per-component weighted stats: rate = compFindings/totalEODs per month, weighted by totalEODs
   const componentWeightedStats: Record<string, { weightedAvg: number; weightedSigma: number }> = {};
   Object.keys(componentMonthFindings).forEach(comp => {
     const rates: number[] = [];
@@ -327,7 +355,7 @@ export function generateAlerts(
     });
   });
 
-  // ── ATA Alerts ──
+  // ── ATA Alerts (matches ATAHeatmap — per-ATA weighted avg + Nσ) ──
   const ataMonthFindings: Record<string, Record<string, number>> = {};
   findings.forEach(f => {
     const month = format(startOfMonth(new Date(f.date)), 'yyyy-MM');
@@ -336,6 +364,7 @@ export function generateAlerts(
     ataMonthFindings[ata2][month] = (ataMonthFindings[ata2][month] || 0) + 1;
   });
 
+  // Per-ATA weighted stats: rate = ataFindings/totalEODs per month, weighted by totalEODs
   const ataWeightedStats: Record<string, { weightedAvg: number; weightedSigma: number }> = {};
   Object.keys(ataMonthFindings).forEach(ata => {
     const rates: number[] = [];
