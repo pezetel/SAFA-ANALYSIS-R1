@@ -1,5 +1,42 @@
 # Changelog
 
+## [2.7.0] - 2025-07-10
+
+### Changed — Problem Type Classification: Reduced OTHER Rate
+- **New problem type `EXPIRED`** — Findings mentioning `EXPIRE DATE`, `EXPIRED`, or `EXPIRE` (e.g. first aid kit / EMK expiry warnings) are now classified as `EXPIRED` instead of `OTHER`
+- **`INOPERATIVE` expanded** — Added keywords: `DOESNT MOVE`, `DOES NOT MOVE`, `DONT LOCK`, `DON'T LOCK`, `DON T LOCK`, `NOT OPERATE`, `NOT OPERATING`, `DEFECTIVE`, `WEAK`, `NOT WORK`
+  - Captures findings like "window sun shade doesnt move easily", "armrests don't lock", "reading bulb was not operate correctly", "battery is weak", "lock mechanism defective"
+- **`CLEANLINESS` expanded** — Added keywords: `NEEDS TO BE CLEAN`, `NEEDS CLEANING`, `NEED TO BE CLEAN`
+  - Captures findings like "cockpit needs to be clean"
+- **`DAMAGED` expanded** — Added keywords: `BAD CONDITION`, `NEED TO BE REPLACE`, `NEEDS REPLACEMENT`, `NEED REPLACEMENT`
+  - Captures findings like "velcros are bad condition", "restraint assy need to be replace"
+- **`LOOSE` expanded** — Added keywords: `NOT ATTACHED`, `NOT SECURED`
+  - Captures findings like "safety pin pocket is not attached to the wall", "equipment bag is not secured"
+
+### Changed — Component Classification: Reduced OTHER Rate
+- **New component `FIRST_AID_KIT`** — Keywords: `FIRST AID KIT`, `FIRST AIT KIT`, `FAK`
+  - Captures all first aid kit related findings (expiry, seal broken, etc.)
+- **New component `FLASHLIGHT`** — Keywords: `FLASHLIGHT`, `FLASHLIGH`, `FLISHLIGHT`, `ETL`, `EMERGENCY FLASHLIGHT`, `EMERGENCY LIGHTS`, `TORCH`
+  - Captures emergency flashlight seal, battery, and lens findings
+- **`OVERHEAD_BIN` consolidated** — Merged `BIN_STOPPER` into `OVERHEAD_BIN`; added keywords: `STOPPER`, `BIN STOP`, `BIN STOPS`, `BAGGAGE BAR`
+  - All bin stopper, door stopper, baggage bar, and overhead stowage findings now go to a single `OVERHEAD_BIN` component
+- **`SUNSHADE` expanded** — Added keywords: `WINDOWSHADE`, `SUNSHEAD`, `SUN SHADE`
+  - Captures typos and alternate spellings of window shade findings
+- **`TRAY_TABLE` expanded** — Added keywords: `FOOD TRAY`, `BABY TABLE`; added standalone `TABLE` as fallback match at end of list
+  - Captures food tray, baby table, and generic table findings
+- **`LIGHT` expanded** — Added keywords: `READING BULB`, `SIGN LAMP`, `FLUORESCENT LAMP`, `CEILING LIGHT`, `INDICATION LAMP`, `READING LENS`
+  - Captures NS/FSB sign lamps, fluorescent ceiling lights, cockpit indication lamps, and reading lens findings
+- **`LAVATORY` expanded** — Added keywords: `SOAP DISPENSER`, `SOAP DISPENCER`, `WASH BASIN`, `TOILET`, `TOILET SHROUD`
+  - Captures soap dispenser, wash basin, and toilet shroud findings
+- **`LANDING_GEAR` expanded** — Added keywords: `L/G`, `LG PIN`, `SAFETY PIN`
+  - Captures L/G safety pin bag and LG pin findings
+- **`LATCH` expanded** — Added keywords: `LOCKING PLATE`, `LOCK MECHANISM`
+  - Captures locking plate and lock mechanism findings
+- **`DOOR` expanded** — Added keywords: `EXIT`, `OVERWING EXIT`
+  - Captures overwing exit and emergency exit findings
+
+---
+
 ## [2.6.0] - 2026-04-10
 
 ### Changed — Aircraft Analysis: Period-Based Fleet Weighted Avg + Nσ

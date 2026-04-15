@@ -19,6 +19,7 @@ const COLORS: Record<string, string> = {
   CLEANLINESS: '#06b6d4',
   LOW_LEVEL: '#14b8a6',
   ADJUSTMENT: '#10b981',
+  EXPIRED: '#ec4899',
   OTHER: '#6b7280',
 };
 
