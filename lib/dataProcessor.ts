@@ -214,7 +214,7 @@ function extractProblemType(description: string): string {
     { keywords: ['INOP', 'NOT WORKING', 'NOT ILLUMINATE', 'NOT FUNCTIONING', 'FAULTY', 'DOESNT MOVE', 'DOES NOT MOVE', 'DOESNT WORK', "DOESN'T WORK", 'DOESN T WORK', 'DONT LOCK', "DON'T LOCK", 'DON T LOCK', "DON'T WORK", 'DON T WORK', 'DONT WORK', 'PARTIALLY WORKING', 'NOT OPERATE', 'NOT OPERATING', 'DEFECTIVE', 'WEAK', 'NOT WORK', 'U/S'], type: 'INOPERATIVE' },
     { keywords: ['DIRTY', 'NEEDS TO BE CLEAN', 'NEEDS CLEANING', 'NEED TO BE CLEAN'], type: 'CLEANLINESS' },
     { keywords: ['NOT CORRECT', 'WRONG SIDE', 'WRONG POSITION', 'WRONG DIRECTION'], type: 'ADJUSTMENT' },
-    { keywords: ['ADJUSTMENT', 'OUT OF ADJUSTMENT'], type: 'ADJUSTMENT' },
+    { keywords: ['ADJUSTMENT', 'OUT OF ADJUSTMENT', 'NEED TO BE ADJUST', 'NEEDS TO BE ADJUST', 'NEED TO ADJUSTED', 'NEED TO BEADJUST', 'NEEDS TO BEADJUST'], type: 'ADJUSTMENT' },
   ];
 
   for (const { keywords, type } of problemTypes) {
