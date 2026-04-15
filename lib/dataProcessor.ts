@@ -201,11 +201,14 @@ function extractProblemType(description: string): string {
     { keywords: ['DENT', 'DENTED'], type: 'DENT' },
     { keywords: ['PAINT DAMAGE', 'PAINT DAMAGED', 'PAINTING DAMAGE', 'PAINT DAMAGES', 'PAINT DMG', 'PEELED OF PAINT', 'PEELED OFF PAINT', 'PAINTDAMAGE'], type: 'PAINT_DAMAGE' },
     { keywords: ['EXPIRE DATE', 'EXPIRED', 'EXPIRE'], type: 'EXPIRED' },
+    { keywords: ['NOT INSTALLED'], type: 'MISSING' },
     { keywords: ['MISSING', 'MISS'], type: 'MISSING' },
-    { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN', 'BAD CONDITION', 'NEED TO BE REPLACE', 'NEEDS REPLACEMENT', 'NEED REPLACEMENT'], type: 'DAMAGED' },
-    { keywords: ['LOOSE', 'NOT FIXED', 'NOT ATTACHED', 'NOT SECURED'], type: 'LOOSE' },
+    { keywords: ['UNREADABLE', 'NOT READABLE'], type: 'DAMAGED' },
+    { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN', 'BAD CONDITION', 'NEED TO BE REPLACE', 'NEEDS REPLACEMENT', 'NEED REPLACEMENT', 'FRIED'], type: 'DAMAGED' },
+    { keywords: ['LOOSE', 'NOT FIXED', 'NOT ATTACHED', 'NOT SECURED', 'DISPLACED'], type: 'LOOSE' },
     { keywords: ['INOP', 'NOT WORKING', 'NOT ILLUMINATE', 'NOT FUNCTIONING', 'FAULTY', 'DOESNT MOVE', 'DOES NOT MOVE', 'DONT LOCK', "DON'T LOCK", 'DON T LOCK', 'NOT OPERATE', 'NOT OPERATING', 'DEFECTIVE', 'WEAK', 'NOT WORK', 'U/S'], type: 'INOPERATIVE' },
     { keywords: ['DIRTY', 'NEEDS TO BE CLEAN', 'NEEDS CLEANING', 'NEED TO BE CLEAN'], type: 'CLEANLINESS' },
+    { keywords: ['NOT CORRECT', 'WRONG SIDE', 'WRONG POSITION', 'WRONG DIRECTION'], type: 'ADJUSTMENT' },
     { keywords: ['ADJUSTMENT', 'OUT OF ADJUSTMENT'], type: 'ADJUSTMENT' },
   ];
 
@@ -297,7 +300,7 @@ function extractComponent(description: string): string {
     { keywords: ['KRUGER FLAP', 'KRUGER'], component: 'KRUGER_FLAP' },
     { keywords: ['SLAT'], component: 'SLAT' },
     { keywords: ['FLAP'], component: 'FLAP' },
-    { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON', 'ENG'], component: 'ENGINE' },
+    { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON'], component: 'ENGINE' },
     { keywords: ['LANDING GEAR', 'TIRE', 'SHOCK STRUT', 'SHOCK CHARGING', 'WHEEL WELL', 'BRAKE UNIT', 'MLG', 'NLG', 'L/G', 'LG PIN', 'SAFETY PIN'], component: 'LANDING_GEAR' },
     { keywords: ['WATER SERVICE', 'POTABLE WATER', 'PORTABLE WATER'], component: 'WATER_SYSTEM' },
     { keywords: ['HINGE'], component: 'HINGE' },
@@ -318,6 +321,12 @@ function extractComponent(description: string): string {
     if (keywords.some(keyword => text.includes(keyword))) {
       return component;
     }
+  }
+
+  // ENGINE — word-boundary check to avoid false positives from substrings
+  // e.g. "PASSENGER" should NOT match, but standalone "ENG" or "ENGINE" should
+  if (/\bENGINE\b/.test(text) || /\bENG\b/.test(text)) {
+    return 'ENGINE';
   }
 
   if (/\bRINGS?\b/.test(text) && text.includes('CARGO')) {
