@@ -185,6 +185,11 @@ function cleanDesc(text: string): string {
   cleaned = cleaned.replace(/\bDURING\s+W\/O\s*\d+\b\s*/g, '');
   cleaned = cleaned.replace(/\bDURING\s+THE\s+/g, '');
   cleaned = cleaned.replace(/^DURING\s+/g, '');
+
+  // Normalize curly/smart quotes to straight apostrophe so keyword matching works
+  cleaned = cleaned.replace(/[\u2018\u2019\u2032\u0060]/g, "'");
+  cleaned = cleaned.replace(/[\u201C\u201D]/g, '"');
+
   cleaned = cleaned.replace(/FOND /g, 'FOUND ');
   cleaned = cleaned.replace(/NOR WORKING/g, 'NOT WORKING');
   cleaned = cleaned.replace(/MISISING/g, 'MISSING');
@@ -206,7 +211,7 @@ function extractProblemType(description: string): string {
     { keywords: ['UNREADABLE', 'NOT READABLE'], type: 'DAMAGED' },
     { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN', 'BAD CONDITION', 'NEED TO BE REPLACE', 'NEEDS REPLACEMENT', 'NEED REPLACEMENT', 'FRIED', 'FADED'], type: 'DAMAGED' },
     { keywords: ['LOOSE', 'NOT FIXED', 'NOT ATTACHED', 'NOT SECURED', 'DISPLACED'], type: 'LOOSE' },
-    { keywords: ['INOP', 'NOT WORKING', 'NOT ILLUMINATE', 'NOT FUNCTIONING', 'FAULTY', 'DOESNT MOVE', 'DOES NOT MOVE', 'DONT LOCK', "DON'T LOCK", 'DON T LOCK', 'NOT OPERATE', 'NOT OPERATING', 'DEFECTIVE', 'WEAK', 'NOT WORK', 'DOESNT WORK', 'PARTIALLY WORKING', "DON'T WORK", "DOESN'T WORK", 'U/S'], type: 'INOPERATIVE' },
+    { keywords: ['INOP', 'NOT WORKING', 'NOT ILLUMINATE', 'NOT FUNCTIONING', 'FAULTY', 'DOESNT MOVE', 'DOES NOT MOVE', 'DOESNT WORK', "DOESN'T WORK", 'DOESN T WORK', 'DONT LOCK', "DON'T LOCK", 'DON T LOCK', "DON'T WORK", 'DON T WORK', 'DONT WORK', 'PARTIALLY WORKING', 'NOT OPERATE', 'NOT OPERATING', 'DEFECTIVE', 'WEAK', 'NOT WORK', 'U/S'], type: 'INOPERATIVE' },
     { keywords: ['DIRTY', 'NEEDS TO BE CLEAN', 'NEEDS CLEANING', 'NEED TO BE CLEAN'], type: 'CLEANLINESS' },
     { keywords: ['NOT CORRECT', 'WRONG SIDE', 'WRONG POSITION', 'WRONG DIRECTION'], type: 'ADJUSTMENT' },
     { keywords: ['ADJUSTMENT', 'OUT OF ADJUSTMENT'], type: 'ADJUSTMENT' },
