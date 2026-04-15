@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.8.0] - 2026-04-15
+
+### Changed — Component Classification: LIGHT Priority Overhaul
+- **LIGHT moved to #1 priority** — LIGHT is now the very first component checked, before all others. Any description containing a light-related keyword is classified as LIGHT regardless of other component keywords present (MIRROR, LAVATORY, SEAT, DOOR, OVERHEAD_BIN, SEAT_BELT etc.)
+- **51+ explicit LIGHT keywords** — Massively expanded keyword list:
+  - Existing: `READING LIGHT`, `FLOOD LIGHT`, `LIGHT LENS`, `LANDING LIGHT`, `READING BULB`, `SIGN LAMP`, `FLUORESCENT LAMP`, `CEILING LIGHT`, `INDICATION LAMP`, `READING LENS`
+  - New compound keywords: `MIRROR LIGHT`, `EMERGENCY LIGHT`, `SEAT BELT LIGHT`, `FASTEN SEAT BELT LIGHT`, `WINDOW LIGHT`, `OVERHEAD BIN LIGHT`, `BIN LIGHT`, `CABIN LIGHT`, `COCKPIT LIGHT`, `DOOR LIGHT`, `EXIT LIGHT`, `LOGO LIGHT`, `NAV LIGHT`, `NAVIGATION LIGHT`, `STROBE LIGHT`, `TAXI LIGHT`, `WING LIGHT`, `BEACON LIGHT`, `ANTI COLLISION LIGHT`, `POSITION LIGHT`, `DOME LIGHT`, `COURTESY LIGHT`, `ENTRY LIGHT`
+  - New state/part keywords: `LIGHT SHADE`, `LIGHT COVER`, `LIGHT ASSY`, `LIGHT BULB`, `LIGHT INOP`, `LIGHT'S`, `LIGHTS ARE`, `LIGHTS INOP`, `LIGHTS U/S`, `LIGHT U/S`, `LIGHT IS U/S`, `LAMP INOP`, `LAMP U/S`, `BULB INOP`, `BULB U/S`, `LIGHT NOT WORKING`, `LAMP NOT WORKING`, `SERVICE DOOR EMERGENCY LIGHT`
+- **Smart regex fallback** — If no explicit keyword matches, a regex checks for `LIGHT`, `LAMP`, or `BULB` combined with an action word (`INOP`, `U/S`, `MISSING`, `BROKEN`, `DAMAGED`, `NOT WORKING`, `FAULTY`, `DEFECTIVE`, `FOUND`, `REPLACE`) to catch edge cases
+- **EMERGENCY LIGHTS removed from FLASHLIGHT** — `EMERGENCY LIGHTS` and `EMERGENCY FLASHLIGHT` keywords removed from FLASHLIGHT component; emergency light findings now correctly go to LIGHT
+- **ETL stays in FLASHLIGHT** — `ETL` (Emergency Torch Light) remains in FLASHLIGHT as it refers to the physical torch device, not installed lighting
+
+### Fixed — Misclassified Findings Now Correctly Route to LIGHT
+- `3LH AND 3RH LAV MIRROR LIGHTS ARE U/S` — was MIRROR → now **LIGHT**
+- `FWD SERVICE DOOR EMERGENCY LIGHT(EXTERIOR) INOP` — was DOOR → now **LIGHT**
+- `DECORATIVE PAINT DAMAGE ON 14ABC OVERHEAD BIN LIGHT SHADE` — was OVERHEAD_BIN → now **LIGHT**
+- `2 ABC, 5 DEF, 12 ABC, 28 DEF FASTEN SEAT BELT LIGHT BULB FOUND U/S` — was SEAT_BELT → now **LIGHT**
+- `3R LAVATORY MIRROR LIGHT'S IS U/S` — was LAVATORY → now **LIGHT**
+- `24 ABC PAX SEAT WINDOW LIGHT INOP` — was SEAT → now **LIGHT**
+
+### Fixed — Misclassified Findings Now Correctly Route to FLASHLIGHT
+- `FLIGHT DECK ETL AND GROUND SUPPORT EQUIPMENT BAGS ARE EXTREMELY WORN/NOT SECURE` — was OTHER → now **FLASHLIGHT** (ETL keyword match)
+
+### Changed — Problem Type Classification
+- **`INOPERATIVE` expanded** — Added `U/S` (Unserviceable) keyword
+  - Findings like "MIRROR LIGHTS ARE U/S", "LIGHT U/S" now correctly classified as INOPERATIVE instead of OTHER
+
+---
+
 ## [2.7.0] - 2025-07-10
 
 ### Changed — Problem Type Classification: Reduced OTHER Rate
