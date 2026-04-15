@@ -204,7 +204,7 @@ function extractProblemType(description: string): string {
     { keywords: ['MISSING', 'MISS'], type: 'MISSING' },
     { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN', 'BAD CONDITION', 'NEED TO BE REPLACE', 'NEEDS REPLACEMENT', 'NEED REPLACEMENT'], type: 'DAMAGED' },
     { keywords: ['LOOSE', 'NOT FIXED', 'NOT ATTACHED', 'NOT SECURED'], type: 'LOOSE' },
-    { keywords: ['INOP', 'NOT WORKING', 'NOT ILLUMINATE', 'NOT FUNCTIONING', 'FAULTY', 'DOESNT MOVE', 'DOES NOT MOVE', 'DONT LOCK', "DON'T LOCK", 'DON T LOCK', 'NOT OPERATE', 'NOT OPERATING', 'DEFECTIVE', 'WEAK', 'NOT WORK'], type: 'INOPERATIVE' },
+    { keywords: ['INOP', 'NOT WORKING', 'NOT ILLUMINATE', 'NOT FUNCTIONING', 'FAULTY', 'DOESNT MOVE', 'DOES NOT MOVE', 'DONT LOCK', "DON'T LOCK", 'DON T LOCK', 'NOT OPERATE', 'NOT OPERATING', 'DEFECTIVE', 'WEAK', 'NOT WORK', 'U/S'], type: 'INOPERATIVE' },
     { keywords: ['DIRTY', 'NEEDS TO BE CLEAN', 'NEEDS CLEANING', 'NEED TO BE CLEAN'], type: 'CLEANLINESS' },
     { keywords: ['ADJUSTMENT', 'OUT OF ADJUSTMENT'], type: 'ADJUSTMENT' },
   ];
@@ -221,6 +221,50 @@ function extractProblemType(description: string): string {
 function extractComponent(description: string): string {
   const text = description.toUpperCase();
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LIGHT must be checked EARLY so that descriptions containing light-related
+  // keywords are not swallowed by MIRROR, LAVATORY, SEAT, DOOR, OVERHEAD_BIN,
+  // SEAT_BELT etc.  Any description mentioning a light/lamp/bulb/illumination
+  // problem should land here FIRST.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const lightKeywords = [
+    'READING LIGHT', 'FLOOD LIGHT', 'LIGHT LENS', 'LANDING LIGHT',
+    'READING BULB', 'SIGN LAMP', 'FLUORESCENT LAMP', 'CEILING LIGHT',
+    'INDICATION LAMP', 'READING LENS', 'MIRROR LIGHT', 'EMERGENCY LIGHT',
+    'SEAT BELT LIGHT', 'FASTEN SEAT BELT LIGHT', 'WINDOW LIGHT',
+    'OVERHEAD BIN LIGHT', 'BIN LIGHT', 'CABIN LIGHT', 'COCKPIT LIGHT',
+    'DOOR LIGHT', 'EXIT LIGHT', 'LOGO LIGHT', 'NAV LIGHT',
+    'NAVIGATION LIGHT', 'STROBE LIGHT', 'TAXI LIGHT', 'WING LIGHT',
+    'BEACON LIGHT', 'ANTI COLLISION LIGHT', 'POSITION LIGHT',
+    'DOME LIGHT', 'COURTESY LIGHT', 'ENTRY LIGHT',
+    'LIGHT SHADE', 'LIGHT COVER', 'LIGHT ASSY',
+    'LIGHT BULB', 'LIGHT INOP', "LIGHT'S", 'LIGHTS ARE',
+    'LIGHTS INOP', 'LIGHTS U/S', 'LIGHT U/S', 'LIGHT IS U/S',
+    'LAMP INOP', 'LAMP U/S', 'BULB INOP', 'BULB U/S',
+    'LIGHT NOT WORKING', 'LAMP NOT WORKING',
+    'SERVICE DOOR EMERGENCY LIGHT',
+  ];
+
+  // Check if description is primarily about a LIGHT issue
+  if (lightKeywords.some(keyword => text.includes(keyword))) {
+    return 'LIGHT';
+  }
+
+  // Also catch generic "LIGHT" when it appears with action words indicating
+  // the light itself is the subject (not just a modifier)
+  if (/\bLIGHT\b/.test(text) && /\b(INOP|U\/S|MISSING|BROKEN|DAMAGED|NOT WORKING|FAULTY|DEFECTIVE|FOUND|REPLACE)\b/.test(text)) {
+    return 'LIGHT';
+  }
+  if (/\bLAMP\b/.test(text) && /\b(INOP|U\/S|MISSING|BROKEN|DAMAGED|NOT WORKING|FAULTY|DEFECTIVE|FOUND|REPLACE)\b/.test(text)) {
+    return 'LIGHT';
+  }
+  if (/\bBULB\b/.test(text) && /\b(INOP|U\/S|MISSING|BROKEN|DAMAGED|NOT WORKING|FAULTY|DEFECTIVE|FOUND|REPLACE)\b/.test(text)) {
+    return 'LIGHT';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Remaining components in priority order (LIGHT already handled above)
+  // ─────────────────────────────────────────────────────────────────────────────
   const components = [
     { keywords: ['ANTISKATING FOIL', 'ANTISKATINGFOIL', 'ANTISTATINGFOIL', 'OUTFLOW VALVE FOIL', 'OUTFLOW VALVE ANTISTATING'], component: 'ANTISKATING_FOIL' },
     { keywords: ['OIL SERVICING CHARGING', 'OIL SERVICING CHARGER', 'OIL CHARGING VALVE', 'OIL CHARHING VALVE', 'OIL CHARGINGVALVE', 'OIL CHARHINGVALUE', 'OIL CHARGING', 'OIL CHARGIN', 'OILCHARGING'], component: 'LG_OIL_CHARGING_VALVE' },
@@ -234,11 +278,10 @@ function extractComponent(description: string): string {
     { keywords: ['LANYARD RING', 'LANYARDS RING', "LANYARD'S RING", 'LANYARDS RINGS', 'LANYARD RINGS', 'LANYARD ASSY', 'LINE YARD', 'LANYARD'], component: 'LANYARD_RING' },
     { keywords: ['HORIZONTAL STAB', 'HORIZONTAL STABILIZER', 'HORIZONTAL STABILISER'], component: 'HORIZONTAL_STABILIZER' },
     { keywords: ['FIRST AID KIT', 'FIRST AIT KIT', 'FAK'], component: 'FIRST_AID_KIT' },
-    { keywords: ['FLASHLIGHT', 'FLASHLIGH', 'FLISHLIGHT', 'ETL', 'EMERGENCY FLASHLIGHT', 'EMERGENCY LIGHTS', 'TORCH'], component: 'FLASHLIGHT' },
+    { keywords: ['FLASHLIGHT', 'FLASHLIGH', 'FLISHLIGHT', 'ETL', 'TORCH'], component: 'FLASHLIGHT' },
     { keywords: ['OVERHEAD BIN', 'STOWAGE BIN', 'OVERHEAD STOWAGE', 'BIN STOPPER', 'DOOR STOPPER', 'STOPPER', 'BIN STOP', 'BIN STOPS', 'BAGGAGE BAR'], component: 'OVERHEAD_BIN' },
     { keywords: ['FOOD TRAY', 'TRAY TABLE', 'BABY TABLE'], component: 'TRAY_TABLE' },
     { keywords: ['SEAT BELT', 'SAFETY HARNESS', 'SAFETY BELT'], component: 'SEAT_BELT' },
-    { keywords: ['READING LIGHT', 'FLOOD LIGHT', 'LIGHT LENS', 'LANDING LIGHT', 'READING BULB', 'SIGN LAMP', 'FLUORESCENT LAMP', 'CEILING LIGHT', 'INDICATION LAMP', 'READING LENS'], component: 'LIGHT' },
     { keywords: ['LIFE VEST'], component: 'LIFE_VEST' },
     { keywords: ['PLACARD', 'PLACRDS', 'STICKER', 'STENCIL', 'LABEL'], component: 'PLACARD' },
     { keywords: ['LAVATORY', 'LAV A', 'LAV B', 'LAV C', 'LAV D', 'LAV E', 'SOAP DISPENSER', 'SOAP DISPENCER', 'WASH BASIN', 'TOILET', 'TOILET SHROUD'], component: 'LAVATORY' },
@@ -269,16 +312,10 @@ function extractComponent(description: string): string {
     { keywords: ['SEAT'], component: 'SEAT' },
     { keywords: ['DOOR', 'EXIT', 'OVERWING EXIT'], component: 'DOOR' },
     { keywords: ['TABLE'], component: 'TRAY_TABLE' },
-    { keywords: ['\\bLIGHT\\b'], component: 'LIGHT' },
   ];
 
   for (const { keywords, component } of components) {
-    if (keywords.some(keyword => {
-      if (keyword === '\\bLIGHT\\b') {
-        return /\bLIGHT\b/.test(text);
-      }
-      return text.includes(keyword);
-    })) {
+    if (keywords.some(keyword => text.includes(keyword))) {
       return component;
     }
   }
