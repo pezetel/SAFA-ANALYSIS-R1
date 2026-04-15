@@ -204,7 +204,7 @@ function extractProblemType(description: string): string {
     { keywords: ['NOT INSTALLED'], type: 'MISSING' },
     { keywords: ['MISSING', 'MISS'], type: 'MISSING' },
     { keywords: ['UNREADABLE', 'NOT READABLE'], type: 'DAMAGED' },
-    { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN', 'BAD CONDITION', 'NEED TO BE REPLACE', 'NEEDS REPLACEMENT', 'NEED REPLACEMENT', 'FRIED'], type: 'DAMAGED' },
+    { keywords: ['DAMAGED', 'DAMAGE', 'CRACK', 'BROKEN', 'TORN', 'WORN', 'BAD CONDITION', 'NEED TO BE REPLACE', 'NEEDS REPLACEMENT', 'NEED REPLACEMENT', 'FRIED', 'FADED'], type: 'DAMAGED' },
     { keywords: ['LOOSE', 'NOT FIXED', 'NOT ATTACHED', 'NOT SECURED', 'DISPLACED'], type: 'LOOSE' },
     { keywords: ['INOP', 'NOT WORKING', 'NOT ILLUMINATE', 'NOT FUNCTIONING', 'FAULTY', 'DOESNT MOVE', 'DOES NOT MOVE', 'DONT LOCK', "DON'T LOCK", 'DON T LOCK', 'NOT OPERATE', 'NOT OPERATING', 'DEFECTIVE', 'WEAK', 'NOT WORK', 'U/S'], type: 'INOPERATIVE' },
     { keywords: ['DIRTY', 'NEEDS TO BE CLEAN', 'NEEDS CLEANING', 'NEED TO BE CLEAN'], type: 'CLEANLINESS' },
@@ -216,6 +216,12 @@ function extractProblemType(description: string): string {
     if (keywords.some(keyword => text.includes(keyword))) {
       return type;
     }
+  }
+
+  // Check for standalone "US" as a word (not part of another word like "FUSELAGE", "FOCUS" etc.)
+  // This catches cases where people write "US" instead of "U/S" → maps to INOPERATIVE
+  if (/\bUS\b/.test(text)) {
+    return 'INOPERATIVE';
   }
 
   return 'OTHER';
