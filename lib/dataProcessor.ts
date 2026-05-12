@@ -187,8 +187,8 @@ function cleanDesc(text: string): string {
   cleaned = cleaned.replace(/^DURING\s+/g, '');
 
   // Normalize curly/smart quotes to straight apostrophe so keyword matching works
-  cleaned = cleaned.replace(/[\u2018\u2019\u2032\u0060]/g, "'");
-  cleaned = cleaned.replace(/[\u201C\u201D]/g, '"');
+  cleaned = cleaned.replace(/[‘’′`]/g, "'");
+  cleaned = cleaned.replace(/[“”]/g, '"');
 
   cleaned = cleaned.replace(/FOND /g, 'FOUND ');
   cleaned = cleaned.replace(/NOR WORKING/g, 'NOT WORKING');
@@ -277,7 +277,36 @@ function extractComponent(description: string): string {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Remaining components in priority order (LIGHT already handled above)
+  // LATCH must also be checked EARLY so that descriptions about a latch
+  // problem are not swallowed by LAVATORY, ENGINE, CARGO_NETS, SEAT, DOOR,
+  // OVERHEAD_BIN, etc.  Any description whose primary subject is a latch
+  // (cowl latch, door latch, panel latch, net latch, latch spring …) must
+  // land here FIRST.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const latchKeywords = [
+    'LATCH SPRING', 'LATCH SPRINGS',
+    'COWL LATCH', 'COWL LATCHES',
+    'DOOR LATCH', 'DOOR LATCHE', 'DOOR LATCHES',
+    'PANEL LATCH', 'PANEL LATCHE', 'PANEL LATCHES',
+    'NET LATCH', 'NET LATCHE', 'NET LATCHES',
+    'LATCH ASSY', 'LATCH MECHANISM',
+    'LATCH FOUND', 'LATCH IS', 'LATCH ARE',
+    'LATCHES FOUND', 'LATCHE FOUND',
+    'LATCHES NOT', 'LATCH NOT',
+  ];
+
+  if (latchKeywords.some(keyword => text.includes(keyword))) {
+    return 'LATCH';
+  }
+
+  // Generic LATCH catch — standalone "LATCH"/"LATCHES"/"LATCHE" together with
+  // an action/condition word.  Mirrors the LIGHT generic check above.
+  if (/\bLATCH(?:ES|E)?\b/.test(text) && /\b(INOP|U\/S|MISSING|BROKEN|DAMAGED|NOT WORKING|FAULTY|DEFECTIVE|FOUND|REPLACE|BAD CONDITION|SPRING|NOT FLASH|FOUNDDAMAGED|FOUNDBROKEN)\b/.test(text)) {
+    return 'LATCH';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Remaining components in priority order (LIGHT & LATCH already handled above)
   // ─────────────────────────────────────────────────────────────────────────────
   const components = [
     { keywords: ['ANTISKATING FOIL', 'ANTISKATINGFOIL', 'ANTISTATINGFOIL', 'OUTFLOW VALVE FOIL', 'OUTFLOW VALVE ANTISTATING'], component: 'ANTISKATING_FOIL' },
