@@ -116,6 +116,128 @@ export function CalculationGuide() {
         </div>
       </Section>
 
+      {/* SECTION 1b: Neden Weighted Sigma */}
+      <Section
+        id="why-weighted"
+        icon={<AlertTriangle className="h-4 w-4" />}
+        title="1b. Neden Weighted Sigma? — Normal Sigma ile Karşılaştırma"
+        color="red"
+      >
+        <p>
+          Her ay uçuşa çıkan uçak sayısı değişir: bakım, kış sezonu veya beklenmedik durumlar nedeniyle
+          bazı aylarda çok az EOD uygulanır. Bu durum o ayın <strong>rate'ini yapay olarak şişirir</strong> —
+          gerçekte ciddi bir artış yok, sadece küçük örneklem var.
+          Normal sigma bu gürültüyü eşit ağırlıkla işler ve threshold'u gerçeğin üstüne iter,
+          <strong> gerçek anomalileri gözden kaçırır.</strong>
+        </p>
+
+        <p className="font-semibold mt-3">Simülasyon Senaryosu</p>
+        <p className="text-xs text-gray-500 mb-2">
+          6 ay, bir component. Mart ayında planlı bakım nedeniyle yalnızca <strong>8 EOD</strong> uygulanmış
+          (diğer aylar ~80). 1 bulgu / 8 EOD → rate yüksek görünüyor ama sadece küçük örneklem.
+        </p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="bg-red-50">
+                <th className="border border-red-200 p-2 text-left">Ay</th>
+                <th className="border border-red-200 p-2 text-center">Findings</th>
+                <th className="border border-red-200 p-2 text-center">EOD</th>
+                <th className="border border-red-200 p-2 text-center">Rate</th>
+                <th className="border border-red-200 p-2 text-center">Not</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td className="border border-gray-200 p-2">Ocak</td><td className="border border-gray-200 p-2 text-center">4</td><td className="border border-gray-200 p-2 text-center">82</td><td className="border border-gray-200 p-2 text-center font-mono">0.049</td><td className="border border-gray-200 p-2 text-center text-gray-400">—</td></tr>
+              <tr className="bg-gray-50"><td className="border border-gray-200 p-2">Şubat</td><td className="border border-gray-200 p-2 text-center">5</td><td className="border border-gray-200 p-2 text-center">78</td><td className="border border-gray-200 p-2 text-center font-mono">0.064</td><td className="border border-gray-200 p-2 text-center text-gray-400">—</td></tr>
+              <tr className="bg-yellow-50"><td className="border border-gray-200 p-2 font-bold">Mart</td><td className="border border-gray-200 p-2 text-center font-bold">1</td><td className="border border-gray-200 p-2 text-center font-bold text-amber-600">8</td><td className="border border-gray-200 p-2 text-center font-mono font-bold text-amber-600">0.125</td><td className="border border-gray-200 p-2 text-center text-xs text-amber-700">⚠️ Küçük örneklem</td></tr>
+              <tr><td className="border border-gray-200 p-2">Nisan</td><td className="border border-gray-200 p-2 text-center">4</td><td className="border border-gray-200 p-2 text-center">80</td><td className="border border-gray-200 p-2 text-center font-mono">0.050</td><td className="border border-gray-200 p-2 text-center text-gray-400">—</td></tr>
+              <tr className="bg-gray-50"><td className="border border-gray-200 p-2">Mayıs</td><td className="border border-gray-200 p-2 text-center">5</td><td className="border border-gray-200 p-2 text-center">79</td><td className="border border-gray-200 p-2 text-center font-mono">0.063</td><td className="border border-gray-200 p-2 text-center text-gray-400">—</td></tr>
+              <tr><td className="border border-gray-200 p-2">Haziran</td><td className="border border-gray-200 p-2 text-center">3</td><td className="border border-gray-200 p-2 text-center">83</td><td className="border border-gray-200 p-2 text-center font-mono">0.036</td><td className="border border-gray-200 p-2 text-center text-gray-400">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Yan yana iki hesaplama */}
+        <div className="mt-4 grid md:grid-cols-2 gap-4">
+
+          {/* Normal Sigma */}
+          <div className="border border-gray-300 rounded-lg overflow-hidden">
+            <div className="bg-gray-100 px-3 py-2">
+              <p className="text-xs font-bold text-gray-700">❌ Normal Sigma (Ağırlıksız)</p>
+            </div>
+            <div className="p-3 space-y-2 text-xs">
+              <div className="bg-gray-50 rounded p-2 font-mono space-y-1">
+                <p>Basit Ort. = (0.049+0.064+<span className="text-amber-600 font-bold">0.125</span>+0.050+0.063+0.036) / 6</p>
+                <p className="text-green-700 font-bold">= 0.065</p>
+              </div>
+              <div className="bg-gray-50 rounded p-2 font-mono space-y-0.5">
+                <p className="text-gray-500 mb-1">Sapmaların karesi (Mart baskın):</p>
+                <p>Mart: (0.125−0.065)² = <span className="text-amber-600 font-bold">0.0036</span></p>
+                <p>Diğer 5 ay: toplam 0.0013</p>
+                <p>Varyans = 0.004927/6 = 0.000821</p>
+                <p className="text-purple-700 font-bold">Sigma = √0.000821 = 0.029</p>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded p-2 font-mono">
+                <p className="font-bold text-red-700">Threshold (2σ) = 0.065 + 2×0.029 = <span className="text-lg">0.123</span></p>
+              </div>
+              <p className="text-amber-700 text-xs">⬆ Mart'ın gürültüsü sigma'yı şişiriyor → threshold gerçeğin üstünde.</p>
+            </div>
+          </div>
+
+          {/* Weighted Sigma */}
+          <div className="border border-blue-300 rounded-lg overflow-hidden">
+            <div className="bg-blue-100 px-3 py-2">
+              <p className="text-xs font-bold text-blue-700">✅ Weighted Sigma (Ağırlıklı)</p>
+            </div>
+            <div className="p-3 space-y-2 text-xs">
+              <div className="bg-gray-50 rounded p-2 font-mono space-y-1">
+                <p>Ağırlıklı Ort. = Σ(rate×EOD) / Σ(EOD)</p>
+                <p>= 21.975 / 410</p>
+                <p className="text-green-700 font-bold">= 0.054</p>
+                <p className="text-gray-400 text-xs">(Mart'ın 8 EOD'si sadece 1.000 katkı yapıyor)</p>
+              </div>
+              <div className="bg-gray-50 rounded p-2 font-mono space-y-0.5">
+                <p className="text-gray-500 mb-1">Ağırlıklı varyans (Mart baskın değil):</p>
+                <p>Mart: 8×(0.125−0.054)² = <span className="text-blue-600 font-bold">0.040</span></p>
+                <p>Diğer 5 ay: toplam 0.045</p>
+                <p>Varyans = 0.08475/410 = 0.000207</p>
+                <p className="text-purple-700 font-bold">Sigma = √0.000207 = 0.014</p>
+              </div>
+              <div className="bg-blue-50 border border-blue-300 rounded p-2 font-mono">
+                <p className="font-bold text-blue-700">Threshold (2σ) = 0.054 + 2×0.014 = <span className="text-lg">0.082</span></p>
+              </div>
+              <p className="text-blue-700 text-xs">⬇ Mart düşük ağırlık taşıyor → threshold gerçeğe yakın.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Gerçek anomali testi */}
+        <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <p className="text-xs font-bold text-gray-800 mb-2">Temmuz'da gerçek bir artış var: 8 finding / 82 EOD → Rate = <span className="font-mono text-red-600">0.098</span></p>
+          <div className="grid md:grid-cols-2 gap-3 text-xs">
+            <div className="bg-gray-100 rounded p-2 text-center">
+              <p className="font-semibold text-gray-600">Normal Sigma</p>
+              <p className="font-mono mt-1">0.098 {'<'} Threshold <strong>0.123</strong></p>
+              <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">✅ Normal — anomali KAÇIRILDI</span>
+            </div>
+            <div className="bg-blue-50 rounded p-2 text-center">
+              <p className="font-semibold text-blue-700">Weighted Sigma</p>
+              <p className="font-mono mt-1">0.098 {'>'} Threshold <strong>0.082</strong></p>
+              <span className="inline-block mt-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-bold">🔴 ALERT — anomali YAKALANDI</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+          <strong>Sonuç:</strong> Normal sigma, Mart'ın küçük örnekleminden kaynaklanan gürültüyü eşit ağırlıkla
+          işleyerek threshold'u şişirdi (0.123). Weighted sigma ise Mart'a yalnızca 8 EOD ağırlığı verdi,
+          threshold gerçek veri yoğunluğuna göre hesaplandı (0.082) ve Temmuz'daki gerçek anomaliyi
+          zamanında yakaladı. <strong>Güvenilir veri daha fazla ağırlık taşımalıdır.</strong>
+        </div>
+      </Section>
+
       {/* SECTION 2: Component Heatmap */}
       <Section
         id="component"
