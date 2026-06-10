@@ -64,7 +64,7 @@ export function processExcelData(rawData: any[]): SAFARecord[] {
 
       const cleanDescription = cleanDesc(description);
       const problemType = extractProblemType(cleanDescription);
-      const component = extractComponent(cleanDescription);
+      const component = extractComponent(cleanDescription, problemType);
       const severity = extractSeverity(description);
 
       records.push({
@@ -232,8 +232,40 @@ function extractProblemType(description: string): string {
   return 'OTHER';
 }
 
-function extractComponent(description: string): string {
+// Returns the most specific SEAT sub-type based on who the seat belongs to.
+// Called whenever a SEAT-family match is detected.
+function refineSeat(text: string): string {
+  // Cockpit crew seats
+  if (
+    text.includes('F/O') ||
+    text.includes('FIRST OBSERVER') ||
+    text.includes('SECOND OBSERVER') ||
+    /\b(CPT|CAPT|CAPTAIN|CAPTAN|OBSERVER|FLIGHT DECK)\b/.test(text)
+  ) {
+    return 'SEAT_COCKPIT';
+  }
+  // Cabin attendant seats
+  if (
+    text.includes('CABIN ATTENDANT') ||
+    /\b(ATTENDANT|ATTENDENT|ATTEND)\b/.test(text) ||
+    /\bATT\b/.test(text)
+  ) {
+    return 'SEAT_ATT';
+  }
+  // Passenger seat (explicit markers or generic default)
+  return 'SEAT_PAX';
+}
+
+function extractComponent(description: string, problemType?: string): string {
   const text = description.toUpperCase();
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CLEANLINESS override — any cleanliness-typed finding is AIRCRAFT_DIRTY,
+  // regardless of which physical component the description mentions.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (problemType === 'CLEANLINESS') {
+    return 'AIRCRAFT_DIRTY';
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // LIGHT must be checked EARLY so that descriptions containing light-related
@@ -257,19 +289,20 @@ function extractComponent(description: string): string {
     'LAMP INOP', 'LAMP U/S', 'BULB INOP', 'BULB U/S',
     'LIGHT NOT WORKING', 'LAMP NOT WORKING',
     'SERVICE DOOR EMERGENCY LIGHT',
+    'PHOTOLUMINESCENT',
   ];
 
-  // Check if description is primarily about a LIGHT issue
   if (lightKeywords.some(keyword => text.includes(keyword))) {
     return 'LIGHT';
   }
 
-  // Also catch generic "LIGHT" when it appears with action words indicating
-  // the light itself is the subject (not just a modifier)
-  if (/\bLIGHT\b/.test(text) && /\b(INOP|U\/S|MISSING|BROKEN|DAMAGED|NOT WORKING|FAULTY|DEFECTIVE|FOUND|REPLACE)\b/.test(text)) {
+  // Any mention of LAMP/LAMPS dominates everything else (incl. SEAT BELT).
+  // e.g. "FASTEN SEAT BELT LAMP" → LIGHT, not SEAT_BELT.
+  if (/\bLAMPS?\b/.test(text)) {
     return 'LIGHT';
   }
-  if (/\bLAMP\b/.test(text) && /\b(INOP|U\/S|MISSING|BROKEN|DAMAGED|NOT WORKING|FAULTY|DEFECTIVE|FOUND|REPLACE)\b/.test(text)) {
+
+  if (/\bLIGHT\b/.test(text) && /\b(INOP|U\/S|MISSING|BROKEN|DAMAGED|NOT WORKING|FAULTY|DEFECTIVE|FOUND|REPLACE)\b/.test(text)) {
     return 'LIGHT';
   }
   if (/\bBULB\b/.test(text) && /\b(INOP|U\/S|MISSING|BROKEN|DAMAGED|NOT WORKING|FAULTY|DEFECTIVE|FOUND|REPLACE)\b/.test(text)) {
@@ -279,9 +312,7 @@ function extractComponent(description: string): string {
   // ─────────────────────────────────────────────────────────────────────────────
   // LATCH must also be checked EARLY so that descriptions about a latch
   // problem are not swallowed by LAVATORY, ENGINE, CARGO_NETS, SEAT, DOOR,
-  // OVERHEAD_BIN, etc.  Any description whose primary subject is a latch
-  // (cowl latch, door latch, panel latch, net latch, latch spring …) must
-  // land here FIRST.
+  // OVERHEAD_BIN, etc.
   // ─────────────────────────────────────────────────────────────────────────────
   const latchKeywords = [
     'LATCH SPRING', 'LATCH SPRINGS',
@@ -299,45 +330,137 @@ function extractComponent(description: string): string {
     return 'LATCH';
   }
 
-  // Generic LATCH catch — standalone "LATCH"/"LATCHES"/"LATCHE" together with
-  // an action/condition word.  Mirrors the LIGHT generic check above.
   if (/\bLATCH(?:ES|E)?\b/.test(text) && /\b(INOP|U\/S|MISSING|BROKEN|DAMAGED|NOT WORKING|FAULTY|DEFECTIVE|FOUND|REPLACE|BAD CONDITION|SPRING|NOT FLASH|FOUNDDAMAGED|FOUNDBROKEN)\b/.test(text)) {
     return 'LATCH';
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Remaining components in priority order (LIGHT & LATCH already handled above)
+  // CARGO compound detection — both words appearing anywhere in the text
+  // (not necessarily adjacent) routes the finding correctly.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const hasCargo = text.includes('CARGO');
+  if (hasCargo && /\bTAPES?\b/.test(text)) {
+    return 'CARGO_TAPES';
+  }
+  if (hasCargo && /\bNETS?\b/.test(text)) {
+    return 'CARGO_NETS';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GROUND_SUPPORT_BAG — must beat LANDING_GEAR (PIN BAG / SAFETY PIN overlap).
+  // ─────────────────────────────────────────────────────────────────────────────
+  const gsbKeywords = [
+    'GROUND SUPPORT BAG',
+    'GROUND SOPPORT EQUIPMENT BAG',
+    'GROUND SUPPORT EQUIPMENT BAG',
+    'PINS BAG',
+    'PIN BAG',
+  ];
+  if (gsbKeywords.some(keyword => text.includes(keyword))) {
+    return 'GROUND_SUPPORT_BAG';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // OVERHEAD + DOOR mentioned together → OVERHEAD_BIN (not DOOR).
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (/\bOVERHEAD\b/.test(text) && /\bDOOR\b/.test(text)) {
+    return 'OVERHEAD_BIN';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SUNSHADE — split into cockpit vs. PAX.  Run before WINDOW so that
+  // "WINDOW SHADE" still routes to the SUNSHADE family.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const isSunshade = /SUNSHADE|SUNSHEAD|SUN SHADE|WINDOW SHADE|WINDOWSHADE|WINDOW SHADES/.test(text);
+  const sunvisor = /\bSUN ?VI[SZ]OR\b/.test(text);
+  const cockpitMarkers = /\b(COCKPIT|F\/O|FO|CAPTAIN|CAPTAN|CPT|KAPTAN)\b/.test(text) || /\bF\.O\.?\b/.test(text);
+  if (sunvisor) {
+    return 'SUNSHADE_COCKPIT';
+  }
+  if (isSunshade && cockpitMarkers) {
+    return 'SUNSHADE_COCKPIT';
+  }
+  if (isSunshade) {
+    return 'SUNSHADE_PAX';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // DADO_PANEL — grill / grille / gril / dado anywhere in the text.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (/\b(DADO|GRILLE|GRILL|GRIL)\b/.test(text)) {
+    return 'DADO_PANEL';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CURTAIN beats GALLEY — a curtain finding inside a galley area is still a
+  // curtain finding.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (text.includes('CURTAIN')) {
+    return 'CURTAIN';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SEAT-family early routes — ARM REST / ARMREST / ARM CAP / ARMCAP / RECLINE.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (/\bARM ?RESTS?\b/.test(text) || /\bARM ?CAPS?\b/.test(text)) {
+    return refineSeat(text);
+  }
+  if (/RECLINE/.test(text)) {
+    return refineSeat(text);
+  }
+
+  // BAGGAGE BAR moved out of OVERHEAD_BIN into SEAT_PAX.
+  if (text.includes('BAGGAGE BAR')) {
+    return 'SEAT_PAX';
+  }
+
+  // GLARE SHIELD / GLARESHIELD → PANEL.
+  if (/GLARE ?SHIELD/.test(text)) {
+    return 'PANEL';
+  }
+
+  // WINDOW (after SUNSHADE so window-shade findings stay in the sunshade family).
+  if (/\bWINDOWS?\b/.test(text)) {
+    return 'WINDOW';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SEAT sub-type detection — catches all SEAT mentions not involving a belt.
+  // SEAT_BELT / SAFETY BELT / SAFETY HARNESS fall through to the array below.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (/\bSEAT\b/.test(text) && !/(SEAT BELT|SAFETY BELT|SAFETY HARNESS)/.test(text)) {
+    return refineSeat(text);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Remaining components in priority order.
   // ─────────────────────────────────────────────────────────────────────────────
   const components = [
     { keywords: ['ANTISKATING FOIL', 'ANTISKATINGFOIL', 'ANTISTATINGFOIL', 'OUTFLOW VALVE FOIL', 'OUTFLOW VALVE ANTISTATING'], component: 'ANTISKATING_FOIL' },
-    { keywords: ['OIL SERVICING CHARGING', 'OIL SERVICING CHARGER', 'OIL CHARGING VALVE', 'OIL CHARHING VALVE', 'OIL CHARGINGVALVE', 'OIL CHARHINGVALUE', 'OIL CHARGING', 'OIL CHARGIN', 'OILCHARGING'], component: 'LG_OIL_CHARGING_VALVE' },
-    { keywords: ['FUS SKIN', 'FUSELAGE SKIN', 'BUTT JOINT SEALANT', 'BODY FAIRING', 'BODYFAIRING'], component: 'FUSELAGE_SKIN' },
+    { keywords: ['OIL SERVICING CHARGING', 'OIL SERVICING CHARGER', 'OIL CHARGING VALVE', 'OIL CHARHING VALVE', 'OIL CHARGINGVALVE', 'OIL CHARHINGVALUE', 'OIL CHARGING', 'OIL CHARGIN', 'OILCHARGING', 'CHARGING VALVE', 'CHARGINGVALVE', 'CHARGING VELVES', 'CHARGINGVELVES'], component: 'LG_OIL_CHARGING_VALVE' },
+    { keywords: ['FUS SKIN', 'FUSELAGE SKIN', 'BUTT JOINT SEALANT', 'BODY FAIRING', 'BODYFAIRING', 'FUSELAGE', 'FUSALAGE', 'FUSULAGE', 'FUSILAGE'], component: 'FUSELAGE_SKIN' },
     { keywords: ['SCUFF PLATE', 'SCUFF PLATE FILLER'], component: 'SCUFF_PLATE' },
     { keywords: ['SECURITY BOX'], component: 'SECURITY_BOX' },
     { keywords: ['BLADE SEAL', 'BLADE SEALS'], component: 'BLADE_SEAL' },
     { keywords: ['DRAIN MAST'], component: 'DRAIN_MAST' },
     { keywords: ['VAPOR BARRIER'], component: 'VAPOR_BARRIER' },
     { keywords: ['JUMPER', 'BONDING WIRE', 'BONDING'], component: 'BONDING' },
-    { keywords: ['LANYARD RING', 'LANYARDS RING', "LANYARD'S RING", 'LANYARDS RINGS', 'LANYARD RINGS', 'LANYARD ASSY', 'LINE YARD', 'LANYARD'], component: 'LANYARD_RING' },
+    { keywords: ['LANYARD RING', 'LANYARDS RING', "LANYARD'S RING", 'LANYARDS RINGS', 'LANYARD RINGS', 'LANYARD ASSY', 'LINE YARD', 'LANYARD'], component: 'CARGO_LANYARD' },
     { keywords: ['HORIZONTAL STAB', 'HORIZONTAL STABILIZER', 'HORIZONTAL STABILISER'], component: 'HORIZONTAL_STABILIZER' },
     { keywords: ['FIRST AID KIT', 'FIRST AIT KIT', 'FAK'], component: 'FIRST_AID_KIT' },
     { keywords: ['FLASHLIGHT', 'FLASHLIGH', 'FLISHLIGHT', 'ETL', 'TORCH'], component: 'FLASHLIGHT' },
-    { keywords: ['OVERHEAD BIN', 'STOWAGE BIN', 'OVERHEAD STOWAGE', 'BIN STOPPER', 'DOOR STOPPER', 'STOPPER', 'BIN STOP', 'BIN STOPS', 'BAGGAGE BAR'], component: 'OVERHEAD_BIN' },
+    { keywords: ['OVERHEAD BIN', 'STOWAGE BIN', 'STOWAGE BOX', 'OVERHEAD STOWAGE', 'BIN STOPPER', 'DOOR STOPPER', 'STOPPER', 'BIN STOP', 'BIN STOPS'], component: 'OVERHEAD_BIN' },
     { keywords: ['FOOD TRAY', 'TRAY TABLE', 'BABY TABLE'], component: 'TRAY_TABLE' },
     { keywords: ['SEAT BELT', 'SAFETY HARNESS', 'SAFETY BELT'], component: 'SEAT_BELT' },
-    { keywords: ['LIFE VEST'], component: 'LIFE_VEST' },
+    { keywords: ['LIFE VEST', 'LIFEVEST'], component: 'LIFE_VEST' },
     { keywords: ['PLACARD', 'PLACRDS', 'STICKER', 'STENCIL', 'LABEL'], component: 'PLACARD' },
     { keywords: ['LAVATORY', 'LAV A', 'LAV B', 'LAV C', 'LAV D', 'LAV E', 'SOAP DISPENSER', 'SOAP DISPENCER', 'WASH BASIN', 'TOILET', 'TOILET SHROUD'], component: 'LAVATORY' },
     { keywords: ['GALLEY'], component: 'GALLEY' },
-    { keywords: ['SUNSHADE', 'WINDOW SHADE', 'PAX WINDOW SHADE', 'WINDOW SHADES', 'WINDOWSHADE', 'SUNSHEAD', 'SUN SHADE'], component: 'SUNSHADE' },
-    { keywords: ['CURTAIN'], component: 'CURTAIN' },
     { keywords: ['OXYGEN', 'OXY BOTTLE'], component: 'OXYGEN' },
     { keywords: ['MIRROR'], component: 'MIRROR' },
     { keywords: ['CARPET', 'FLOOR MAT'], component: 'CARPET' },
-    { keywords: ['CARGO NET', 'CARGO NETS'], component: 'CARGO_NETS' },
-    { keywords: ['AFT CARGO COMPARTMENT TAPE', 'CARGO PANEL TAPE', 'SIDE WALL PANEL TAPE', 'CARGO LINING TAPE', 'CARGO SOME TAPE', 'CARGO SOME TAPES', 'CARGOS TAPE', 'CARGOS TAPES', 'SIDE WALL TAPE', 'SIDEWALL TAPE', 'CARGO SIDEWALL TAPE', 'CARGO TAPE', 'CARGO TAPES', 'CARGOTAPES', 'CARGO TAPPES'], component: 'CARGO_TAPES' },
     { keywords: ['ANTENNA'], component: 'ANTENNA' },
-    { keywords: ['KRUGER FLAP', 'KRUGER'], component: 'KRUGER_FLAP' },
+    { keywords: ['KRUGER FLAP', 'KRUGER', 'KRUEGER', 'KRUGGER', 'KRUEGGER'], component: 'KRUGER_FLAP' },
     { keywords: ['SLAT'], component: 'SLAT' },
     { keywords: ['FLAP'], component: 'FLAP' },
     { keywords: ['#1 ENGINE', '#2 ENGINE', '#1 ENG', '#2 ENG', 'ENGINE COWL', 'FAN BLADE', 'ENGINE PYLON'], component: 'ENGINE' },
@@ -351,8 +474,6 @@ function extractComponent(description: string): string {
     { keywords: ['SIDE PANEL', 'WALL PANEL'], component: 'SIDE_PANEL' },
     { keywords: ['TRIM PANEL'], component: 'TRIM_PANEL' },
     { keywords: ['PANEL', 'TRIM'], component: 'PANEL' },
-    { keywords: ['PAX SEAT', 'PASSENGER SEAT', 'ATTENDANT SEAT'], component: 'SEAT' },
-    { keywords: ['SEAT'], component: 'SEAT' },
     { keywords: ['DOOR', 'EXIT', 'OVERWING EXIT'], component: 'DOOR' },
     { keywords: ['TABLE'], component: 'TRAY_TABLE' },
   ];
@@ -364,13 +485,12 @@ function extractComponent(description: string): string {
   }
 
   // ENGINE — word-boundary check to avoid false positives from substrings
-  // e.g. "PASSENGER" should NOT match, but standalone "ENG" or "ENGINE" should
   if (/\bENGINE\b/.test(text) || /\bENG\b/.test(text)) {
     return 'ENGINE';
   }
 
   if (/\bRINGS?\b/.test(text) && text.includes('CARGO')) {
-    return 'LANYARD_RING';
+    return 'CARGO_LANYARD';
   }
 
   return 'OTHER';
