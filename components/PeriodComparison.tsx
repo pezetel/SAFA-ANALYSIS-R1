@@ -382,8 +382,20 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
   const [aircraft1List, setAircraft1List] = useState<string[]>([]);
   const [aircraft2List, setAircraft2List] = useState<string[]>([]);
 
-  // Fleet: per-aircraft normalization toggle
-  const [fleetNormalize, setFleetNormalize] = useState(false);
+  // Fleet: normalization mode for NG vs MAX comparison
+  //   'total'   → raw finding counts
+  //   'per_ac'  → findings / aircraft (only aircraft with findings in period)
+  //   'per_app' → findings / EOD applications in fleet (requires EOD upload)
+  type FleetMode = 'total' | 'per_ac' | 'per_app';
+  const [fleetMode, setFleetMode] = useState<FleetMode>('total');
+  // Kept as a derived alias so downstream label/tooltip logic that only cared
+  // about "normalized vs total" still reads naturally.
+  const fleetNormalize = fleetMode !== 'total';
+  // Helper to format a fleet metric across the 3 modes.
+  const fmtFleet = (raw: number, perAc: number, perApp: number) =>
+    fleetMode === 'per_ac' ? perAc.toFixed(2)
+    : fleetMode === 'per_app' ? perApp.toFixed(4)
+    : raw.toString();
 
   // Detail modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -574,6 +586,24 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
     const ngRecords = periodRecords.filter(r => AIRCRAFT_TYPES['B737-NG'].includes(r.aircraft));
     const maxRecords = periodRecords.filter(r => AIRCRAFT_TYPES['B737-MAX'].includes(r.aircraft));
 
+    // EOD applications for each fleet inside the selected period.
+    // Unclassified tails (not in NG nor MAX list) are intentionally excluded.
+    // Reuses the parsed pStart/pEnd already declared at top of this useMemo.
+    const inPeriod = (d: Date) => {
+      if (!pStart || !pEnd) return true;
+      return d >= pStart && d <= pEnd;
+    };
+    const ngEODCount = hasEOD
+      ? eodRecords!.filter(e =>
+          AIRCRAFT_TYPES['B737-NG'].includes(e.aircraft) && inPeriod(new Date(e.perfDate))
+        ).length
+      : 0;
+    const maxEODCount = hasEOD
+      ? eodRecords!.filter(e =>
+          AIRCRAFT_TYPES['B737-MAX'].includes(e.aircraft) && inPeriod(new Date(e.perfDate))
+        ).length
+      : 0;
+
     // Unique aircraft counts per fleet that actually have findings in this period
     const ngUniqueAC = new Set(ngRecords.map(r => r.aircraft)).size;
     const maxUniqueAC = new Set(maxRecords.map(r => r.aircraft)).size;
@@ -610,14 +640,28 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
         maxAcCount,
         ngAvg: ngAcCount > 0 ? ngCount / ngAcCount : 0,
         maxAvg: maxAcCount > 0 ? maxCount / maxAcCount : 0,
+        ngPerApp: ngEODCount > 0 ? ngCount / ngEODCount : 0,
+        maxPerApp: maxEODCount > 0 ? maxCount / maxEODCount : 0,
       };
     });
 
     const componentComparisonForChart = componentComparisonRaw.map(c => ({
       ...c,
-      ng: fleetNormalize ? parseFloat(c.ngAvg.toFixed(2)) : c.ngRaw,
-      max: fleetNormalize ? parseFloat(c.maxAvg.toFixed(2)) : c.maxRaw,
-      difference: fleetNormalize ? parseFloat((c.maxAvg - c.ngAvg).toFixed(2)) : (c.maxRaw - c.ngRaw),
+      ng: fleetMode === 'per_ac'
+          ? parseFloat(c.ngAvg.toFixed(2))
+          : fleetMode === 'per_app'
+            ? parseFloat(c.ngPerApp.toFixed(4))
+            : c.ngRaw,
+      max: fleetMode === 'per_ac'
+          ? parseFloat(c.maxAvg.toFixed(2))
+          : fleetMode === 'per_app'
+            ? parseFloat(c.maxPerApp.toFixed(4))
+            : c.maxRaw,
+      difference: fleetMode === 'per_ac'
+          ? parseFloat((c.maxAvg - c.ngAvg).toFixed(2))
+          : fleetMode === 'per_app'
+            ? parseFloat((c.maxPerApp - c.ngPerApp).toFixed(4))
+            : (c.maxRaw - c.ngRaw),
     })).sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
 
     const problemTypeData = buildProblemTypeData(ngRecords, maxRecords);
@@ -640,13 +684,17 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
       },
       ngTotalNorm,
       maxTotalNorm,
+      ngTotalPerApp: ngEODCount > 0 ? ngRecords.length / ngEODCount : 0,
+      maxTotalPerApp: maxEODCount > 0 ? maxRecords.length / maxEODCount : 0,
+      ngEODCount,
+      maxEODCount,
       dateRange: `${selectedPeriodStart} - ${selectedPeriodEnd}`,
       componentComparison: componentComparisonForChart.slice(0, 10),
       problemTypeData,
       ngHigher: componentComparisonForChart.filter(c => c.difference < 0).slice(0, 5),
       maxHigher: componentComparisonForChart.filter(c => c.difference > 0).slice(0, 5)
     };
-  }, [records, selectedPeriodStart, selectedPeriodEnd, fleetNormalize]);
+  }, [records, selectedPeriodStart, selectedPeriodEnd, fleetMode, eodRecords, hasEOD]);
 
   // ── Click handlers for drilldown ──
 
@@ -1205,29 +1253,53 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
                       <Plane className="h-5 w-5 text-amber-700" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-900">Per-Aircraft Normalization</p>
+                      <p className="text-sm font-bold text-gray-900">Fleet Normalization</p>
                       <p className="text-xs text-gray-600 mt-0.5">
                         NG fleet has <strong>{fleetComparisonData.ng.aircraftCount}</strong> aircraft with findings, MAX fleet has <strong>{fleetComparisonData.max.aircraftCount}</strong> aircraft with findings in this period.
-                        {!fleetNormalize
-                          ? ' Enable to compare average findings per aircraft, removing fleet size bias.'
-                          : ' Currently showing per-aircraft averages. Disable to return to total counts.'}
+                        {fleetMode === 'total'
+                          ? ' Switch to Per A/C to compare average findings per aircraft, or Per Application to normalize by EOD applications.'
+                          : fleetMode === 'per_ac'
+                            ? ' Currently showing per-aircraft averages. Switch to Total Count for raw counts or Per Application for EOD-based normalization.'
+                            : ` Currently showing findings per EOD application — NG denom: ${fleetComparisonData.ngEODCount}, MAX denom: ${fleetComparisonData.maxEODCount} applications in period.`}
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setFleetNormalize(!fleetNormalize)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-sm ${
-                      fleetNormalize
-                        ? 'bg-amber-600 text-white hover:bg-amber-700'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {fleetNormalize ? (
-                      <><ToggleRight className="h-5 w-5" /> Per A/C ON</>
-                    ) : (
-                      <><ToggleLeft className="h-5 w-5" /> Total Count</>
-                    )}
-                  </button>
+                  <div className="inline-flex rounded-lg shadow-sm border border-gray-300 bg-white p-1 gap-1">
+                    <button
+                      onClick={() => setFleetMode('total')}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md font-semibold text-sm transition-all ${
+                        fleetMode === 'total'
+                          ? 'bg-amber-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      Total Count
+                    </button>
+                    <button
+                      onClick={() => setFleetMode('per_ac')}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md font-semibold text-sm transition-all ${
+                        fleetMode === 'per_ac'
+                          ? 'bg-amber-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      Per A/C
+                    </button>
+                    <button
+                      onClick={() => hasEOD && setFleetMode('per_app')}
+                      disabled={!hasEOD}
+                      title={hasEOD ? 'Findings per EOD application (NG and MAX counted separately)' : 'Upload EOD file to enable Per Application normalization'}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md font-semibold text-sm transition-all ${
+                        !hasEOD
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : fleetMode === 'per_app'
+                            ? 'bg-amber-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      Per Application
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1235,10 +1307,15 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center gap-2 mb-2"><Plane className="h-5 w-5 text-blue-600" /><h3 className="text-sm font-medium text-gray-600">B737-NG Fleet</h3></div>
-                  {fleetNormalize ? (
+                  {fleetMode === 'per_ac' ? (
                     <>
                       <p className="text-3xl font-bold text-blue-600">{fleetComparisonData.ng.avgPerAircraft}</p>
                       <p className="text-xs text-gray-500 mt-1">avg findings / aircraft</p>
+                    </>
+                  ) : fleetMode === 'per_app' ? (
+                    <>
+                      <p className="text-3xl font-bold text-blue-600">{fleetComparisonData.ngTotalPerApp.toFixed(4)}</p>
+                      <p className="text-xs text-gray-500 mt-1">findings / EOD application</p>
                     </>
                   ) : (
                     <>
@@ -1248,16 +1325,22 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
                   )}
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <p className="text-xs text-gray-600">{fleetComparisonData.ng.aircraftCount} aircraft with findings</p>
-                    {!fleetNormalize && <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.avgPerAircraft} avg/aircraft</p>}
-                    {fleetNormalize && <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.total} total findings</p>}
+                    {fleetMode === 'total' && <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.avgPerAircraft} avg/aircraft</p>}
+                    {fleetMode === 'per_ac' && <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.total} total findings</p>}
+                    {fleetMode === 'per_app' && <p className="text-xs font-semibold text-blue-600">{fleetComparisonData.ng.total} findings ÷ {fleetComparisonData.ngEODCount} apps</p>}
                   </div>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center gap-2 mb-2"><Plane className="h-5 w-5 text-purple-600" /><h3 className="text-sm font-medium text-gray-600">B737-MAX Fleet</h3></div>
-                  {fleetNormalize ? (
+                  {fleetMode === 'per_ac' ? (
                     <>
                       <p className="text-3xl font-bold text-purple-600">{fleetComparisonData.max.avgPerAircraft}</p>
                       <p className="text-xs text-gray-500 mt-1">avg findings / aircraft</p>
+                    </>
+                  ) : fleetMode === 'per_app' ? (
+                    <>
+                      <p className="text-3xl font-bold text-purple-600">{fleetComparisonData.maxTotalPerApp.toFixed(4)}</p>
+                      <p className="text-xs text-gray-500 mt-1">findings / EOD application</p>
                     </>
                   ) : (
                     <>
@@ -1267,43 +1350,53 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
                   )}
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <p className="text-xs text-gray-600">{fleetComparisonData.max.aircraftCount} aircraft with findings</p>
-                    {!fleetNormalize && <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.avgPerAircraft} avg/aircraft</p>}
-                    {fleetNormalize && <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.total} total findings</p>}
+                    {fleetMode === 'total' && <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.avgPerAircraft} avg/aircraft</p>}
+                    {fleetMode === 'per_ac' && <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.total} total findings</p>}
+                    {fleetMode === 'per_app' && <p className="text-xs font-semibold text-purple-600">{fleetComparisonData.max.total} findings ÷ {fleetComparisonData.maxEODCount} apps</p>}
                   </div>
                 </div>
-                <div className={`bg-white rounded-xl border border-gray-200 p-6 ${
-                  (fleetNormalize ? fleetComparisonData.maxTotalNorm > fleetComparisonData.ngTotalNorm : fleetComparisonData.max.total > fleetComparisonData.ng.total)
-                    ? 'border-red-200 bg-red-50'
-                    : (fleetNormalize ? fleetComparisonData.maxTotalNorm < fleetComparisonData.ngTotalNorm : fleetComparisonData.max.total < fleetComparisonData.ng.total)
-                      ? 'border-green-200 bg-green-50' : ''
-                }`}>
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Difference</h3>
-                  {fleetNormalize ? (
-                    <div className="flex items-center gap-2">
-                      {fleetComparisonData.maxTotalNorm > fleetComparisonData.ngTotalNorm ? <TrendingUp className="h-6 w-6 text-red-600" /> : fleetComparisonData.maxTotalNorm < fleetComparisonData.ngTotalNorm ? <TrendingDown className="h-6 w-6 text-green-600" /> : <Minus className="h-6 w-6 text-gray-600" />}
-                      <div>
-                        <p className={`text-3xl font-bold ${
-                          fleetComparisonData.maxTotalNorm > fleetComparisonData.ngTotalNorm ? 'text-red-600' : fleetComparisonData.maxTotalNorm < fleetComparisonData.ngTotalNorm ? 'text-green-600' : 'text-gray-600'
-                        }`}>
-                          {(fleetComparisonData.maxTotalNorm - fleetComparisonData.ngTotalNorm) > 0 ? '+' : ''}{(fleetComparisonData.maxTotalNorm - fleetComparisonData.ngTotalNorm).toFixed(1)}
-                        </p>
-                        <p className="text-xs text-gray-600">MAX vs NG (avg/aircraft)</p>
+                {(() => {
+                  const ngVal = fleetMode === 'per_ac'
+                    ? fleetComparisonData.ngTotalNorm
+                    : fleetMode === 'per_app'
+                      ? fleetComparisonData.ngTotalPerApp
+                      : fleetComparisonData.ng.total;
+                  const maxVal = fleetMode === 'per_ac'
+                    ? fleetComparisonData.maxTotalNorm
+                    : fleetMode === 'per_app'
+                      ? fleetComparisonData.maxTotalPerApp
+                      : fleetComparisonData.max.total;
+                  const diff = maxVal - ngVal;
+                  const diffStr = fleetMode === 'total'
+                    ? (diff > 0 ? `+${diff}` : `${diff}`)
+                    : fleetMode === 'per_ac'
+                      ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}`
+                      : `${diff > 0 ? '+' : ''}${diff.toFixed(4)}`;
+                  const caption = fleetMode === 'per_ac'
+                    ? 'MAX vs NG (avg/aircraft)'
+                    : fleetMode === 'per_app'
+                      ? 'MAX vs NG (per application)'
+                      : 'MAX vs NG (total)';
+                  return (
+                    <div className={`bg-white rounded-xl border border-gray-200 p-6 ${
+                      maxVal > ngVal ? 'border-red-200 bg-red-50'
+                      : maxVal < ngVal ? 'border-green-200 bg-green-50' : ''
+                    }`}>
+                      <h3 className="text-sm font-medium text-gray-600 mb-2">Difference</h3>
+                      <div className="flex items-center gap-2">
+                        {maxVal > ngVal ? <TrendingUp className="h-6 w-6 text-red-600" /> : maxVal < ngVal ? <TrendingDown className="h-6 w-6 text-green-600" /> : <Minus className="h-6 w-6 text-gray-600" />}
+                        <div>
+                          <p className={`text-3xl font-bold ${
+                            maxVal > ngVal ? 'text-red-600' : maxVal < ngVal ? 'text-green-600' : 'text-gray-600'
+                          }`}>
+                            {diffStr}
+                          </p>
+                          <p className="text-xs text-gray-600">{caption}</p>
+                        </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      {fleetComparisonData.max.total > fleetComparisonData.ng.total ? <TrendingUp className="h-6 w-6 text-red-600" /> : fleetComparisonData.max.total < fleetComparisonData.ng.total ? <TrendingDown className="h-6 w-6 text-green-600" /> : <Minus className="h-6 w-6 text-gray-600" />}
-                      <div>
-                        <p className={`text-3xl font-bold ${
-                          fleetComparisonData.max.total > fleetComparisonData.ng.total ? 'text-red-600' : fleetComparisonData.max.total < fleetComparisonData.ng.total ? 'text-green-600' : 'text-gray-600'
-                        }`}>
-                          {fleetComparisonData.max.total - fleetComparisonData.ng.total > 0 ? '+' : ''}{fleetComparisonData.max.total - fleetComparisonData.ng.total}
-                        </p>
-                        <p className="text-xs text-gray-600">MAX vs NG (total)</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Problem Type */}
@@ -1326,9 +1419,11 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-gray-400 flex items-center gap-1">💡 Click bars to view records</span>
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                      fleetNormalize ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
+                      fleetMode !== 'total' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
                     }`}>
-                      {fleetNormalize ? '📊 Per-Aircraft Average' : '📊 Total Count'}
+                      {fleetMode === 'per_ac' ? '📊 Per-Aircraft Average'
+                        : fleetMode === 'per_app' ? '📊 Per Application'
+                        : '📊 Total Count'}
                     </span>
                   </div>
                 </div>
@@ -1342,12 +1437,17 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
                         contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }}
                         formatter={(value: number, name: string, props: any) => {
                           const item = props.payload;
-                          if (fleetNormalize) {
-                            const raw = name === 'B737-NG' ? item.ngRaw : item.maxRaw;
-                            const acCount = name === 'B737-NG' ? item.ngAcCount : item.maxAcCount;
-                            return [`${value.toFixed(2)} avg (${raw} findings ÷ ${acCount} aircraft with this component)`, name];
+                          const isNG = name === 'B737-NG';
+                          const raw = isNG ? item.ngRaw : item.maxRaw;
+                          if (fleetMode === 'per_ac') {
+                            const acCount = isNG ? item.ngAcCount : item.maxAcCount;
+                            return [`${value.toFixed(2)} per A/C (${raw} findings ÷ ${acCount} aircraft with this component)`, name];
                           }
-                          return [value, name];
+                          if (fleetMode === 'per_app') {
+                            const eodCount = isNG ? fleetComparisonData.ngEODCount : fleetComparisonData.maxEODCount;
+                            return [`${value.toFixed(4)} per application (${raw} findings ÷ ${eodCount} EOD applications)`, name];
+                          }
+                          return [`${value} findings`, name];
                         }}
                       />
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
@@ -1362,7 +1462,7 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                {fleetNormalize && (
+                {fleetMode === 'per_ac' && (
                   <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-[11px] text-amber-800">
                       <strong>ℹ️ Per-Aircraft Average:</strong> Each component&apos;s total finding count is divided by the number of aircraft that had findings for <em>that specific component</em>, not the total fleet size.
@@ -1372,44 +1472,67 @@ export function PeriodComparison({ records, eodRecords, sigmaSettings = DEFAULT_
                     </p>
                   </div>
                 )}
+                {fleetMode === 'per_app' && (
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-[11px] text-amber-800">
+                      <strong>ℹ️ Per Application:</strong> Per Application normalizes each fleet&apos;s finding count by the number of EOD
+                      applications that fleet recorded in the selected period. NG and MAX use
+                      separate denominators (their own EOD counts), so the values are directly
+                      comparable irrespective of fleet utilization.
+                      NG denominator: <strong>{fleetComparisonData.ngEODCount}</strong> applications, MAX denominator: <strong>{fleetComparisonData.maxEODCount}</strong> applications.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Top Differences */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-1">NG Fleet Has More</h3>
-                  <p className="text-xs text-gray-500 mb-4">{fleetNormalize ? 'Per-aircraft average basis' : 'Total count basis'}</p>
+                  <p className="text-xs text-gray-500 mb-4">{
+                    fleetMode === 'per_ac' ? 'Per-aircraft average basis'
+                    : fleetMode === 'per_app' ? 'Per EOD application basis'
+                    : 'Total count basis'
+                  }</p>
                   <div className="space-y-2">
                     {fleetComparisonData.ngHigher.length > 0 ? fleetComparisonData.ngHigher.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 hover:shadow-sm transition-all" onClick={() => handleFleetComponentClick(item.component, 'ng')}>
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{item.component} <span className="text-[10px] text-gray-400">🔍</span></p>
-                          {fleetNormalize ? (
+                          {fleetMode === 'per_ac' ? (
                             <p className="text-xs text-gray-500">NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} findings, {item.ngAcCount} ac) — MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} findings, {item.maxAcCount} ac)</p>
+                          ) : fleetMode === 'per_app' ? (
+                            <p className="text-xs text-gray-500">NG: {item.ngPerApp.toFixed(4)}/app ({item.ngRaw} findings ÷ {fleetComparisonData.ngEODCount} apps) — MAX: {item.maxPerApp.toFixed(4)}/app ({item.maxRaw} findings ÷ {fleetComparisonData.maxEODCount} apps)</p>
                           ) : (
                             <p className="text-xs text-gray-600">NG: {item.ngRaw} vs MAX: {item.maxRaw}</p>
                           )}
                         </div>
-                        <p className="text-lg font-bold text-blue-600">+{Math.abs(item.difference).toFixed(fleetNormalize ? 2 : 0)}</p>
+                        <p className="text-lg font-bold text-blue-600">+{Math.abs(item.difference).toFixed(fleetMode === 'per_app' ? 4 : fleetMode === 'per_ac' ? 2 : 0)}</p>
                       </div>
                     )) : <p className="text-sm text-gray-500 text-center py-4">No differences</p>}
                   </div>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-1">MAX Fleet Has More</h3>
-                  <p className="text-xs text-gray-500 mb-4">{fleetNormalize ? 'Per-aircraft average basis' : 'Total count basis'}</p>
+                  <p className="text-xs text-gray-500 mb-4">{
+                    fleetMode === 'per_ac' ? 'Per-aircraft average basis'
+                    : fleetMode === 'per_app' ? 'Per EOD application basis'
+                    : 'Total count basis'
+                  }</p>
                   <div className="space-y-2">
                     {fleetComparisonData.maxHigher.length > 0 ? fleetComparisonData.maxHigher.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg cursor-pointer hover:bg-purple-100 hover:shadow-sm transition-all" onClick={() => handleFleetComponentClick(item.component, 'max')}>
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{item.component} <span className="text-[10px] text-gray-400">🔍</span></p>
-                          {fleetNormalize ? (
+                          {fleetMode === 'per_ac' ? (
                             <p className="text-xs text-gray-500">MAX: {item.maxAvg.toFixed(2)}/ac ({item.maxRaw} findings, {item.maxAcCount} ac) — NG: {item.ngAvg.toFixed(2)}/ac ({item.ngRaw} findings, {item.ngAcCount} ac)</p>
+                          ) : fleetMode === 'per_app' ? (
+                            <p className="text-xs text-gray-500">MAX: {item.maxPerApp.toFixed(4)}/app ({item.maxRaw} findings ÷ {fleetComparisonData.maxEODCount} apps) — NG: {item.ngPerApp.toFixed(4)}/app ({item.ngRaw} findings ÷ {fleetComparisonData.ngEODCount} apps)</p>
                           ) : (
                             <p className="text-xs text-gray-600">NG: {item.ngRaw} vs MAX: {item.maxRaw}</p>
                           )}
                         </div>
-                        <p className="text-lg font-bold text-purple-600">+{Math.abs(item.difference).toFixed(fleetNormalize ? 2 : 0)}</p>
+                        <p className="text-lg font-bold text-purple-600">+{Math.abs(item.difference).toFixed(fleetMode === 'per_app' ? 4 : fleetMode === 'per_ac' ? 2 : 0)}</p>
                       </div>
                     )) : <p className="text-sm text-gray-500 text-center py-4">No differences</p>}
                   </div>
