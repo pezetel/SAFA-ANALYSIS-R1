@@ -404,6 +404,14 @@ function extractComponent(description: string, problemType?: string, ata?: strin
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // PLACARD beats SEAT, SEAT_BELT, and all lower-priority components.
+  // e.g. "FASTEN SEAT BELT PLACARD DAMAGED" → PLACARD, not SEAT_BELT.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (/\bPLACARDS?\b/.test(text) || text.includes('PLACRDS') || text.includes('STICKER') || text.includes('STENCIL')) {
+    return 'PLACARD';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // SEAT-family early routes — ARM REST / ARMREST / ARM CAP / ARMCAP / RECLINE.
   // ─────────────────────────────────────────────────────────────────────────────
   if (/\bARM ?RESTS?\b/.test(text) || /\bARM ?CAPS?\b/.test(text)) {
