@@ -232,6 +232,30 @@ function extractProblemType(description: string): string {
   return 'OTHER';
 }
 
+// Returns the most specific SEAT sub-type based on who the seat belongs to.
+// Called whenever a SEAT-family match is detected.
+function refineSeat(text: string): string {
+  // Cockpit crew seats
+  if (
+    text.includes('F/O') ||
+    text.includes('FIRST OBSERVER') ||
+    text.includes('SECOND OBSERVER') ||
+    /\b(CPT|CAPT|CAPTAIN|CAPTAN|OBSERVER|FLIGHT DECK)\b/.test(text)
+  ) {
+    return 'SEAT_COCKPIT';
+  }
+  // Cabin attendant seats
+  if (
+    text.includes('CABIN ATTENDANT') ||
+    /\b(ATTENDANT|ATTENDENT|ATTEND)\b/.test(text) ||
+    /\bATT\b/.test(text)
+  ) {
+    return 'SEAT_ATT';
+  }
+  // Passenger seat (explicit markers or generic default)
+  return 'SEAT_PAX';
+}
+
 function extractComponent(description: string, problemType?: string): string {
   const text = description.toUpperCase();
 
@@ -379,10 +403,10 @@ function extractComponent(description: string, problemType?: string): string {
   // SEAT-family early routes — ARM REST / ARMREST / ARM CAP / ARMCAP / RECLINE.
   // ─────────────────────────────────────────────────────────────────────────────
   if (/\bARM ?RESTS?\b/.test(text) || /\bARM ?CAPS?\b/.test(text)) {
-    return 'SEAT';
+    return refineSeat(text);
   }
   if (/RECLINE/.test(text)) {
-    return 'SEAT';
+    return refineSeat(text);
   }
 
   // BAGGAGE BAR moved out of OVERHEAD_BIN into SEAT_PAX.
@@ -398,6 +422,14 @@ function extractComponent(description: string, problemType?: string): string {
   // WINDOW (after SUNSHADE so window-shade findings stay in the sunshade family).
   if (/\bWINDOWS?\b/.test(text)) {
     return 'WINDOW';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SEAT sub-type detection — catches all SEAT mentions not involving a belt.
+  // SEAT_BELT / SAFETY BELT / SAFETY HARNESS fall through to the array below.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (/\bSEAT\b/.test(text) && !/(SEAT BELT|SAFETY BELT|SAFETY HARNESS)/.test(text)) {
+    return refineSeat(text);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -442,8 +474,6 @@ function extractComponent(description: string, problemType?: string): string {
     { keywords: ['SIDE PANEL', 'WALL PANEL'], component: 'SIDE_PANEL' },
     { keywords: ['TRIM PANEL'], component: 'TRIM_PANEL' },
     { keywords: ['PANEL', 'TRIM'], component: 'PANEL' },
-    { keywords: ['PAX SEAT', 'PASSENGER SEAT', 'ATTENDANT SEAT'], component: 'SEAT' },
-    { keywords: ['SEAT'], component: 'SEAT' },
     { keywords: ['DOOR', 'EXIT', 'OVERWING EXIT'], component: 'DOOR' },
     { keywords: ['TABLE'], component: 'TRAY_TABLE' },
   ];
