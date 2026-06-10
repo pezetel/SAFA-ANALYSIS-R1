@@ -15,6 +15,7 @@ import { PeriodComparison } from '@/components/PeriodComparison';
 import { EODAlertPanel } from '@/components/EODAlertPanel';
 import { SigmaControl } from '@/components/SigmaControl';
 import { CalculationGuide } from '@/components/CalculationGuide';
+import { ClassificationGuide } from '@/components/ClassificationGuide';
 import { SAFARecord, EODRecord, AnalysisResult, SigmaSettings } from '@/lib/types';
 import { ArrowLeft, Download, RefreshCw, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
@@ -369,6 +370,22 @@ export default function Dashboard() {
               Detailed Data
             </button>
             <button
+              onClick={() => setActiveTab('classification')}
+              className={`pb-2 px-1 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'classification'
+                  ? 'border-teal-600 text-teal-600 font-semibold'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+              Classification
+            </button>
+            <button
               onClick={() => setActiveTab('guide')}
               className={`pb-2 px-1 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === 'guide'
@@ -387,7 +404,7 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab !== 'period' && activeTab !== 'guide' && (
+        {activeTab !== 'period' && activeTab !== 'guide' && activeTab !== 'classification' && (
           <div className="mb-6">
             <FilterPanel data={data} onFilter={handleFilter} />
           </div>
@@ -431,6 +448,10 @@ export default function Dashboard() {
 
         {activeTab === 'details' && (
           <DataTable records={filteredData} />
+        )}
+
+        {activeTab === 'classification' && (
+          <ClassificationGuide />
         )}
 
         {activeTab === 'guide' && (

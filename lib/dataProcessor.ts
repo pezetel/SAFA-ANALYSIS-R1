@@ -204,8 +204,10 @@ function cleanDesc(text: string): string {
 function extractProblemType(description: string): string {
   const text = description.toUpperCase();
 
+  // DENT must be a standalone word — "IDENT", "EVIDENT", "INCIDENT" must not match.
+  if (/\bDENTED?\b/.test(text)) return 'DENT';
+
   const problemTypes = [
-    { keywords: ['DENT', 'DENTED'], type: 'DENT' },
     { keywords: ['PAINT DAMAGE', 'PAINT DAMAGED', 'PAINTING DAMAGE', 'PAINT DAMAGES', 'PAINT DMG', 'PEELED OF PAINT', 'PEELED OFF PAINT', 'PAINTDAMAGE'], type: 'PAINT_DAMAGE' },
     { keywords: ['EXPIRE DATE', 'EXPIRED', 'EXPIRE'], type: 'EXPIRED' },
     { keywords: ['NOT INSTALLED'], type: 'MISSING' },
@@ -399,6 +401,14 @@ function extractComponent(description: string, problemType?: string, ata?: strin
   // ─────────────────────────────────────────────────────────────────────────────
   if (text.includes('CURTAIN')) {
     return 'CURTAIN';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PLACARD beats SEAT, SEAT_BELT, and all lower-priority components.
+  // e.g. "FASTEN SEAT BELT PLACARD DAMAGED" → PLACARD, not SEAT_BELT.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (/\bPLACARDS?\b/.test(text) || text.includes('PLACRDS') || text.includes('STICKER') || text.includes('STENCIL')) {
+    return 'PLACARD';
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

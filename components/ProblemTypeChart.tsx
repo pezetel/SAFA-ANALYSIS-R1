@@ -32,6 +32,12 @@ export function ProblemTypeChart({ records }: ProblemTypeChartProps) {
     return acc;
   }, {} as Record<string, number>);
 
+  const componentsByType = records.reduce((acc, record) => {
+    if (!acc[record.problemType]) acc[record.problemType] = {};
+    acc[record.problemType][record.component] = (acc[record.problemType][record.component] || 0) + 1;
+    return acc;
+  }, {} as Record<string, Record<string, number>>);
+
   const chartData = Object.entries(problemCounts)
     .sort(([, a], [, b]) => b - a)
     .map(([type, count]) => ({
@@ -39,6 +45,10 @@ export function ProblemTypeChart({ records }: ProblemTypeChartProps) {
       originalType: type,
       count,
       percentage: ((count / records.length) * 100).toFixed(1),
+      topComponents: Object.entries(componentsByType[type] || {})
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 4)
+        .map(([comp, cnt]) => ({ comp, cnt })),
     }));
 
   const handleTypeClick = (type: string) => {
@@ -90,17 +100,27 @@ export function ProblemTypeChart({ records }: ProblemTypeChartProps) {
                 style={{ fontSize: '11px' }}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                  fontSize: '12px',
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs max-w-[220px]">
+                      <p className="font-bold text-gray-900 mb-0.5">{d.type}</p>
+                      <p className="text-gray-500 mb-2">{d.count} findings ({d.percentage}%)</p>
+                      {d.topComponents.length > 0 && (
+                        <>
+                          <p className="text-gray-400 uppercase tracking-wide font-semibold mb-1" style={{ fontSize: '10px' }}>Top components</p>
+                          {d.topComponents.map(({ comp, cnt }: { comp: string; cnt: number }) => (
+                            <div key={comp} className="flex justify-between items-center gap-4 py-0.5">
+                              <span className="text-gray-600 truncate">{comp.replace(/_/g, ' ')}</span>
+                              <span className="font-bold text-gray-900 shrink-0">{cnt}</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  );
                 }}
-                formatter={(value: number, name: string, props: any) => [
-                  `${value} findings (${props.payload.percentage}%)`,
-                  'Count'
-                ]}
               />
               <Bar
                 dataKey="count"
