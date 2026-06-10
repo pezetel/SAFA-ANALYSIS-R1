@@ -1,5 +1,53 @@
 # Changelog
 
+## [3.0.0] - 2026-06-10
+
+### Added — Classification Guide Tab
+- **New "Classification" tab** in the dashboard (left of Hesaplama Kılavuzu) with a complete visual reference for all component and problem type classification rules
+- **Problem Types section** — 10 types with colour-coded dots and English keyword descriptions
+- **Component Groups section** — 11 groups (Seating, Cabin Interior, Panels, Doors & Latches, Lighting, Safety & Security, Structure & Fuselage, Wing & Engine, Landing Gear, Cargo, Ground Support & Other) with all triggers listed per component
+- **SEAT FAIRING/ATA-25 rule** documented in the Seating group: "FAIRING when ATA chapter starts with 25 — sub-type resolved by cockpit/ATT/PAX markers above"
+
+### Added — Weighted Sigma Explanation
+- **Section 1b "Why Weighted Sigma?"** added to Hesaplama Kılavuzu (Calculation Guide)
+- 6-month simulation demonstrating how normal sigma is inflated by a low-EOD month (March: 8 EODs vs ~80 fleet average, rate 0.125), causing it to miss a genuine July anomaly (rate 0.098)
+- Shows weighted sigma correctly down-weights March → threshold drops from 0.123 to 0.082 → July anomaly detected
+
+### Added — Version Display
+- **Version badge** (`v3.0.0`) shown in the dashboard header alongside the "Analysis Dashboard" title
+- Home page already displayed version in header/footer — dashboard now matches
+
+### Changed — SEAT Component Split (3 Sub-Types)
+- **`SEAT` replaced by `SEAT_PAX`, `SEAT_ATT`, `SEAT_COCKPIT`** — seat findings are now classified into three sub-types using a `refineSeat()` helper
+  - `SEAT_COCKPIT` — CPT, CAPT, CAPTAIN, F/O, OBSERVER, FLIGHT DECK keywords
+  - `SEAT_ATT` — ATTENDANT, ATT, CABIN ATTENDANT, ATTEND keywords
+  - `SEAT_PAX` — all other seat findings (default)
+- **ARM REST, RECLINE** → resolve via `refineSeat()` too, so armrest/recline findings inherit the correct seat sub-type
+- **SEAT FAIRING + ATA-25 routing** — if description contains FAIRING and the ATA chapter starts with `25`, the finding is classified as a seat sub-type via `refineSeat()` instead of being left as OTHER
+
+### Changed — Component Classification Additions
+- **`CARGO_LANYARD`** — replaces old `LANYARD_RING`; keywords: LANYARD RING, LANYARDS, LANYARD ASSY, RINGS+CARGO
+- **`WINDOW`** — new component; keywords: WINDOW, WINDOWS
+- **`DADO_PANEL`** — new component; keywords: DADO, GRILL, GRILLE, GRIL
+- **`SUNSHADE_COCKPIT` / `SUNSHADE_PAX`** — old single `SUNSHADE` split; cockpit-related sunshades (SUNVISOR, SUNVIZOR) go to `SUNSHADE_COCKPIT`, all others to `SUNSHADE_PAX`
+- **`GROUND_SUPPORT_BAG`** — new component (beats LANDING_GEAR); keywords: GROUND SUPPORT BAG, PINS BAG, PIN BAG
+- **`AIRCRAFT_DIRTY`** — forced when Problem Type = CLEANLINESS, regardless of description
+- **`ANTISKATING_FOIL`, `SCUFF_PLATE`, `VAPOR_BARRIER`, `DRAIN_MAST`, `BLADE_SEAL`, `FUSELAGE_SKIN`** — added to structure group
+- **`SECURITY_BOX`** — new component in Ground Support group
+
+### Fixed — Problem Type Classification
+- **DENT word boundary** — Changed `text.includes('DENT')` to `/\bDENTED?\b/.test(text)`; `IDENT`, `STUDENT`, `INDENT` no longer misclassified as DENT
+- **PLACARD priority over SEAT / SEAT_BELT** — Added PLACARD early-detection block before the SEAT block so descriptions like "FASTEN SEAT BELT WHILE SEATED PLACARD MISSING" correctly classify as PLACARD
+
+### Fixed — Data Cleaning
+- **HTML tags stripped** — `<BR>` and other HTML tags in Excel descriptions are removed before classification (`cleaned.replace(/<[^>]*>/g, ' ')`)
+
+### Changed — Versions
+- `lib/version.ts`: `2.8.0` → `3.0.0`
+- `package.json`: `2.6.0` → `3.0.0`
+
+---
+
 ## [2.8.0] - 2026-04-15
 
 ### Changed — Component Classification: LIGHT Priority Overhaul

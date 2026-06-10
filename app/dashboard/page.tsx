@@ -21,6 +21,7 @@ import { ArrowLeft, Download, RefreshCw, AlertCircle, FileSpreadsheet } from 'lu
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { exportFullReport } from '@/lib/excelExporter';
+import { APP_VERSION } from '@/lib/version';
 
 const DEFAULT_SIGMA: SigmaSettings = { multiplier: 2 };
 
@@ -292,7 +293,10 @@ export default function Dashboard() {
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Analysis Dashboard</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-gray-900">Analysis Dashboard</h1>
+                  <span className="text-xs font-medium bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">v{APP_VERSION}</span>
+                </div>
                 <p className="text-sm text-gray-600">
                   Total {data.records.length} records analyzed
                   {hasEOD && <span className="text-amber-600 ml-2">&bull; {allEodRecords.length} EOD records loaded</span>}

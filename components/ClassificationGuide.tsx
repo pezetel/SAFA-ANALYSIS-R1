@@ -23,6 +23,7 @@ const COMPONENT_GROUPS = [
       { name: 'SEAT_ATT',     keys: 'ATTENDANT, ATT, CABIN ATTENDANT, ATTEND' },
       { name: 'SEAT_COCKPIT', keys: 'CPT, CAPT, CAPTAIN, F/O, OBSERVER, FLIGHT DECK' },
       { name: 'SEAT_BELT',    keys: 'SEAT BELT, SAFETY BELT, SAFETY HARNESS' },
+      { name: 'SEAT (fairing)', keys: 'FAIRING when ATA chapter starts with 25 — sub-type resolved by cockpit/ATT/PAX markers above' },
       { name: 'TRAY_TABLE',   keys: 'FOOD TRAY, TRAY TABLE, BABY TABLE, TABLE' },
     ],
   },
