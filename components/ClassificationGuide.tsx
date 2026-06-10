@@ -1,25 +1,25 @@
 'use client';
 
 const PROBLEM_TYPES = [
-  { type: 'DENT',         color: '#fb923c', dot: 'bg-orange-400',  keywords: 'DENT, DENTED  (tam kelime — IDENT eşleşmez)' },
-  { type: 'PAINT_DAMAGE', color: '#f97316', dot: 'bg-orange-500',  keywords: 'PAINT DAMAGE, PAINT DMG, PEELED OFF PAINT' },
-  { type: 'EXPIRED',      color: '#ec4899', dot: 'bg-pink-400',    keywords: 'EXPIRE, EXPIRED, EXPIRE DATE' },
-  { type: 'MISSING',      color: '#ef4444', dot: 'bg-red-400',     keywords: 'MISSING, MISS, NOT INSTALLED' },
-  { type: 'DAMAGED',      color: '#f59e0b', dot: 'bg-amber-400',   keywords: 'DAMAGED, DAMAGE, CRACK, BROKEN, TORN, WORN, UNREADABLE, FADED' },
-  { type: 'LOOSE',        color: '#eab308', dot: 'bg-yellow-500',  keywords: 'LOOSE, NOT FIXED, NOT ATTACHED, NOT SECURED, DISPLACED' },
-  { type: 'INOPERATIVE',  color: '#8b5cf6', dot: 'bg-violet-400',  keywords: 'INOP, U/S, NOT WORKING, FAULTY, DEFECTIVE, DOES NOT MOVE, WEAK' },
-  { type: 'CLEANLINESS',  color: '#06b6d4', dot: 'bg-cyan-400',    keywords: 'DIRTY, NEEDS CLEANING  → component AIRCRAFT_DIRTY\'a zorla atanır' },
-  { type: 'ADJUSTMENT',   color: '#10b981', dot: 'bg-emerald-400', keywords: 'ADJUSTMENT, OUT OF ADJUSTMENT, WRONG POSITION / DIRECTION' },
-  { type: 'OTHER',        color: '#6b7280', dot: 'bg-gray-400',    keywords: 'Hiçbir kurala uymayan bulgular' },
+  { type: 'DENT',         dot: 'bg-orange-400',  keywords: 'DENT, DENTED  (whole word — IDENT does not match)' },
+  { type: 'PAINT_DAMAGE', dot: 'bg-orange-500',  keywords: 'PAINT DAMAGE, PAINT DMG, PEELED OFF PAINT' },
+  { type: 'EXPIRED',      dot: 'bg-pink-400',    keywords: 'EXPIRE, EXPIRED, EXPIRE DATE' },
+  { type: 'MISSING',      dot: 'bg-red-400',     keywords: 'MISSING, MISS, NOT INSTALLED' },
+  { type: 'DAMAGED',      dot: 'bg-amber-400',   keywords: 'DAMAGED, DAMAGE, CRACK, BROKEN, TORN, WORN, UNREADABLE, FADED' },
+  { type: 'LOOSE',        dot: 'bg-yellow-500',  keywords: 'LOOSE, NOT FIXED, NOT ATTACHED, NOT SECURED, DISPLACED' },
+  { type: 'INOPERATIVE',  dot: 'bg-violet-400',  keywords: 'INOP, U/S, NOT WORKING, FAULTY, DEFECTIVE, DOES NOT MOVE, WEAK' },
+  { type: 'CLEANLINESS',  dot: 'bg-cyan-400',    keywords: 'DIRTY, NEEDS CLEANING  → forces component to AIRCRAFT_DIRTY' },
+  { type: 'ADJUSTMENT',   dot: 'bg-emerald-400', keywords: 'ADJUSTMENT, OUT OF ADJUSTMENT, WRONG POSITION / DIRECTION' },
+  { type: 'OTHER',        dot: 'bg-gray-400',    keywords: 'Findings that match no other rule' },
 ];
 
 const COMPONENT_GROUPS = [
   {
-    group: 'Koltuk',
+    group: 'Seating',
     accent: 'border-blue-200 bg-blue-50',
     header: 'text-blue-700',
     items: [
-      { name: 'SEAT_PAX',     keys: 'PAX, PASSENGER, PASS, PASSANGER, genel SEAT' },
+      { name: 'SEAT_PAX',     keys: 'PAX, PASSENGER, PASS, PASSANGER, generic SEAT' },
       { name: 'SEAT_ATT',     keys: 'ATTENDANT, ATT, CABIN ATTENDANT, ATTEND' },
       { name: 'SEAT_COCKPIT', keys: 'CPT, CAPT, CAPTAIN, F/O, OBSERVER, FLIGHT DECK' },
       { name: 'SEAT_BELT',    keys: 'SEAT BELT, SAFETY BELT, SAFETY HARNESS' },
@@ -27,37 +27,37 @@ const COMPONENT_GROUPS = [
     ],
   },
   {
-    group: 'Kabin İç',
+    group: 'Cabin Interior',
     accent: 'border-indigo-200 bg-indigo-50',
     header: 'text-indigo-700',
     items: [
-      { name: 'OVERHEAD_BIN',    keys: 'OVERHEAD BIN, STOWAGE BIN, STOWAGE BOX, BIN STOP; OVERHEAD+DOOR birlikte' },
-      { name: 'CURTAIN',         keys: 'CURTAIN  (GALLEY\'den önce gelir)' },
+      { name: 'OVERHEAD_BIN',    keys: 'OVERHEAD BIN, STOWAGE BIN, STOWAGE BOX, BIN STOP; OVERHEAD+DOOR together' },
+      { name: 'CURTAIN',         keys: 'CURTAIN  (takes priority over GALLEY)' },
       { name: 'GALLEY',          keys: 'GALLEY' },
       { name: 'LAVATORY',        keys: 'LAVATORY, LAV A-E, SOAP DISPENSER, WASH BASIN, TOILET' },
       { name: 'CARPET',          keys: 'CARPET, FLOOR MAT' },
       { name: 'MIRROR',          keys: 'MIRROR' },
       { name: 'DADO_PANEL',      keys: 'DADO, GRILL, GRILLE, GRIL' },
       { name: 'SUNSHADE_COCKPIT',keys: 'SUNSHADE + (CPT/F.O/COCKPIT/CAPTAIN…), SUNVISOR, SUNVIZOR' },
-      { name: 'SUNSHADE_PAX',    keys: 'Diğer tüm SUNSHADE, WINDOW SHADE, SUN SHADE' },
+      { name: 'SUNSHADE_PAX',    keys: 'All other SUNSHADE, WINDOW SHADE, SUN SHADE' },
       { name: 'WINDOW',          keys: 'WINDOW, WINDOWS' },
     ],
   },
   {
-    group: 'Panel',
+    group: 'Panels',
     accent: 'border-slate-200 bg-slate-50',
     header: 'text-slate-700',
     items: [
-      { name: 'FLOOR_PANEL',    keys: 'FLOOR PANEL' },
-      { name: 'CEILING_PANEL',  keys: 'CEILING PANEL' },
-      { name: 'DOOR_PANEL',     keys: 'DOOR PANEL' },
-      { name: 'SIDE_PANEL',     keys: 'SIDE PANEL, WALL PANEL' },
-      { name: 'TRIM_PANEL',     keys: 'TRIM PANEL' },
-      { name: 'PANEL',          keys: 'PANEL, TRIM, GLARE SHIELD, GLARESHIELD' },
+      { name: 'FLOOR_PANEL',   keys: 'FLOOR PANEL' },
+      { name: 'CEILING_PANEL', keys: 'CEILING PANEL' },
+      { name: 'DOOR_PANEL',    keys: 'DOOR PANEL' },
+      { name: 'SIDE_PANEL',    keys: 'SIDE PANEL, WALL PANEL' },
+      { name: 'TRIM_PANEL',    keys: 'TRIM PANEL' },
+      { name: 'PANEL',         keys: 'PANEL, TRIM, GLARE SHIELD, GLARESHIELD' },
     ],
   },
   {
-    group: 'Kapı & Kilit',
+    group: 'Doors & Latches',
     accent: 'border-gray-200 bg-gray-50',
     header: 'text-gray-700',
     items: [
@@ -67,27 +67,27 @@ const COMPONENT_GROUPS = [
     ],
   },
   {
-    group: 'Aydınlatma',
+    group: 'Lighting',
     accent: 'border-yellow-200 bg-yellow-50',
     header: 'text-yellow-700',
     items: [
-      { name: 'LIGHT', keys: 'LAMP, LAMPS  (her şeyden önce); READING/EMERGENCY/EXIT/NAV/STROBE LIGHT; BULB; PHOTOLUMINESCENT' },
+      { name: 'LIGHT', keys: 'LAMP, LAMPS  (highest priority); READING/EMERGENCY/EXIT/NAV/STROBE LIGHT; BULB; PHOTOLUMINESCENT' },
     ],
   },
   {
-    group: 'Güvenlik & Emniyet',
+    group: 'Safety & Security',
     accent: 'border-red-200 bg-red-50',
     header: 'text-red-700',
     items: [
-      { name: 'LIFE_VEST',    keys: 'LIFE VEST, LIFEVEST' },
-      { name: 'OXYGEN',       keys: 'OXYGEN, OXY BOTTLE' },
-      { name: 'FIRST_AID_KIT',keys: 'FIRST AID KIT, FAK' },
-      { name: 'FLASHLIGHT',   keys: 'FLASHLIGHT, ETL, TORCH' },
-      { name: 'PLACARD',      keys: 'PLACARD, PLACRDS, STICKER, STENCIL  (SEAT ve SEAT_BELT\'den önce gelir)' },
+      { name: 'LIFE_VEST',     keys: 'LIFE VEST, LIFEVEST' },
+      { name: 'OXYGEN',        keys: 'OXYGEN, OXY BOTTLE' },
+      { name: 'FIRST_AID_KIT', keys: 'FIRST AID KIT, FAK' },
+      { name: 'FLASHLIGHT',    keys: 'FLASHLIGHT, ETL, TORCH' },
+      { name: 'PLACARD',       keys: 'PLACARD, PLACRDS, STICKER, STENCIL  (takes priority over SEAT and SEAT_BELT)' },
     ],
   },
   {
-    group: 'Gövde & Yapı',
+    group: 'Structure & Fuselage',
     accent: 'border-stone-200 bg-stone-50',
     header: 'text-stone-700',
     items: [
@@ -102,7 +102,7 @@ const COMPONENT_GROUPS = [
     ],
   },
   {
-    group: 'Kanat & Motor',
+    group: 'Wing & Engine',
     accent: 'border-orange-200 bg-orange-50',
     header: 'text-orange-700',
     items: [
@@ -114,34 +114,34 @@ const COMPONENT_GROUPS = [
     ],
   },
   {
-    group: 'İniş Takımı',
+    group: 'Landing Gear',
     accent: 'border-zinc-200 bg-zinc-50',
     header: 'text-zinc-700',
     items: [
-      { name: 'LANDING_GEAR',       keys: 'LANDING GEAR, TIRE, SHOCK STRUT, WHEEL WELL, BRAKE UNIT, MLG, NLG, L/G, LG PIN, SAFETY PIN' },
-      { name: 'LG_OIL_CHARGING_VALVE', keys: 'OIL CHARGING, CHARGING VALVE, CHARGINGVELVES  (LANDING_GEAR\'den önce gelir)' },
+      { name: 'LANDING_GEAR',          keys: 'LANDING GEAR, TIRE, SHOCK STRUT, WHEEL WELL, BRAKE UNIT, MLG, NLG, L/G, LG PIN, SAFETY PIN' },
+      { name: 'LG_OIL_CHARGING_VALVE', keys: 'OIL CHARGING, CHARGING VALVE, CHARGINGVELVES  (takes priority over LANDING_GEAR)' },
     ],
   },
   {
-    group: 'Kargo',
+    group: 'Cargo',
     accent: 'border-teal-200 bg-teal-50',
     header: 'text-teal-700',
     items: [
-      { name: 'CARGO_NETS',   keys: 'CARGO + NET (yan yana olmak zorunda değil)' },
-      { name: 'CARGO_TAPES',  keys: 'CARGO + TAPE (yan yana olmak zorunda değil)' },
-      { name: 'CARGO_LANYARD',keys: 'LANYARD RING, LANYARDS, LANYARD ASSY; RINGS+CARGO' },
+      { name: 'CARGO_NETS',    keys: 'CARGO + NET (non-adjacent)' },
+      { name: 'CARGO_TAPES',   keys: 'CARGO + TAPE (non-adjacent)' },
+      { name: 'CARGO_LANYARD', keys: 'LANYARD RING, LANYARDS, LANYARD ASSY; RINGS+CARGO' },
     ],
   },
   {
-    group: 'Yer Desteği & Diğer',
+    group: 'Ground Support & Other',
     accent: 'border-green-200 bg-green-50',
     header: 'text-green-700',
     items: [
-      { name: 'GROUND_SUPPORT_BAG', keys: 'GROUND SUPPORT BAG, PINS BAG, PIN BAG  (LANDING_GEAR\'den önce gelir)' },
+      { name: 'GROUND_SUPPORT_BAG', keys: 'GROUND SUPPORT BAG, PINS BAG, PIN BAG  (takes priority over LANDING_GEAR)' },
       { name: 'WATER_SYSTEM',       keys: 'WATER SERVICE, POTABLE WATER' },
       { name: 'SECURITY_BOX',       keys: 'SECURITY BOX' },
-      { name: 'AIRCRAFT_DIRTY',     keys: 'Problem Type = CLEANLINESS ise tüm bileşenler buraya zorla atanır' },
-      { name: 'OTHER',              keys: 'Hiçbir kurala uymayan bulgular' },
+      { name: 'AIRCRAFT_DIRTY',     keys: 'Forced when Problem Type = CLEANLINESS' },
+      { name: 'OTHER',              keys: 'Findings that match no rule' },
     ],
   },
 ];
@@ -151,7 +151,7 @@ export function ClassificationGuide() {
     <div className="space-y-8">
       {/* Problem Types */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Problem Tipleri</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Problem Types</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {PROBLEM_TYPES.map(({ type, dot, keywords }) => (
             <div key={type} className="flex gap-2.5 p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
@@ -167,7 +167,7 @@ export function ClassificationGuide() {
 
       {/* Component Types */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Component Tipleri</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Component Types</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {COMPONENT_GROUPS.map(({ group, accent, header, items }) => (
             <div key={group} className={`border rounded-xl overflow-hidden ${accent}`}>
