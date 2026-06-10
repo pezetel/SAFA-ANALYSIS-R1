@@ -64,7 +64,7 @@ export function processExcelData(rawData: any[]): SAFARecord[] {
 
       const cleanDescription = cleanDesc(description);
       const problemType = extractProblemType(cleanDescription);
-      const component = extractComponent(cleanDescription, problemType);
+      const component = extractComponent(cleanDescription, problemType, ata);
       const severity = extractSeverity(description);
 
       records.push({
@@ -256,7 +256,7 @@ function refineSeat(text: string): string {
   return 'SEAT_PAX';
 }
 
-function extractComponent(description: string, problemType?: string): string {
+function extractComponent(description: string, problemType?: string, ata?: string): string {
   const text = description.toUpperCase();
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -429,6 +429,14 @@ function extractComponent(description: string, problemType?: string): string {
   // SEAT_BELT / SAFETY BELT / SAFETY HARNESS fall through to the array below.
   // ─────────────────────────────────────────────────────────────────────────────
   if (/\bSEAT\b/.test(text) && !/(SEAT BELT|SAFETY BELT|SAFETY HARNESS)/.test(text)) {
+    return refineSeat(text);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // ATA 25 FAIRING → SEAT sub-type (seat fairing/cover).
+  // BODY FAIRING in other ATA chapters stays in FUSELAGE_SKIN below.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (text.includes('FAIRING') && ata && /^25/.test(ata)) {
     return refineSeat(text);
   }
 
