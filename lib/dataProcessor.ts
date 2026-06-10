@@ -161,6 +161,8 @@ function cleanDesc(text: string): string {
   if (!text) return '';
 
   let cleaned = String(text).toUpperCase();
+  // Strip HTML tags (e.g. <BR>, <br/>, <p> from web-based source systems)
+  cleaned = cleaned.replace(/<[^>]*>/g, ' ');
   cleaned = cleaned.replace(/\s+/g, ' ');
 
   cleaned = cleaned.replace(/FINDING\s*\(NRC\d*[^)]*\)\s*/gi, '');
