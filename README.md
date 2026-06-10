@@ -6,7 +6,7 @@ Comprehensive trend analysis and reporting system for aircraft SAFA (Safety Asse
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.5.0-orange)
+![Version](https://img.shields.io/badge/version-3.0.0-orange)
 
 ## 🎯 Features
 
@@ -225,6 +225,16 @@ Upload an EOD Excel file to enable rate-based analysis and alerts:
 - Use live search to find records
 - Export to Excel
 
+#### Classification Tab
+- Complete reference for all component and problem type classification rules
+- Shows keyword triggers, priority order, and special rules (ATA chapter routing, compound detection)
+- Grouped by category with color-coded section headers
+
+#### Hesaplama Kılavuzu (Calculation Guide) Tab
+- Step-by-step explanation of the weighted sigma methodology
+- Interactive simulation showing why weighted sigma catches anomalies that normal sigma misses
+- Coverage: Finding Rate, Weighted Avg, Weighted Sigma, Alert Threshold, Aircraft/Component/ATA alert logic
+
 ### 4. Filters
 
 - **Quick Date Range**: Last 1M / 3M / 6M / 12M / YTD / Full Range
@@ -251,48 +261,106 @@ The system automatically cleans the following noise from descriptions:
 
 ## 🎨 Component Categories
 
-The system automatically recognizes and groups the following components:
+The system automatically recognizes and groups the following components. Classification uses a **priority chain** — first match wins.
 
-| Component | Description |
-|-----------|-------------|
-| `LG_OIL_CHARGING_VALVE` | Landing gear oil charging valve (incl. typo variants) |
-| `BONDING` | Bonding wires and jumper wires |
-| `LANYARD_RING` | Lanyard rings (incl. apostrophe variants) |
-| `HORIZONTAL_STABILIZER` | Horizontal stabilizer |
-| `OVERHEAD_BIN` | Overhead stowage bins |
-| `BIN_STOPPER` | Bin / door stoppers |
-| `TRAY_TABLE` | Tray tables |
-| `SEAT_BELT` | Seat belts and safety harnesses |
-| `LIGHT` | Reading lights, flood lights, light lenses |
-| `LIFE_VEST` | Life vests |
-| `PLACARD` | Placards |
-| `LAVATORY` | Lavatories |
-| `GALLEY` | Galleys |
-| `SUNSHADE` | Window shades / sunshades |
-| `CURTAIN` | Curtains |
-| `OXYGEN` | Oxygen bottles and systems |
-| `MIRROR` | Mirrors |
-| `CARPET` | Carpets and floor mats |
-| `CARGO_NETS` | Cargo nets |
-| `CARGO_TAPES` | Cargo compartment tapes (sidewall, lining, panel) |
-| `ANTENNA` | Antennas |
-| `KRUGER_FLAP` | Kruger flaps |
-| `SLAT` | Slats |
-| `FLAP` | Flaps |
-| `ENGINE` | Engines, cowls, fan blades, pylons |
-| `LANDING_GEAR` | Landing gear and landing lights |
-| `WATER_SYSTEM` | Water service and potable water systems |
-| `HINGE` | Hinges |
-| `LATCH` | Latches |
-| `FLOOR_PANEL` | Floor panels |
-| `CEILING_PANEL` | Ceiling panels |
-| `DOOR_PANEL` | Door panels |
-| `SIDE_PANEL` | Side / wall panels |
-| `TRIM_PANEL` | Trim panels |
-| `PANEL` | Generic panels and trim |
-| `SEAT` | Passenger seats, attendant seats |
-| `DOOR` | Doors |
-| `OTHER` | Unclassified |
+### Seating
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `SEAT_PAX` | Generic SEAT, PASS/PASSENGER/PASSANGER, PAX |
+| `SEAT_ATT` | ATTENDANT/ATT/ATTEND/CABIN ATTENDANT |
+| `SEAT_COCKPIT` | CPT/CAPT/CAPTAIN, F/O, OBSERVER, FLIGHT DECK |
+| `SEAT_BELT` | SEAT BELT, SAFETY BELT, SAFETY HARNESS |
+| `TRAY_TABLE` | FOOD TRAY, TRAY TABLE, BABY TABLE, TABLE |
+
+> SEAT sub-type is also resolved when the keyword is FAIRING and the ATA chapter starts with 25 (ATA 25 cabin fittings). PLACARD always takes priority over SEAT and SEAT_BELT.
+
+### Cabin Interior
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `OVERHEAD_BIN` | OVERHEAD BIN, STOWAGE BIN, STOWAGE BOX, BIN STOP |
+| `CURTAIN` | CURTAIN (takes priority over GALLEY) |
+| `GALLEY` | GALLEY |
+| `LAVATORY` | LAVATORY, LAV A–E, SOAP DISPENSER, WASH BASIN, TOILET |
+| `CARPET` | CARPET, FLOOR MAT |
+| `MIRROR` | MIRROR |
+| `DADO_PANEL` | DADO, GRILL, GRILLE, GRIL |
+| `SUNSHADE_COCKPIT` | SUNSHADE + (CPT/F.O/COCKPIT/CAPTAIN…), SUNVISOR, SUNVIZOR |
+| `SUNSHADE_PAX` | All other SUNSHADE, WINDOW SHADE, SUN SHADE |
+| `WINDOW` | WINDOW, WINDOWS |
+
+### Panels
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `FLOOR_PANEL` | FLOOR PANEL |
+| `CEILING_PANEL` | CEILING PANEL |
+| `DOOR_PANEL` | DOOR PANEL |
+| `SIDE_PANEL` | SIDE PANEL, WALL PANEL |
+| `TRIM_PANEL` | TRIM PANEL |
+| `PANEL` | PANEL, TRIM, GLARE SHIELD, GLARESHIELD |
+
+### Doors & Latches
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `DOOR` | DOOR, EXIT, OVERWING EXIT (OVERHEAD+DOOR → OVERHEAD_BIN) |
+| `LATCH` | DOOR LATCH, COWL LATCH, PANEL LATCH, LATCH SPRING… |
+| `HINGE` | HINGE |
+
+### Lighting
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `LIGHT` | LAMP/LAMPS (unconditional); READING/EMERGENCY/EXIT/NAV/STROBE LIGHT; BULB; PHOTOLUMINESCENT |
+
+### Safety & Security
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `LIFE_VEST` | LIFE VEST, LIFEVEST |
+| `OXYGEN` | OXYGEN, OXY BOTTLE |
+| `FIRST_AID_KIT` | FIRST AID KIT, FAK |
+| `FLASHLIGHT` | FLASHLIGHT, ETL, TORCH |
+| `PLACARD` | PLACARD, PLACRDS, STICKER, STENCIL |
+
+### Structure & Fuselage
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `FUSELAGE_SKIN` | FUS SKIN, FUSELAGE, BODY FAIRING, BUTT JOINT SEALANT |
+| `HORIZONTAL_STABILIZER` | HORIZONTAL STAB, HORIZONTAL STABILIZER |
+| `ANTISKATING_FOIL` | ANTISKATING FOIL, OUTFLOW VALVE FOIL |
+| `SCUFF_PLATE` | SCUFF PLATE |
+| `VAPOR_BARRIER` | VAPOR BARRIER |
+| `DRAIN_MAST` | DRAIN MAST |
+| `BLADE_SEAL` | BLADE SEAL |
+| `BONDING` | BONDING, BONDING WIRE, JUMPER |
+
+### Wing & Engine
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `ENGINE` | #1/#2 ENGINE, ENGINE COWL, FAN BLADE, ENGINE PYLON, ENG |
+| `FLAP` | FLAP |
+| `SLAT` | SLAT |
+| `KRUGER_FLAP` | KRUGER, KRUEGER, KRUGGER, KRUEGGER |
+| `ANTENNA` | ANTENNA |
+
+### Landing Gear
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `LANDING_GEAR` | LANDING GEAR, TIRE, SHOCK STRUT, WHEEL WELL, BRAKE UNIT, MLG, NLG, L/G, LG PIN, SAFETY PIN |
+| `LG_OIL_CHARGING_VALVE` | OIL CHARGING, CHARGING VALVE (takes priority over LANDING_GEAR) |
+
+### Cargo
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `CARGO_NETS` | CARGO + NET anywhere in description (non-adjacent) |
+| `CARGO_TAPES` | CARGO + TAPE anywhere in description (non-adjacent) |
+| `CARGO_LANYARD` | LANYARD RING, LANYARDS, LANYARD ASSY; RINGS + CARGO |
+
+### Ground Support & Other
+| Component | Trigger Keywords |
+|-----------|-----------------|
+| `GROUND_SUPPORT_BAG` | GROUND SUPPORT BAG, PINS BAG, PIN BAG (takes priority over LANDING_GEAR) |
+| `WATER_SYSTEM` | WATER SERVICE, POTABLE WATER |
+| `SECURITY_BOX` | SECURITY BOX |
+| `AIRCRAFT_DIRTY` | Forced when Problem Type = CLEANLINESS |
+| `OTHER` | Findings that match no rule |
 
 ## 🔧 Problem Types
 
@@ -383,7 +451,9 @@ safa-trend-analysis/
 │   ├── PeriodComparison.tsx # Period comparison analysis
 │   ├── FilterPanel.tsx      # Filtering UI with quick date buttons
 │   ├── DataTable.tsx        # Data table with sorting
-│   └── DetailModal.tsx      # Modal for record details
+│   ├── DetailModal.tsx      # Modal for record details
+│   ├── ClassificationGuide.tsx  # Classification rules reference (tab)
+│   └── CalculationGuide.tsx     # Weighted sigma methodology guide (tab)
 ├── lib/
 │   ├── ataDescriptions.json # 5120 ATA chapter descriptions lookup
 │   ├── ataLookup.ts         # ATA description helper (getATADescription, formatATAWithDescription)
