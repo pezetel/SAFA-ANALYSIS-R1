@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { ProjectsView } from '@/components/ProjectsView';
-import { Plane, TrendingUp, AlertCircle, BarChart3, Upload, LayoutGrid } from 'lucide-react';
+import { Plane, Upload, LayoutGrid } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { APP_VERSION } from '@/lib/version';
 
@@ -65,39 +65,6 @@ export default function Home() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'upload' && (
           <>
-            {/* Features Grid */}
-            <div className="grid md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                <div className="bg-blue-100 w-9 h-9 rounded-lg flex items-center justify-center mb-2.5">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
-                </div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1.5">Trend Analysis</h3>
-                <p className="text-xs text-gray-600">
-                  Detailed trend analysis in 6-month periods, time series charts and forecasts
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                <div className="bg-green-100 w-9 h-9 rounded-lg flex items-center justify-center mb-2.5">
-                  <BarChart3 className="h-4 w-4 text-green-600" />
-                </div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1.5">Multi-Dimensional Analysis</h3>
-                <p className="text-xs text-gray-600">
-                  Detailed reports grouped by aircraft, ATA code, and finding type
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                <div className="bg-orange-100 w-9 h-9 rounded-lg flex items-center justify-center mb-2.5">
-                  <AlertCircle className="h-4 w-4 text-orange-600" />
-                </div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1.5">Smart Alerts</h3>
-                <p className="text-xs text-gray-600">
-                  Chronic problem detection, risk scoring and proactive maintenance recommendations
-                </p>
-              </div>
-            </div>
-
             {/* Upload Section */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
               <div className="max-w-2xl mx-auto">
