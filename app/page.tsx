@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FileUpload } from '@/components/FileUpload';
+import { ProjectsView } from '@/components/ProjectsView';
 import { Plane, TrendingUp, AlertCircle, BarChart3 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { APP_VERSION } from '@/lib/version';
@@ -67,6 +68,11 @@ export default function Home() {
               Chronic problem detection, risk scoring and proactive maintenance recommendations
             </p>
           </div>
+        </div>
+
+        {/* Projects Section */}
+        <div className="mb-8">
+          <ProjectsView />
         </div>
 
         {/* Upload Section */}
