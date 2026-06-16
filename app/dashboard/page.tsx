@@ -16,8 +16,9 @@ import { EODAlertPanel } from '@/components/EODAlertPanel';
 import { SigmaControl } from '@/components/SigmaControl';
 import { CalculationGuide } from '@/components/CalculationGuide';
 import { ClassificationGuide } from '@/components/ClassificationGuide';
+import { ProjectsView } from '@/components/ProjectsView';
 import { SAFARecord, EODRecord, AnalysisResult, SigmaSettings } from '@/lib/types';
-import { ArrowLeft, Download, RefreshCw, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, AlertCircle, FileSpreadsheet, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { exportFullReport } from '@/lib/excelExporter';
@@ -403,12 +404,23 @@ export default function Dashboard() {
               </svg>
               Hesaplama Kılavuzu
             </button>
+            <button
+              onClick={() => setActiveTab('projects')}
+              className={`pb-2 px-1 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'projects'
+                  ? 'border-blue-600 text-blue-600 font-semibold'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Projects
+            </button>
           </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab !== 'period' && activeTab !== 'guide' && activeTab !== 'classification' && (
+        {activeTab !== 'period' && activeTab !== 'guide' && activeTab !== 'classification' && activeTab !== 'projects' && (
           <div className="mb-6">
             <FilterPanel data={data} onFilter={handleFilter} />
           </div>
@@ -460,6 +472,10 @@ export default function Dashboard() {
 
         {activeTab === 'guide' && (
           <CalculationGuide />
+        )}
+
+        {activeTab === 'projects' && (
+          <ProjectsView />
         )}
       </div>
     </div>
